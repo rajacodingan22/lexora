@@ -1,0 +1,1 @@
+drop policy if exists certificates_delete_temp_cleanup on storage.objects;

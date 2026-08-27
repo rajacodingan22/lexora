@@ -1,0 +1,1 @@
+ALTER TABLE course_teachers ENABLE ROW LEVEL SECURITY;

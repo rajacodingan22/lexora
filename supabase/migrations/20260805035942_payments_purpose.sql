@@ -1,0 +1,1 @@
+alter table public.payments add column purpose text not null default 'course';

@@ -1,0 +1,1 @@
+ALTER TABLE public.system_settings ALTER COLUMN id TYPE character varying(40);

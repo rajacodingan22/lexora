@@ -1,0 +1,35 @@
+[data-color-blind='true'] .badge-success {
+  background-color: #4363d8 !important;
+  color: #ffffff !important;
+  position: relative;
+}
+
+[data-color-blind='true'] .badge-success::before {
+  content: '\2713';
+  margin-right: 4px;
+  font-weight: 700;
+}
+
+[data-color-blind='true'] .badge-destructive {
+  background-color: #f58231 !important;
+  color: #ffffff !important;
+  position: relative;
+}
+
+[data-color-blind='true'] .badge-destructive::before {
+  content: '\2717';
+  margin-right: 4px;
+  font-weight: 700;
+}
+
+[data-color-blind='true'] .badge-warning {
+  background-color: #4363d8 !important;
+  color: #ffffff !important;
+  position: relative;
+}
+
+[data-color-blind='true'] .badge-warning::before {
+  content: '\26A0';
+  margin-right: 4px;
+  font-weight: 700;
+}

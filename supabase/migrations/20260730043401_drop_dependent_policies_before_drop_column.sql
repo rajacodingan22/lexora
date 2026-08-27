@@ -1,0 +1,15 @@
+DROP POLICY IF EXISTS courses_read_teacher ON courses;
+DROP POLICY IF EXISTS courses_read_unassigned ON courses;
+DROP POLICY IF EXISTS courses_update_teacher ON courses;
+DROP POLICY IF EXISTS assignments_insert_teacher ON assignments;
+DROP POLICY IF EXISTS assignments_delete_teacher ON assignments;
+DROP POLICY IF EXISTS assignments_update_teacher ON assignments;
+DROP POLICY IF EXISTS quizzes_insert_teacher ON quizzes;
+DROP POLICY IF EXISTS quizzes_delete_teacher ON quizzes;
+DROP POLICY IF EXISTS quizzes_update_teacher ON quizzes;
+DROP POLICY IF EXISTS materials_insert_teacher ON materials;
+DROP POLICY IF EXISTS materials_delete_teacher ON materials;
+DROP POLICY IF EXISTS materials_update_teacher ON materials;
+DROP POLICY IF EXISTS sessions_insert_teacher ON live_sessions;
+DROP POLICY IF EXISTS sessions_delete_teacher ON live_sessions;
+DROP POLICY IF EXISTS sessions_update_teacher ON live_sessions;

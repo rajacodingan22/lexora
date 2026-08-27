@@ -1,0 +1,12 @@
+INSERT INTO placement_questions (test_id, language_code, question_type, question_text, passage_text, audio_url, options, correct_answer, points, difficulty_level, sort_order)
+SELECT * FROM (VALUES
+  ('a0000001-0000-0000-0000-000000000001'::uuid, 'en'::text, 'listening'::text, 'The teacher says: "Please open your book to page five." What should you do?'::text, ''::text, '/audio/placement/en/listening_a1_1.mp3'::text, '["Close your book", "Open your book to page five", "Write your name", "Stand up"]'::jsonb, '1'::text, 5, 'A1'::text, 1),
+  ('a0000001-0000-0000-0000-000000000001', 'en', 'listening', 'You hear: "The train to London departs at half past three from platform four." What time does the train leave?', '', '/audio/placement/en/listening_a2_1.mp3', '["3:00", "3:30", "4:00", "4:30"]', '1', 5, 'A2', 2),
+  ('a0000001-0000-0000-0000-000000000001', 'en', 'listening', 'You hear a weather forecast: "Tomorrow will be mostly cloudy with a chance of light rain in the afternoon." What will the weather be like?', '', '/audio/placement/en/listening_b1_1.mp3', '["Sunny all day", "Cloudy with possible rain", "Snowy and cold", "Thunderstorms"]', '1', 5, 'B1', 3),
+  ('a0000001-0000-0000-0000-000000000001', 'en', 'listening', 'You hear a news report: "The committee has unanimously agreed to postpone the conference until March." What did they decide?', '', '/audio/placement/en/listening_b2_1.mp3', '["Cancel the conference", "Postpone to March", "Proceed as planned", "Change location"]', '1', 5, 'B2', 4),
+  ('a0000001-0000-0000-0000-000000000001', 'en', 'reading', 'What is the name of the person?', 'This is John. He is a student. He lives in London. He studies English every day.', '', '["John", "London", "Student", "English"]', '0', 5, 'A1', 5),
+  ('a0000001-0000-0000-0000-000000000001', 'en', 'reading', 'Where does Sarah want to go on Saturday?', 'Sarah: "I want to go to the beach this Saturday. The weather will be sunny."', '', '["To the park", "To the beach", "To the mall", "To school"]', '1', 5, 'A2', 6),
+  ('a0000001-0000-0000-0000-000000000001', 'en', 'grammar', 'She ___ a teacher.', '', '', '["am", "is", "are", "be"]', '1', 5, 'A1', 7),
+  ('a0000001-0000-0000-0000-000000000001', 'en', 'grammar', 'They ___ to school every day.', '', '', '["go", "goes", "going", "went"]', '0', 5, 'A2', 8)
+) AS q(test_id, lang, qtype, qtext, passage, audio, opts, correct, points, diff, sort)
+WHERE NOT EXISTS (SELECT 1 FROM placement_questions WHERE test_id = q.test_id AND sort_order = q.sort);

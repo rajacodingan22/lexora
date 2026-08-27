@@ -1,0 +1,2 @@
+alter table public.enrollments drop constraint enrollments_status_check;
+alter table public.enrollments add constraint enrollments_status_check check (status in ('active', 'pending', 'pending_payment', 'completed', 'dropped', 'waitlisted'));

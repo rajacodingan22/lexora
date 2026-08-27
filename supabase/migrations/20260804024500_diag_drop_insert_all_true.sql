@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS diag_insert_all_true ON storage.objects;

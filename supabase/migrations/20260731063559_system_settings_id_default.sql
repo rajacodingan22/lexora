@@ -1,0 +1,1 @@
+ALTER TABLE public.system_settings ALTER COLUMN id SET DEFAULT gen_random_uuid()::text;

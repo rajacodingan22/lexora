@@ -35,7 +35,16 @@ yarn-error.log*
 
 # vercel
 .vercel
+vercel-files.json
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*
+
+# audit artefacts
+eslint-now.json
+eslint-now.err
+.eslint-temp.json

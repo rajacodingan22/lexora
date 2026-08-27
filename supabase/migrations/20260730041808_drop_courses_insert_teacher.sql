@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS courses_insert_teacher ON courses;
