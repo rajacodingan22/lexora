@@ -579,6 +579,7 @@ export type ActivityType =
   | 'reading'
   | 'listening'
   | 'image_speak'
+  | 'speaking_review'
 
 export type MissionType =
   | 'quiz_challenge'
@@ -778,5 +779,12 @@ export interface ImageSpeakContent {
   instructions?: string
 }
 
-export type ActivityContentData = ReadingContent | ListeningContent | ImageSpeakContent
+export interface SpeakingReviewContent {
+  text: string
+  instructions?: string
+  voice?: string | null
+  rate?: number
+}
+
+export type ActivityContentData = ReadingContent | ListeningContent | ImageSpeakContent | SpeakingReviewContent
 

@@ -285,6 +285,43 @@ function ImageSpeakEditor({ content, onChange, t }: { content: any; onChange: (c
   )
 }
 
+function SpeakingReviewEditor({ content, onChange }: { content: any; onChange: (c: any) => void }) {
+  return (
+    <div className="space-y-4">
+      <Field label="Teks yang Harus Dibaca *">
+        <Textarea
+          rows={4}
+          value={content.text ?? ''}
+          onChange={(e) => onChange({ ...content, text: e.target.value })}
+          placeholder="The quick brown fox jumps over the lazy dog"
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="TTS Rate">
+          <input
+            type="range"
+            min={0.5}
+            max={1.5}
+            step={0.1}
+            value={content.rate ?? 0.9}
+            onChange={(e) => onChange({ ...content, rate: Number(e.target.value) })}
+            className="w-full"
+          />
+          <span className="text-xs text-slate-400">{content.rate ?? 0.9}x</span>
+        </Field>
+      </div>
+      <Field label="Instructions (opsional)">
+        <Input
+          value={content.instructions ?? ''}
+          onChange={(e) => onChange({ ...content, instructions: e.target.value })}
+          placeholder="Baca teks dengan jelas dan natural"
+        />
+      </Field>
+      <p className="text-xs text-slate-500">Siswa: lihat teks → dengarkan TTS referensi → rekam 1 kali → bandingkan waveform → kirim untuk review guru. <span className="font-semibold text-amber-600">Hanya bisa rekam 1 kali.</span></p>
+    </div>
+  )
+}
+
 export function ActivityEditorModal({
   open,
   activity,
@@ -343,6 +380,7 @@ export function ActivityEditorModal({
       case 'reading': return <ReadingEditor {...props} />
       case 'listening': return <ListeningEditor {...props} />
       case 'image_speak': return <ImageSpeakEditor {...props} />
+      case 'speaking_review': return <SpeakingReviewEditor {...props} />
     }
   }
 

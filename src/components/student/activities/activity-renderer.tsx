@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { computeActivityResult, type ActivityResult } from '@/lib/learning'
 import type { ActivityType, LessonActivity } from '@/types'
 import { CheckCircle2, Loader2, Pause, Play, Volume2, Mic } from 'lucide-react'
+import { SpeakingReviewRenderer } from './speaking-review-renderer'
 import { useI18n } from '@/lib/i18n/client'
 
 export interface SubmitPayload {
@@ -13,7 +14,7 @@ export interface SubmitPayload {
   result: ActivityResult
 }
 
-interface RendererProps {
+export interface RendererProps {
   activity: LessonActivity
   content: Record<string, unknown>
   preview?: boolean
@@ -268,6 +269,7 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
   const [selected, setSelected] = useState<number | null>(null)
   const [showMicView, setShowMicView] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [interimText, setInterimText] = useState('')
   const [transcript, setTranscript] = useState('')
   const [wordScores, setWordScores] = useState<{ word: string; accuracy: number }[] | null>(null)
   const [overall, setOverall] = useState<number | null>(null)
@@ -308,45 +310,59 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
     }
     setIsRecording(true)
     setError(null)
+    setInterimText('')
     setTranscript('')
     setWordScores(null)
     setOverall(null)
 
     const recognition = new SpeechRecognition()
     recognition.lang = 'en-US'
-    recognition.interimResults = false
+    recognition.interimResults = true
     recognition.maxAlternatives = 1
     recognition.continuous = false
 
     recognition.onresult = async (event: any) => {
-      const result = event.results[0][0].transcript as string
-      setTranscript(result)
-      setIsRecording(false)
-      setGrading(true)
-      try {
-        const res = await fetch('/api/pronunciation/score', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ expectedText, transcript: result, prompt }),
-        })
-        const data = await res.json()
-        if (data.error) {
-          setError(data.error)
+      let interim = ''
+      let final = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          final += t
         } else {
-          setWordScores(data.word_scores ?? null)
-          setOverall(data.overall ?? null)
-          setFeedback(data.feedback ?? null)
-          if (typeof data.overall === 'number' && data.overall >= threshold) {
-            onComplete({
-              answers: { selectedIndex: correctIndex, transcript: result, word_scores: data.word_scores, overall: data.overall, drive_link: data.drive_link },
-              result: { score: Math.round(data.overall * 100), correct: 1, total: 1, completed: true },
-            })
-          }
+          interim += t
         }
-      } catch (e: any) {
-        setError(e?.message || 'Failed to score')
       }
-      setGrading(false)
+      if (interim) setInterimText(interim)
+      if (final) {
+        setInterimText('')
+        setTranscript(final)
+        setIsRecording(false)
+        setGrading(true)
+        try {
+          const res = await fetch('/api/pronunciation/score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expectedText, transcript: final, prompt }),
+          })
+          const data = await res.json()
+          if (data.error) {
+            setError(data.error)
+          } else {
+            setWordScores(data.word_scores ?? null)
+            setOverall(data.overall ?? null)
+            setFeedback(data.feedback ?? null)
+            if (typeof data.overall === 'number' && data.overall >= threshold) {
+              onComplete({
+                answers: { selectedIndex: correctIndex, transcript: final, word_scores: data.word_scores, overall: data.overall, drive_link: data.drive_link },
+                result: { score: Math.round(data.overall * 100), correct: 1, total: 1, completed: true },
+              })
+            }
+          }
+        } catch (e: any) {
+          setError(e?.message || 'Failed to score')
+        }
+        setGrading(false)
+      }
     }
     recognition.onerror = (e: any) => {
       setError(e?.error || 'Recognition failed')
@@ -393,8 +409,14 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
         </button>
         <p className="text-xs text-white/50">{isRecording ? 'Mendengarkan...' : grading ? 'Menilai...' : 'Tekan & ucapkan kalimatnya'}</p>
 
-        {transcript && (
-          <p className="text-sm text-white/60">Kamu: &quot;{transcript}&quot;</p>
+        {(interimText || transcript) && (
+          <p className="text-sm text-white/60">
+            {isRecording && interimText ? (
+              <span className="text-white/40 italic">{interimText}...</span>
+            ) : transcript ? (
+              <>Kamu: &quot;{transcript}&quot;</>
+            ) : null}
+          </p>
         )}
         {wordScores && (
           <div className="w-full max-w-md space-y-2">
@@ -427,7 +449,7 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
               {grading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null} Coba Lagi
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => { setShowMicView(false); setSelected(null); setWordScores(null); setOverall(null); setTranscript(''); }}>
+          <Button size="sm" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => { setShowMicView(false); setSelected(null); setWordScores(null); setOverall(null); setTranscript(''); setInterimText(''); }}>
             Kembali
           </Button>
         </div>
@@ -492,6 +514,8 @@ export function ActivityRenderer(props: RendererProps) {
       return wrap(<ListeningRenderer {...props} />)
     case 'image_speak':
       return wrap(<ImageSpeakRenderer {...props} />)
+    case 'speaking_review':
+      return wrap(<SpeakingReviewRenderer {...props} />)
     default:
       return <p className="py-10 text-center text-sm text-slate-400">{t('activity.common.unsupported')}</p>
   }

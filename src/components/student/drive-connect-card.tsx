@@ -1,11 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, CheckCircle2, Cloud, Unlink, ExternalLink } from 'lucide-react'
+import { Loader2, CheckCircle2, Cloud, Unlink, ExternalLink, FolderOpen } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/client'
+
+const DriveFileBrowser = lazy(() => import('./drive-file-browser').then(m => ({ default: m.DriveFileBrowser })))
 
 interface DriveStatus {
   connected: boolean
@@ -19,6 +21,7 @@ export function DriveConnectCard() {
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [showFiles, setShowFiles] = useState(false)
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -37,9 +40,7 @@ export function DriveConnectCard() {
 
   useEffect(() => {
     fetchStatus()
-    // Jika kembali dari callback dengan ?drive=connected, refresh status
     if (typeof window !== 'undefined' && window.location.search.includes('drive=connected')) {
-      // Bersihkan query param agar refresh tidak mengulang
       const url = new URL(window.location.href)
       url.searchParams.delete('drive')
       window.history.replaceState({}, '', url.toString())
@@ -67,6 +68,7 @@ export function DriveConnectCard() {
       const res = await fetch('/api/drive/disconnect', { method: 'POST' })
       if (!res.ok) throw new Error('Gagal memutus koneksi')
       await fetchStatus()
+      setShowFiles(false)
     } catch (e: any) {
       alert(e?.message || 'Gagal memutus koneksi')
     }
@@ -112,10 +114,12 @@ export function DriveConnectCard() {
               </Button>
               <Button
                 size="sm"
-                variant="ghost"
-                onClick={() => window.open('https://drive.google.com/drive/my-drive', '_blank')}
+                variant={showFiles ? 'default' : 'ghost'}
+                onClick={() => setShowFiles(!showFiles)}
+                className={showFiles ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
               >
-                Buka Drive <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                <FolderOpen className="mr-1 h-3.5 w-3.5" />
+                {showFiles ? 'Tutup' : 'Lihat File'}
               </Button>
             </div>
           </>
@@ -134,6 +138,12 @@ export function DriveConnectCard() {
               Hubungkan Google Drive
             </Button>
           </>
+        )}
+
+        {showFiles && status?.connected && (
+          <Suspense fallback={<div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>}>
+            <DriveFileBrowser />
+          </Suspense>
         )}
       </CardContent>
     </Card>

@@ -9,19 +9,21 @@ import type {
 } from '@/types'
 
 /**
- * ACTIVE activity types - 3 types: reading, listening, image_speak (tap + speak 90%)
+ * ACTIVE activity types - 4 types: reading, listening, image_speak, speaking_review
  * Admin-only creation. Student speaking uses Drive per user (Opsi A) + Supabase text+link.
  */
 export const ACTIVITY_TYPES: ActivityType[] = [
   'reading',
   'listening',
   'image_speak',
+  'speaking_review',
 ]
 
 export const ACTIVITY_TYPE_LABELS: Record<string, { en: string; id: string; zh: string }> = {
   reading: { en: 'Reading', id: 'Membaca', zh: '阅读' },
   listening: { en: 'Listening', id: 'Mendengarkan', zh: '听力' },
   image_speak: { en: 'Image Speak', id: 'Gambar & Ucap', zh: '看图说话' },
+  speaking_review: { en: 'Speaking Review', id: 'Ulasan Berbicara', zh: '口语评审' },
   learn: { en: 'Learn', id: 'Pelajari', zh: '学习' },
   flashcard: { en: 'Flashcard', id: 'Kartu', zh: '卡片' },
   vocabulary: { en: 'Vocabulary', id: 'Kosakata', zh: '词汇' },
@@ -47,6 +49,8 @@ export function defaultActivityContent(type: ActivityType): ActivityContentData 
       return { audio_url: null, audio_text: '', voice: null, speed: 1, instructions: '' }
     case 'image_speak':
       return { prompt: '', images: ['', '', '', ''], correctIndex: 0, expectedText: '', threshold: 0.9, instructions: '' } as any
+    case 'speaking_review':
+      return { text: '', instructions: '', voice: null, rate: 0.9 } as any
   }
 }
 
@@ -74,6 +78,8 @@ export function activityContentReady(type: ActivityType, content: unknown): bool
       if (typeof correctIndex !== 'number' || correctIndex < 0 || correctIndex > 3) return false
       return true
     }
+    case 'speaking_review':
+      return ((c.text as string) ?? '').trim().length > 0
   }
 }
 

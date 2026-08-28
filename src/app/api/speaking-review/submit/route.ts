@@ -2,23 +2,6 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { decrypt } from '@/lib/drive-crypto'
 
-function levenshtein(a: string, b: string): number {
-  const m = a.length, n = b.length
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
-  for (let i = 0; i <= m; i++) dp[i][0] = i
-  for (let j = 0; j <= n; j++) dp[0][j] = j
-  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])
-  return dp[m][n]
-}
-function similarity(a: string, b: string): number {
-  const maxLen = Math.max(a.length, b.length)
-  if (maxLen === 0) return 1
-  return 1 - levenshtein(a, b) / maxLen
-}
-function normalize(s: string): string {
-  return s.trim().toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ')
-}
-
 async function getAccessToken(refreshTokenEncrypted: string): Promise<string | null> {
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
@@ -27,12 +10,7 @@ async function getAccessToken(refreshTokenEncrypted: string): Promise<string | n
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
+    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: 'refresh_token' }),
   })
   if (!res.ok) return null
   const data = (await res.json()) as { access_token?: string }
@@ -40,7 +18,6 @@ async function getAccessToken(refreshTokenEncrypted: string): Promise<string | n
 }
 
 async function uploadToDrive(accessToken: string, audioBuffer: Buffer, mimeType: string, fileName: string) {
-  // Find or create Lexora folder
   const q = encodeURIComponent(`name='Lexora' and mimeType='application/vnd.google-apps.folder' and trashed=false`)
   const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -56,13 +33,8 @@ async function uploadToDrive(accessToken: string, audioBuffer: Buffer, mimeType:
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Lexora', mimeType: 'application/vnd.google-apps.folder' }),
     })
-    if (createRes.ok) {
-      const f = (await createRes.json()) as { id?: string }
-      folderId = f.id ?? null
-    }
+    if (createRes.ok) { const f = (await createRes.json()) as { id?: string }; folderId = f.id ?? null }
   }
-
-  // Upload file
   const boundary = 'lexora' + crypto.randomUUID().replace(/-/g, '')
   const metadata = JSON.stringify({ name: fileName, ...(folderId ? { parents: [folderId] } : {}), mimeType })
   const body = Buffer.concat([
@@ -71,16 +43,11 @@ async function uploadToDrive(accessToken: string, audioBuffer: Buffer, mimeType:
     audioBuffer,
     Buffer.from(`\r\n--${boundary}--`),
   ])
-
   const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': `multipart/related; boundary=${boundary}`,
-    },
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
     body,
   })
-
   if (!uploadRes.ok) return { drive_file_id: null, drive_link: null }
   const uploaded = (await uploadRes.json()) as { id?: string; webViewLink?: string }
   return { drive_file_id: uploaded.id ?? null, drive_link: uploaded.webViewLink ?? null }
@@ -92,35 +59,12 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { expectedText, transcript, prompt, audioBase64, mimeType: clientMimeType } = await req.json()
-    const expected = String(expectedText || prompt || '').trim()
-    const spoken = String(transcript || '').trim()
-    if (!expected) return NextResponse.json({ error: 'expectedText required' }, { status: 400 })
-    if (!spoken) return NextResponse.json({ error: 'transcript required' }, { status: 400 })
-    if (spoken.length > 500) return NextResponse.json({ error: 'transcript too long' }, { status: 400 })
-
-    const normExpected = normalize(expected)
-    const normSpoken = normalize(spoken)
-
-    const expWords = normExpected.split(' ').filter(Boolean)
-    const spokWords = normSpoken.split(' ').filter(Boolean)
-
-    // word-level scoring
-    const word_scores = expWords.map((w, i) => {
-      const spokenWord = spokWords[i] || spokWords.find(sw => similarity(sw, w) > 0.7) || ''
-      const acc = spokenWord ? similarity(w, spokenWord) : 0
-      return { word: w, spoken: spokenWord, accuracy: Math.round(acc * 100) / 100 }
-    })
-
-    // overall: average of word accuracies + bonus for length match
-    const avgWord = word_scores.reduce((s, w) => s + w.accuracy, 0) / (word_scores.length || 1)
-    const lengthPenalty = Math.abs(expWords.length - spokWords.length) * 0.05
-    const overallRaw = Math.max(0, avgWord - lengthPenalty)
-    const overall = Math.round(overallRaw * 100) / 100
+    const { activityId, taskId, batchId, activityProgressId, transcript, wordScores, autoScore, audioBase64, mimeType: clientMimeType } = await req.json()
+    if (!activityId) return NextResponse.json({ error: 'activityId required' }, { status: 400 })
 
     // Upload audio to Drive if provided
-    let drive_link: string | null = null
-    let drive_file_id: string | null = null
+    let audio_drive_file_id: string | null = null
+    let audio_drive_link: string | null = null
     if (audioBase64) {
       try {
         const { data: tokenRow } = await supabase
@@ -128,34 +72,93 @@ export async function POST(req: Request) {
           .select('encrypted_refresh_token')
           .eq('user_id', user.id)
           .maybeSingle()
-
         if (tokenRow) {
           const accessToken = await getAccessToken(tokenRow.encrypted_refresh_token)
           if (accessToken) {
             const audioBuffer = Buffer.from(String(audioBase64), 'base64')
             const mimeType = clientMimeType || 'audio/webm'
-            const fileName = `lexora-speaking-${Date.now()}.webm`
-            const result = await uploadToDrive(accessToken, audioBuffer, mimeType, fileName)
-            drive_link = result.drive_link
-            drive_file_id = result.drive_file_id
+            const result = await uploadToDrive(accessToken, audioBuffer, mimeType, `speaking-review-${Date.now()}.webm`)
+            audio_drive_file_id = result.drive_file_id
+            audio_drive_link = result.drive_link
           }
         }
-      } catch (driveErr) {
-        console.error('[pronunciation] drive upload failed', driveErr)
-      }
+      } catch (e) { console.error('[speaking-review] drive upload error', e) }
     }
 
-    const feedback = overall >= 0.9 ? 'Bagus! Pengucapanmu akurat.' : overall >= 0.7 ? 'Lumayan, perbaiki kata yang berwarna merah.' : 'Coba lagi, fokus pada kata yang merah.'
+    // Get activity progress ID if not provided
+    let progressId = activityProgressId
+    if (!progressId) {
+      const { data: existing } = await supabase
+        .from('student_activity_progress')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('activity_id', activityId)
+        .maybeSingle()
+      progressId = existing?.id
+    }
 
-    return NextResponse.json({
-      overall,
-      word_scores,
-      feedback,
-      drive_link,
-      drive_file_id,
-    })
+    // Insert submission
+    const { data: submission, error: insertErr } = await supabase
+      .from('speaking_review_submissions')
+      .insert({
+        activity_progress_id: progressId,
+        user_id: user.id,
+        activity_id: activityId,
+        task_id: taskId,
+        batch_id: batchId,
+        transcript,
+        word_scores: wordScores,
+        auto_score: autoScore,
+        audio_drive_file_id,
+        audio_drive_link,
+        review_status: 'pending',
+      })
+      .select('id')
+      .single()
+
+    if (insertErr) {
+      console.error('[speaking-review] insert error', insertErr)
+      return NextResponse.json({ error: 'Failed to save submission' }, { status: 500 })
+    }
+
+    // Notify teachers of this course
+    try {
+      const { data: enrollment } = await supabase
+        .from('enrollments')
+        .select('course_id')
+        .eq('user_id', user.id)
+        .eq('batch_id', batchId)
+        .maybeSingle()
+
+      if (enrollment) {
+        const { data: teachers } = await supabase
+          .from('course_teachers')
+          .select('teacher_id')
+          .eq('course_id', enrollment.course_id)
+
+        if (teachers) {
+          const { data: studentProfile } = await supabase
+            .from('users')
+            .select('display_name')
+            .eq('id', user.id)
+            .maybeSingle()
+
+          for (const t of teachers) {
+            await supabase.from('notifications').insert({
+              user_id: t.teacher_id,
+              type: 'info',
+              title: 'Speaking Review Menunggu',
+              body: `${studentProfile?.display_name || 'Student'} mengirim rekaman berbicara untuk review.`,
+              link: '/teacher/nilai',
+            })
+          }
+        }
+      }
+    } catch (notifErr) { console.error('[speaking-review] notify error', notifErr) }
+
+    return NextResponse.json({ success: true, submission_id: submission.id })
   } catch (e) {
-    console.error('[pronunciation] error', e)
+    console.error('[speaking-review] error', e)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
