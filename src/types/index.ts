@@ -528,6 +528,12 @@ export interface CourseTask {
   required_lesson_score?: number
   activity_unlock_rule?: ActivityUnlockRule
   content_version?: number
+  dialog_enabled?: boolean
+  dialog_topic?: string | null
+  dialog_character_name?: string | null
+  dialog_character_role?: string | null
+  dialog_instructions?: string | null
+  dialog_duration_sec?: number
   created_at: string
   updated_at: string
 }
@@ -726,6 +732,25 @@ export interface ActivityLibraryItem {
   description: string | null
   content: Record<string, unknown>
   usage_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface DialogSession {
+  id: string
+  user_id: string
+  batch_id: string
+  task_id: string
+  topic: string
+  character_name: string | null
+  character_role: string | null
+  language_code: string
+  status: 'active' | 'completed' | 'expired' | 'abandoned'
+  started_at: string
+  ends_at: string | null
+  completed_at: string | null
+  turns: Array<Record<string, unknown>>
+  feedback: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }

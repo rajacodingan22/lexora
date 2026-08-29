@@ -23,7 +23,7 @@ import {
   Layers, ListOrdered, CheckCircle2, XCircle, EyeOff, ChevronUp, ChevronDown, X,
 } from 'lucide-react'
 
-type Tab = 'overview' | 'lessons' | 'settings' | 'batches'
+type Tab = 'overview' | 'lessons' | 'settings' | 'batches' | 'dialog'
 
 interface TaskDraft {
   title: string
@@ -38,6 +38,12 @@ interface TaskDraft {
   required_lesson_score: number
   activity_unlock_rule: 'all_available' | 'sequential'
   status: TaskStatus
+  dialog_enabled: boolean
+  dialog_topic: string
+  dialog_character_name: string
+  dialog_character_role: string
+  dialog_instructions: string
+  dialog_duration_sec: number
 }
 
 export default function AdminTaskBuilderPage() {
@@ -117,6 +123,12 @@ export default function AdminTaskBuilderPage() {
           lesson_unlock_rule: draft.lesson_unlock_rule,
           required_lesson_score: draft.required_lesson_score,
           activity_unlock_rule: draft.activity_unlock_rule,
+          dialog_enabled: draft.dialog_enabled,
+          dialog_topic: draft.dialog_topic || null,
+          dialog_character_name: draft.dialog_character_name || null,
+          dialog_character_role: draft.dialog_character_role || null,
+          dialog_instructions: draft.dialog_instructions || null,
+          dialog_duration_sec: draft.dialog_duration_sec,
         })
         .eq('id', taskId)
       if (error) throw error
@@ -137,6 +149,7 @@ export default function AdminTaskBuilderPage() {
 
   useEffect(() => {
     if (!task) return
+    const t = task as unknown as Record<string, unknown>
     const next: TaskDraft = {
       title: task.title,
       description: task.description || '',
@@ -150,6 +163,12 @@ export default function AdminTaskBuilderPage() {
       required_lesson_score: task.required_lesson_score ?? 70,
       activity_unlock_rule: task.activity_unlock_rule ?? 'sequential',
       status: task.status,
+      dialog_enabled: !!(t.dialog_enabled),
+      dialog_topic: (t.dialog_topic as string) || '',
+      dialog_character_name: (t.dialog_character_name as string) || '',
+      dialog_character_role: (t.dialog_character_role as string) || '',
+      dialog_instructions: (t.dialog_instructions as string) || '',
+      dialog_duration_sec: (t.dialog_duration_sec as number) ?? 420,
     }
     // Only update draft if values actually changed (prevents autosave loop)
     setDraft((prev) => {
@@ -166,7 +185,13 @@ export default function AdminTaskBuilderPage() {
         prev.lesson_unlock_rule === next.lesson_unlock_rule &&
         prev.required_lesson_score === next.required_lesson_score &&
         prev.activity_unlock_rule === next.activity_unlock_rule &&
-        prev.status === next.status
+        prev.status === next.status &&
+        prev.dialog_enabled === next.dialog_enabled &&
+        prev.dialog_topic === next.dialog_topic &&
+        prev.dialog_character_name === next.dialog_character_name &&
+        prev.dialog_character_role === next.dialog_character_role &&
+        prev.dialog_instructions === next.dialog_instructions &&
+        prev.dialog_duration_sec === next.dialog_duration_sec
       ) {
         return prev // no change → same reference → autosave won't fire
       }
@@ -313,6 +338,7 @@ export default function AdminTaskBuilderPage() {
     { key: 'overview', label: t('builder.overview') },
     { key: 'lessons', label: t('builder.lessons') },
     { key: 'settings', label: t('builder.settings') },
+    { key: 'dialog', label: 'Dialog Bot' },
     { key: 'batches', label: t('builder.batches') },
   ]
 
@@ -591,6 +617,50 @@ export default function AdminTaskBuilderPage() {
                 pathPrefix={`tasks/${task.course_id}/covers`}
               />
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* DIALOG */}
+      {tab === 'dialog' && draft && (
+        <Card>
+          <CardContent className="space-y-4 p-5">
+            <h3 className="font-semibold text-on-surface">Dialog Bot 7-Menit (Wajib di Akhir Unit)</h3>
+            <p className="text-xs text-on-surface-variant">Jika aktif, student wajib menyelesaikan dialog di akhir unit untuk menyelesaikan unit. Bot hanya membahas topik unit — di luar topik akan diarahkan kembali. Timer server-authoritative, refresh tidak reset. Audio disimpan ke GDrive student.</p>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={draft.dialog_enabled} onChange={e => setDraft({ ...draft, dialog_enabled: e.target.checked })} className="h-4 w-4" />
+              <span className="text-sm font-medium">Aktifkan Dialog Bot untuk unit ini</span>
+            </label>
+
+            {draft.dialog_enabled && (
+              <div className="space-y-3 border-t border-border pt-4">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs">Topik (wajib, bot hanya bahas ini) *</Label>
+                  <Input value={draft.dialog_topic} onChange={e => setDraft({ ...draft, dialog_topic: e.target.value })} placeholder="misal: Shopping at supermarket" />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Nama Karakter</Label>
+                    <Input value={draft.dialog_character_name} onChange={e => setDraft({ ...draft, dialog_character_name: e.target.value })} placeholder="Ms. Sarah" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Peran Karakter</Label>
+                    <Input value={draft.dialog_character_role} onChange={e => setDraft({ ...draft, dialog_character_role: e.target.value })} placeholder="Kasir ramah di London" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs">Instruksi Persona (opsional, max 500)</Label>
+                  <Textarea rows={2} value={draft.dialog_instructions} onChange={e => setDraft({ ...draft, dialog_instructions: e.target.value })} placeholder="Ramah, banyak tanya balik, koreksi halus..." />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs">Durasi (detik, 0 = tanpa batas, 60-900, default 420)</Label>
+                  <Input type="number" min={0} max={900} value={draft.dialog_duration_sec} onChange={e => setDraft({ ...draft, dialog_duration_sec: Number(e.target.value) })} />
+                  <span className="text-xs text-on-surface-variant">0 = tanpa batas (manual akhiri), 420 = 7 menit</span>
+                </div>
+                {!draft.dialog_topic.trim() && <p className="text-xs text-destructive">Topik wajib diisi jika dialog aktif — bot akan lock ke topik ini.</p>}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

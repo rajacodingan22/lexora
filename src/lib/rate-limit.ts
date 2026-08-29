@@ -34,6 +34,10 @@ const ROUTE_CONFIGS: Record<string, RateLimitConfig> = {
   '/api/waiting-list/assign': { maxRequests: 10, windowMs: 60_000 },
   '/api/courses': { maxRequests: 30, windowMs: 60_000 },
   '/api/kontak': { maxRequests: 5, windowMs: 60_000 },
+  '/api/dialog/start': { maxRequests: 5, windowMs: 60_000 },
+  '/api/dialog/turn': { maxRequests: 30, windowMs: 60_000 },
+  '/api/dialog/complete': { maxRequests: 10, windowMs: 60_000 },
+  '/api/dialog/session': { maxRequests: 30, windowMs: 60_000 },
 }
 
 export function rateLimit(request: NextRequest): NextResponse | null {

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Search, Download, Loader2, ChevronLeft, GraduationCap } from 'lucide-react'
 import { SpeakingReviewQueue } from '@/components/teacher/speaking-review-queue'
+import { DialogFeedbackTab } from '@/components/teacher/dialog-feedback-tab'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n/client'
@@ -37,6 +38,7 @@ export default function TeacherNilaiPage() {
   const [loading, setLoading] = useState(true)
   const [loadingGrades, setLoadingGrades] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<StudentGrade | null>(null)
+  const [nilaiTab, setNilaiTab] = useState<'grades'|'dialog'>('grades')
 
   useEffect(() => {
     if (authLoading || !user) return
@@ -279,6 +281,18 @@ export default function TeacherNilaiPage() {
         </div>
       </div>
 
+      <div className="flex gap-1 border-b border-border">
+        <button onClick={() => setNilaiTab('grades')} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${nilaiTab==='grades' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-on-surface'}`}>Nilai</button>
+        <button onClick={() => setNilaiTab('dialog')} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${nilaiTab==='dialog' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-on-surface'}`}>Dialog Feedback</button>
+      </div>
+
+      {nilaiTab === 'dialog' && selectedCourseId && selectedBatchId && (
+        <DialogFeedbackTab courseId={selectedCourseId} batchId={selectedBatchId} />
+      )}
+      {nilaiTab === 'dialog' && !selectedBatchId && <p className="text-sm text-muted">Pilih course & batch untuk melihat feedback dialog.</p>}
+
+      {nilaiTab === 'grades' && (
+        <>
       <Card>
         <CardHeader>
           <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
@@ -388,6 +402,8 @@ export default function TeacherNilaiPage() {
       </Card>
 
       <SpeakingReviewQueue />
+        </>
+      )}
     </div>
   )
 }

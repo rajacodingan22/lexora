@@ -4,9 +4,18 @@ import { NextResponse } from 'next/server'
  * Server-side TTS via Edge TTS (free Microsoft voices).
  * Falls back to returning a marker for client-side SpeechSynthesis if edge-tts unavailable.
  */
+const VOICE_MAP: Record<string, string> = {
+  en: 'en-US-AriaNeural',
+  id: 'id-ID-GadisNeural',
+  zh: 'zh-CN-XiaoxiaoNeural',
+}
+
 export async function POST(req: Request) {
   try {
-    const { text, voice = 'en-US-AriaNeural', rate = '+0%', pitch = '+0Hz' } = await req.json()
+    const body = await req.json()
+    let { text, voice, rate = '+0%', pitch = '+0Hz', lang } = body as { text: string; voice?: string; rate?: string; pitch?: string; lang?: string }
+    if (!voice && lang && VOICE_MAP[lang]) voice = VOICE_MAP[lang]
+    if (!voice) voice = 'en-US-AriaNeural'
     if (!text || typeof text !== 'string') {
       return NextResponse.json({ error: 'text required' }, { status: 400 })
     }
