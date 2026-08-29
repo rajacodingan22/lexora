@@ -17,7 +17,7 @@ export interface User {
   country: string | null
   timezone: string | null
   nationality: string | null
-  settings: Record<string, any>
+  settings: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -71,9 +71,9 @@ export interface Teacher {
   headline: string | null
   bio: string | null
   experience_years: number | null
-  certifications: any[]
+  certifications: string[]
   hourly_rate: number | null
-  availability: Record<string, any>
+  availability: Record<string, unknown>
   marketplace_visible: boolean
   status: string
   created_at: string
@@ -100,7 +100,7 @@ export interface Course {
   track_type?: CatalogTrack | null
   title: { id: string; en: string }
   description: { id: string; en: string }
-  syllabus: any
+  syllabus: unknown
   details?: CourseCatalogDetails
   min_students: number
   max_students: number
@@ -229,7 +229,7 @@ export interface QuizQuestion {
   quiz_id: string
   question_type: string
   question_text: string
-  options: any
+  options: unknown
   correct_answer: string
   points: number
   sort_order: number
@@ -256,7 +256,7 @@ export interface QuizAttempt {
   attempt_number: number
   score: number | null
   status: string
-  answers: any
+  answers: unknown
   submitted_at: string | null
 }
 
@@ -322,7 +322,7 @@ export interface Batch {
   course_id: string
   teacher_id: string
   name: string
-  schedule: any
+  schedule: unknown
   zoom_link: string | null
   max_students: number
   status: 'active' | 'completed' | 'cancelled'
@@ -438,9 +438,9 @@ export interface Partner {
 export interface SystemSettings {
   id: string
   key: string
-  value: any
-  description: string | null
-  group: string
+  value: unknown
+  description?: string | null
+  group?: string | null
   updated_at: string
 }
 
@@ -450,8 +450,8 @@ export interface AuditLog {
   action: string
   entity_type: string
   entity_id: string | null
-  old_values: Record<string, any> | null
-  new_values: Record<string, any> | null
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
   ip_address: string | null
   user_agent: string | null
   created_at: string

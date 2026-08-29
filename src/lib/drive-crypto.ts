@@ -2,7 +2,8 @@ import crypto from 'crypto'
 
 const ALGO = 'aes-256-gcm'
 function getKey(): Buffer {
-  const raw = process.env.ENCRYPTION_KEY || process.env.GOOGLE_ENCRYPTION_KEY || '0123456789abcdef0123456789abcdef'
+  const raw = process.env.ENCRYPTION_KEY || process.env.GOOGLE_ENCRYPTION_KEY
+  if (!raw) throw new Error('ENCRYPTION_KEY is required — set a 32+ char random via: openssl rand -base64 32')
   // ensure 32 bytes
   const hash = crypto.createHash('sha256').update(raw).digest()
   return hash

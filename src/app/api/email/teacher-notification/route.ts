@@ -2,7 +2,17 @@ import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { sendEmailServer } from '@/lib/email'
 import { NextResponse } from 'next/server'
 
-const ADMIN_EMAIL = 'chandraqilana26@gmail.com'
+async function getAdminEmail(supabase: ReturnType<typeof createAdminSupabaseClient>): Promise<string> {
+  const envEmail = process.env.ADMIN_EMAIL
+  if (envEmail) return envEmail
+  try {
+    const { data } = await supabase.from('system_settings').select('value').eq('key', 'admin_email').maybeSingle()
+    if (data?.value && typeof data.value === 'string' && data.value.includes('@')) return String(data.value)
+    const raw = data?.value as unknown
+    if (raw && typeof raw === 'object' && (raw as Record<string, unknown>).email) return String((raw as Record<string, unknown>).email)
+  } catch {}
+  return 'chandraqilana26@gmail.com'
+}
 
 export async function POST(req: Request) {
   try {
@@ -118,6 +128,7 @@ export async function POST(req: Request) {
       'Pengajuan guru sedang menunggu verifikasi admin di dashboard.',
     ].join('\n')
 
+    const ADMIN_EMAIL = await getAdminEmail(supabase)
     try {
       const result = await sendEmailServer({
         supabase,

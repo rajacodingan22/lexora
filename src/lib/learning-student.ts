@@ -193,7 +193,7 @@ export function computeStudentTaskView(input: {
   const next: NextPosition | null =
     task && publishedLessons.length > 0
       ? getNextLearningPosition(
-          undefined as never,
+          undefined,
           [{ task, lessons: publishedLessons, activitiesByLesson }],
           lessonProgress,
           activityProgress,

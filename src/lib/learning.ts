@@ -202,7 +202,7 @@ export interface NextPosition {
 }
 
 export function getNextLearningPosition(
-  ctx: UnlockContext,
+  _ctx: UnlockContext | undefined,
   allTasks: { task: CourseTask; lessons: TaskLesson[]; activitiesByLesson: Record<string, LessonActivity[]> }[],
   lessonProgress: Record<string, StudentLessonProgress>,
   activityProgress: Record<string, StudentActivityProgress>,
