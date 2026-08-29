@@ -156,13 +156,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                   : overallScore
 
                 const completedCount = (allActProgress || []).filter(p => p.status === 'completed').length
-                const { data: totalActs } = await supabase
+                const { count: totalCount } = await supabase
                   .from('lesson_activities')
                   .select('id', { count: 'exact', head: true })
                   .eq('lesson_id', activityRow.lesson_id)
                   .eq('status', 'published')
 
-                const lessonCompleted = completedCount === (totalActs?.length ?? 0) && (totalActs?.length ?? 0) > 0
+                const lessonCompleted = completedCount === (totalCount ?? 0) && (totalCount ?? 0) > 0
 
                 await supabase
                   .from('student_lesson_progress')

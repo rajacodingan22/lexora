@@ -52,6 +52,8 @@ export async function POST(req: Request) {
     const { data: session } = await supabase.from('dialog_sessions').select('*').eq('id', sessionId).eq('user_id', user.id).single()
     if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     if (session.status === 'completed') return NextResponse.json({ session, feedback: session.feedback })
+    // if expired, still generate feedback and mark completed (expired -> completed with feedback)
+    const isExpired = session.status === 'expired' || (session.ends_at && new Date(session.ends_at) <= new Date())
 
     const turns = (session.turns as Array<{ role: string; text: string }>) || []
     const feedback = await generateFeedback(turns, session.language_code, session.topic)

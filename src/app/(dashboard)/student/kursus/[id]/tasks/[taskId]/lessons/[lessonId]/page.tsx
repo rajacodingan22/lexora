@@ -313,7 +313,7 @@ export default function StudentLessonPlayerPage() {
         </Button>
         {currentIdx < acts.length - 1 && (
           <Button
-            disabled={current.status !== 'completed'}
+            disabled={!acts[currentIdx + 1]?.unlocked}
             onClick={() => {
               setResult(null)
               router.replace(`/student/kursus/${courseId}/tasks/${taskId}/lessons/${lessonId}?activity=${acts[currentIdx + 1].activity.id}`)

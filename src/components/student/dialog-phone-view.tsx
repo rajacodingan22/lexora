@@ -55,6 +55,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const transcriptRef = useRef('')
+  const isRecordingRef = useRef(false)
 
   // fetch session resume
   const fetchSession = useCallback(async () => {
@@ -218,7 +219,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
       }
       mr.start()
       mediaRecorderRef.current = mr
-      setIsRecording(true)
+      setIsRecording(true); isRecordingRef.current = true
     } catch (e) {
       console.error('mic error', e)
       alert('Mikrofon tidak tersedia, silakan ketik pesan.')
@@ -243,7 +244,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
         setTranscript(txt); transcriptRef.current = txt
         if (txt && silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
       }
-      rec.onend = () => { if (isRecording) try { rec.start() } catch {} }
+      rec.onend = () => { if (isRecordingRef.current) try { rec.start() } catch {} }
       rec.onerror = () => {}
       try { rec.start() } catch {}
       recognitionRef.current = rec
@@ -251,7 +252,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   }
 
   const stopRecording = () => {
-    setIsRecording(false)
+    setIsRecording(false); isRecordingRef.current = false
     mediaRecorderRef.current?.stop()
     mediaRecorderRef.current = null
     if (recognitionRef.current) { try { recognitionRef.current.stop() } catch {} ; recognitionRef.current = null }

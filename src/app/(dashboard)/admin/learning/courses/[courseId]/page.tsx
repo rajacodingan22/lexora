@@ -336,13 +336,14 @@ export default function AdminLearningCourseDetailPage() {
     }
   }
 
-  async function addTaskToBatch() {
-    if (!assignBatchId || !assignTaskId) return
+  async function addTaskToBatch(targetBatchId?: string) {
+    const batchId = targetBatchId || assignBatchId
+    if (!batchId || !assignTaskId) return
     setAssigning(true)
     try {
-      const existing = batchAssignments[assignBatchId] ?? []
+      const existing = batchAssignments[batchId] ?? []
       const { error } = await supabase.from('batch_tasks').insert({
-        batch_id: assignBatchId,
+        batch_id: batchId,
         task_id: assignTaskId,
         sort_order: existing.length,
       })
@@ -629,18 +630,6 @@ export default function AdminLearningCourseDetailPage() {
                   {available.length > 0 && (
                     <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-border">
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-on-surface-variant">{t('batches.selectBatch')}</Label>
-                        <Select
-                          value={assignBatchId || batch.id}
-                          onChange={(e) => setAssignBatchId(e.target.value)}
-                          className="w-48"
-                        >
-                          {batches.map((b) => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                          ))}
-                        </Select>
-                      </div>
-                      <div className="flex flex-col gap-1">
                         <Label className="text-xs text-on-surface-variant">{t('courseDetail.addTask')}</Label>
                         <Select value={assignTaskId} onChange={(e) => setAssignTaskId(e.target.value)} className="w-56">
                           <option value="">—</option>
@@ -651,12 +640,8 @@ export default function AdminLearningCourseDetailPage() {
                       </div>
                       <Button
                         size="sm"
-                        disabled={!assignTaskId || !(assignBatchId || batch.id) || assigning}
-                        onClick={() => {
-                          if (assignBatchId || batch.id) {
-                            addTaskToBatch()
-                          }
-                        }}
+                        disabled={!assignTaskId || assigning}
+                        onClick={() => addTaskToBatch(batch.id)}
                       >
                         {assigning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                       </Button>
