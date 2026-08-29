@@ -159,8 +159,7 @@ export default function AdminLessonBuilderPage() {
         content: clean,
         content_version: contentVersion,
         schema_version: 1,
-      })
-      .eq('activity_id', activityId)
+      }, { onConflict: 'activity_id' })
     if (cErr) throw cErr
     fetchAll()
   }

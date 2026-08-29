@@ -92,17 +92,14 @@ export default function AdminLearningCourseDetailPage() {
       const bData = (batchRes.data ?? []) as Batch[]
       setBatches(bData)
 
-      const lessonRes = await supabase
-        .from('task_lessons')
-        .select('id, task_id')
-        .in('task_id', tData.map((x) => x.id))
-      const lessonData = lessonRes?.data ?? []
+      const lessonData = tData.length > 0
+        ? (await supabase.from('task_lessons').select('id, task_id').in('task_id', tData.map((x) => x.id))).data ?? []
+        : []
 
       const [actRes, btRes] = await Promise.all([
-        supabase
-          .from('lesson_activities')
-          .select('id, lesson_id')
-          .in('lesson_id', lessonData.map((l: any) => l.id)),
+        lessonData.length > 0
+          ? supabase.from('lesson_activities').select('id, lesson_id').in('lesson_id', lessonData.map((l: any) => l.id))
+          : Promise.resolve({ data: [] as never[], error: null } as any),
         bData.length > 0
           ? supabase.from('batch_tasks').select('*').in('batch_id', bData.map((b) => b.id)).order('sort_order', { ascending: true })
           : Promise.resolve({ data: [] as never[], error: null }),
@@ -239,6 +236,7 @@ export default function AdminLearningCourseDetailPage() {
 
   async function duplicateTask(task: CourseTask) {
     try {
+      const t = task as unknown as Record<string, unknown>
       const { data, error } = await supabase
         .from('course_tasks')
         .insert({
@@ -249,6 +247,18 @@ export default function AdminLearningCourseDetailPage() {
           task_number: tasks.length + 1,
           sort_order: (tasks.at(-1)?.sort_order ?? 0) + 1,
           status: 'draft',
+          estimated_duration: task.estimated_duration,
+          min_completion_score: task.min_completion_score,
+          completion_requirement: task.completion_requirement,
+          lesson_unlock_rule: task.lesson_unlock_rule,
+          required_lesson_score: task.required_lesson_score,
+          activity_unlock_rule: task.activity_unlock_rule,
+          dialog_enabled: (t.dialog_enabled as boolean) ?? false,
+          dialog_topic: t.dialog_topic as string | null,
+          dialog_character_name: t.dialog_character_name as string | null,
+          dialog_character_role: t.dialog_character_role as string | null,
+          dialog_instructions: t.dialog_instructions as string | null,
+          dialog_duration_sec: (t.dialog_duration_sec as number) ?? 420,
         })
         .select('id')
         .single()

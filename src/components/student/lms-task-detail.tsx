@@ -221,24 +221,35 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
                 </div>
               </div>
             </div>
-            <Badge variant={view.completed ? 'success' : view.percent > 0 ? 'warning' : 'outline'}>
-              {view.completed
-                ? t('student1.tasks.completed')
-                : view.percent > 0
-                  ? t('student1.tasks.inProgress')
-                  : t('student1.tasks.notStarted')}
-            </Badge>
+            {(() => {
+              const effectiveCompleted = view.completed && (!dialogEnabled || dialogStatus === 'completed')
+              return (
+                <Badge variant={effectiveCompleted ? 'success' : view.percent > 0 || (view.completed && dialogEnabled) ? 'warning' : 'outline'}>
+                  {effectiveCompleted
+                    ? t('student1.tasks.completed')
+                    : view.percent > 0 || (view.completed && dialogEnabled)
+                      ? t('student1.tasks.inProgress')
+                      : t('student1.tasks.notStarted')}
+                </Badge>
+              )
+            })()}
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-container-highest">
-              <div
-                className={`h-full rounded-full transition-all ${view.completed ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-indigo-400'}`}
-                style={{ width: `${view.percent}%` }}
-              />
-            </div>
-            <span className="text-sm font-bold text-indigo-400">{view.percent}%</span>
-          </div>
+          {(() => {
+            const effectiveCompleted = view.completed && (!dialogEnabled || dialogStatus === 'completed')
+            const effectivePercent = view.completed && dialogEnabled && dialogStatus !== 'completed' ? Math.min(90, view.percent) : view.percent
+            return (
+              <div className="flex items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-container-highest">
+                  <div
+                    className={`h-full rounded-full transition-all ${effectiveCompleted ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-indigo-400'}`}
+                    style={{ width: `${effectivePercent}%` }}
+                  />
+                </div>
+                <span className="text-sm font-bold text-indigo-400">{effectivePercent}%</span>
+              </div>
+            )
+          })()}
 
           {!view.completed && view.next?.activityId && (
             <Button

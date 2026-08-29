@@ -57,19 +57,19 @@ export async function fetchTaskTree(
 
   if (publishedLessons.length > 0) {
     const ids = publishedLessons.map((l) => l.id)
-    const [actRes, cRes] = await Promise.all([
-      supabase
-        .from('lesson_activities')
-        .select('*')
-        .in('lesson_id', ids)
-        .eq('status', 'published')
-        .order('sort_order', { ascending: true }),
-      supabase.from('activity_content').select('activity_id, content'),
-    ])
+    const actRes = await supabase
+      .from('lesson_activities')
+      .select('*')
+      .in('lesson_id', ids)
+      .eq('status', 'published')
+      .order('sort_order', { ascending: true })
     activities = (actRes.data ?? []) as LessonActivity[]
-    const actIds = new Set(activities.map((a) => a.id))
-    for (const row of (cRes.data ?? []) as { activity_id: string; content: Record<string, unknown> }[]) {
-      if (actIds.has(row.activity_id)) contents[row.activity_id] = row.content
+    const actIds = activities.map((a) => a.id)
+    if (actIds.length > 0) {
+      const { data: cData } = await supabase.from('activity_content').select('activity_id, content').in('activity_id', actIds)
+      for (const row of (cData ?? []) as { activity_id: string; content: Record<string, unknown> }[]) {
+        contents[row.activity_id] = row.content
+      }
     }
   }
 
@@ -260,12 +260,14 @@ export async function fetchAssignedTasks(
     .eq('status', 'published')
     .order('sort_order', { ascending: true })
 
-  return ((data ?? []) as any[])
-    .filter((r) => {
-      if (r.task?.status !== 'published') return false
-      if (r.availability_start && r.availability_start > now) return false
-      if (r.availability_end && r.availability_end < now) return false
-      return true
-    })
-    .map((r) => ({ task: r.task as CourseTask, batchTask: r as BatchTask }))
+  const dedup = new Map<string, { task: CourseTask; batchTask: BatchTask }>()
+  for (const r of ((data ?? []) as any[]).filter((r) => {
+    if (r.task?.status !== 'published') return false
+    if (r.availability_start && r.availability_start > now) return false
+    if (r.availability_end && r.availability_end < now) return false
+    return true
+  })) {
+    if (!dedup.has(r.task.id)) dedup.set(r.task.id, { task: r.task as CourseTask, batchTask: r as BatchTask })
+  }
+  return [...dedup.values()]
 }

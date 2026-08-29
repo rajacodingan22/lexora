@@ -48,13 +48,12 @@ export async function GET(
         .maybeSingle()
 
       if (enrollment) {
-        const { data: isTeacher } = await supabase
-          .from('course_teachers')
-          .select('teacher_id')
-          .eq('course_id', enrollment.course_id)
-          .eq('teacher_id', user.id)
-          .maybeSingle()
-
+        const { data: teacherRow } = await supabase.from('teachers').select('id').eq('user_id', user.id).maybeSingle()
+        let isTeacher = false
+        if (teacherRow) {
+          const { data: ct } = await supabase.from('course_teachers').select('teacher_id').eq('course_id', enrollment.course_id).eq('teacher_id', teacherRow.id).maybeSingle()
+          isTeacher = !!ct
+        }
         if (!isTeacher) {
           const { data: isAdmin } = await supabase.rpc('is_admin')
           if (!isAdmin) return new NextResponse('Forbidden', { status: 403 })

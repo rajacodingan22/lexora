@@ -54,6 +54,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   const recognitionRef = useRef<any>(null)
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const transcriptRef = useRef('')
 
   // fetch session resume
   const fetchSession = useCallback(async () => {
@@ -195,11 +196,11 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   // MediaRecorder + SpeechRecognition
   const startRecording = async () => {
     setCueCard(null)
-    setTranscript('')
+    setTranscript(''); transcriptRef.current = ''
     // silence cue after 4s of no transcript
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
     silenceTimerRef.current = setTimeout(() => {
-      if (!transcript) setCueCard('Coba katakan: "Can you tell me more about ' + (session?.topic || 'this topic') + '?"')
+      if (!transcriptRef.current) setCueCard('Coba katakan: "Can you tell me more about ' + (session?.topic || 'this topic') + '?"')
     }, 4000)
 
     try {
@@ -239,7 +240,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
           else interim += r.transcript + ' '
         }
         const txt = (final + interim).trim()
-        setTranscript(txt)
+        setTranscript(txt); transcriptRef.current = txt
         if (txt && silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
       }
       rec.onend = () => { if (isRecording) try { rec.start() } catch {} }
@@ -259,11 +260,15 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   }
 
   const sendCurrent = () => {
-    const txt = transcript || inputText
-    if (!txt.trim()) return
-    // if recording and have blob, send with audio
-    if (audioBlob && transcript) sendTurn(txt, audioBlob)
-    else sendTurn(txt, audioBlob)
+    const txt = (transcript || inputText).trim()
+    if (!txt) return
+    // Only send audio if we have a recent recording; clear stale blob after typed-only sends
+    const blobToSend = transcript ? audioBlob : null
+    sendTurn(txt, blobToSend)
+    if (!transcript) {
+      if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null) }
+      setAudioBlob(null)
+    }
   }
 
   useEffect(() => {
@@ -358,12 +363,9 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
                 <Card className="bg-white/5 border-white/10 p-4 space-y-3">
                   <p className="text-sm font-medium text-white">Perbandingan Gelombang Suara</p>
                   <p className="text-xs text-white/60">Student (hijau) vs Native (ungu). Putar untuk bandingkan intonasi.</p>
-                  {turns.filter(t => t.role === 'user' && t.drive_file_id).slice(-1).map((t, idx) => {
-                    const turnIdx = turns.indexOf(t)
-                    return (
-                      <WaveformPlayer key={idx} audioUrl={`/api/dialog/audio/${session.id}?turn=${turnIdx}`} label={`Kamu: ${String(t.text).slice(0, 40)}`} color="#10b981" />
-                    )
-                  })}
+                  {turns.map((t, originalIdx) => ({ t, originalIdx })).filter(({ t: tt }) => tt.role === 'user' && (tt as Record<string, unknown>).drive_file_id).slice(-1).map(({ t: tt, originalIdx }) => (
+                    <WaveformPlayer key={originalIdx} audioUrl={`/api/dialog/audio/${session.id}?turn=${originalIdx}`} label={`Kamu: ${String(tt.text).slice(0, 40)}`} color="#10b981" />
+                  ))}
                   {turns.filter(t => t.role === 'bot').slice(-1).map((t, idx) => (
                     <div key={idx} className="space-y-2">
                       <p className="text-xs text-white/60">Native: {String(t.text).slice(0, 80)}</p>

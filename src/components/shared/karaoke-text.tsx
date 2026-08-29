@@ -262,7 +262,7 @@ export function KaraokeText({ text, rate = 0.9, onComplete, onWordTimings, onSen
 
       {isFinished && (
         <div className="text-center text-sm text-emerald-300">
-          t('speakingReview.ttsDone')
+          {t('speakingReview.ttsDone')}
         </div>
       )}
     </div>

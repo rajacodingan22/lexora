@@ -68,33 +68,43 @@ export default function AdminTaskBuilderPage() {
     if (!taskId) return
     setLoading(true)
     try {
-      const [taskRes, lessonRes, actRes, contentRes, batchRes, btRes] = await Promise.all([
-        supabase.from('course_tasks').select('*').eq('id', taskId).single(),
-        supabase.from('task_lessons').select('*').eq('task_id', taskId).order('sort_order', { ascending: true }),
-        supabase.from('lesson_activities').select('*').in(
-          'lesson_id',
-          (await supabase.from('task_lessons').select('id').eq('task_id', taskId)).data?.map((l: any) => l.id) ?? [],
-        ),
-        supabase.from('activity_content').select('activity_id, content'),
-        supabase.from('batches').select('id, name').eq(
-          'course_id',
-          (await supabase.from('course_tasks').select('course_id').eq('id', taskId).single()).data?.course_id ?? '',
-        ),
-        supabase.from('batch_tasks').select('*').eq('task_id', taskId).order('sort_order', { ascending: true }),
-      ])
+      const taskRes = await supabase.from('course_tasks').select('*').eq('id', taskId).single()
+      const taskData = taskRes.data as CourseTask | null
+      setTask(taskData)
 
-      setTask(taskRes.data as CourseTask | null)
-      setLessons((lessonRes.data ?? []) as TaskLesson[])
+      const lessonRes = await supabase.from('task_lessons').select('*').eq('task_id', taskId).order('sort_order', { ascending: true })
+      const lessonData = (lessonRes.data ?? []) as TaskLesson[]
+      setLessons(lessonData)
+
+      const lessonIds = lessonData.map(l => l.id)
+      let actData: LessonActivity[] = []
+      if (lessonIds.length > 0) {
+        const { data } = await supabase.from('lesson_activities').select('*').in('lesson_id', lessonIds).order('sort_order', { ascending: true })
+        actData = (data ?? []) as LessonActivity[]
+      }
       const actMap: Record<string, LessonActivity[]> = {}
-      for (const a of (actRes.data ?? []) as LessonActivity[]) {
+      for (const a of actData) {
         if (!actMap[a.lesson_id]) actMap[a.lesson_id] = []
         actMap[a.lesson_id].push(a)
       }
       setActivitiesByLesson(actMap)
-      const cMap: Record<string, Record<string, unknown>> = {}
-      for (const row of contentRes.data ?? []) cMap[row.activity_id] = row.content
+
+      const actIds = actData.map(a => a.id)
+      let cMap: Record<string, Record<string, unknown>> = {}
+      if (actIds.length > 0) {
+        const { data: cData } = await supabase.from('activity_content').select('activity_id, content').in('activity_id', actIds)
+        for (const row of (cData ?? []) as { activity_id: string; content: Record<string, unknown> }[]) cMap[row.activity_id] = row.content
+      }
       setContents(cMap)
-      setBatches((batchRes.data ?? []) as { id: string; name: string }[])
+
+      if (taskData?.course_id) {
+        const batchRes = await supabase.from('batches').select('id, name').eq('course_id', taskData.course_id).order('start_date', { ascending: true })
+        setBatches((batchRes.data ?? []) as { id: string; name: string }[])
+      } else {
+        setBatches([])
+      }
+
+      const btRes = await supabase.from('batch_tasks').select('*').eq('task_id', taskId).order('sort_order', { ascending: true })
       setBatchTasks((btRes.data ?? []) as BatchTask[])
     } catch (err) {
       console.error('Failed to load task builder:', err)
@@ -342,7 +352,25 @@ export default function AdminTaskBuilderPage() {
     { key: 'batches', label: t('builder.batches') },
   ]
 
-  const validation = lastValidation ?? runValidation()
+  const validation = useMemo(() => {
+    if (lastValidation) return lastValidation
+    if (!task || !draft) return { ok: false, errors: ['Loading...'], warnings: [] as string[] }
+    const allActs = Object.values(activitiesByLesson).flat()
+    return checkTaskPublishable({
+      task: {
+        ...task,
+        title: draft.title,
+        cover_image_url: draft.cover_image_url,
+        lesson_unlock_rule: draft.lesson_unlock_rule,
+        required_lesson_score: draft.required_lesson_score,
+        completion_requirement: draft.completion_requirement,
+        min_completion_score: draft.min_completion_score,
+      },
+      lessons,
+      activities: allActs,
+      contents,
+    })
+  }, [lastValidation, task, draft, lessons, activitiesByLesson, contents])
 
   return (
     <div className="space-y-5">

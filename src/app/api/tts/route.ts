@@ -23,21 +23,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'text too long (max 5000 chars)' }, { status: 400 })
     }
 
-    // Try edge-tts CLI if available
+    // Try edge-tts CLI if available (safe args, no shell injection)
     try {
-      const { execSync } = await import('child_process')
+      const { spawnSync } = await import('child_process')
       const crypto = await import('crypto')
       const tmpFile = `/tmp/tts_${crypto.randomUUID()}.mp3`
 
-      // edge-tts writes audio to file
-      execSync(
-        `edge-tts --voice "${voice}" --rate="${rate}" --pitch="${pitch}" --text "${text.replace(/"/g, '\\"')}" --write-media "${tmpFile}"`,
-        { timeout: 15000 }
-      )
+      const result = spawnSync('edge-tts', ['--voice', voice, '--rate', rate, '--pitch', pitch, '--text', text, '--write-media', tmpFile], { timeout: 15000 })
+      if (result.status !== 0) throw new Error('edge-tts failed')
 
       const fs = await import('fs')
       const audioBuffer = fs.readFileSync(tmpFile)
-      fs.unlinkSync(tmpFile)
+      try { fs.unlinkSync(tmpFile) } catch {}
+      if (!audioBuffer.length) throw new Error('empty audio')
 
       return new NextResponse(audioBuffer, {
         headers: {

@@ -156,7 +156,7 @@ export default function StudentLessonPlayerPage() {
       <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest">
         <div
           className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all"
-          style={{ width: `${Math.round((currentIdx / Math.max(1, acts.length)) * 100)}%` }}
+          style={{ width: `${Math.round(((currentIdx + 1) / Math.max(1, acts.length)) * 100)}%` }}
         />
       </div>
 
