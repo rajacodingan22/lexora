@@ -128,7 +128,7 @@ export default function StudentLessonPlayerPage() {
     }
     return (
       <div className="py-20 text-center">
-        <Lock className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+        <Lock className="mx-auto mb-3 h-8 w-8 text-on-surface-variant/40" />
         <p className="text-on-surface-variant">{t('tasks.lessonLocked')}</p>
       </div>
     )
@@ -176,12 +176,12 @@ export default function StudentLessonPlayerPage() {
               }}
               className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
                 active
-                  ? 'border-indigo-500 bg-indigo-600 text-white'
+                  ? 'border-primary bg-primary text-primary-foreground'
                   : av.status === 'completed'
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                    ? 'border-success bg-success/10 text-success'
                     : av.unlocked
-                      ? 'border-slate-200 text-slate-600 hover:border-indigo-300'
-                      : 'border-slate-100 text-slate-300'
+                      ? 'border-border text-on-surface hover:border-primary/50'
+                      : 'border-border text-on-surface-variant/40'
               }`}
             >
               {av.status === 'completed' ? (
@@ -242,15 +242,15 @@ export default function StudentLessonPlayerPage() {
 
               {Array.isArray((result.answers as Record<string, unknown>)?.aiCorrections) &&
                 ((result.answers as Record<string, unknown>).aiCorrections as Array<Record<string, string>>).length > 0 && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-left">
-                  <p className="mb-2 text-sm font-semibold text-amber-800">Corrections</p>
+                <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 text-left">
+                  <p className="mb-2 text-sm font-semibold text-warning">Corrections</p>
                   <div className="space-y-2">
                     {((result.answers as Record<string, unknown>).aiCorrections as Array<Record<string, string>>).map((c, i) => (
                       <div key={i} className="text-sm">
-                        <span className="text-red-600 line-through">{c.original}</span>
-                        <span className="mx-1 text-slate-400">→</span>
-                        <span className="text-green-600 font-medium">{c.corrected}</span>
-                        {c.explanation && <p className="mt-0.5 text-xs text-slate-500">{c.explanation}</p>}
+                        <span className="text-destructive line-through">{c.original}</span>
+                        <span className="mx-1 text-on-surface-variant/40">→</span>
+                        <span className="text-success font-medium">{c.corrected}</span>
+                        {c.explanation && <p className="mt-0.5 text-xs text-on-surface-variant">{c.explanation}</p>}
                       </div>
                     ))}
                   </div>
@@ -282,6 +282,8 @@ export default function StudentLessonPlayerPage() {
             <ActivityRenderer
               activity={current.activity}
               content={content}
+              taskId={taskId}
+              batchId={batchId ?? undefined}
               onComplete={async (payload) => {
                 setResult(payload)
                 await persistProgress(current.activity.id, lessonId, payload)

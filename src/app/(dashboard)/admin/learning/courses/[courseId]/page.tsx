@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { useI18n } from '@/lib/i18n/client'
@@ -15,7 +15,7 @@ import { ImageUpload } from '@/components/ui/image-upload'
 import type { CourseTask, TaskStatus, BatchTask, Batch } from '@/types'
 import {
   ArrowLeft, Plus, Loader2, Pencil, Trash2, Copy, Layers, ListOrdered,
-  ChevronUp, ChevronDown, Eye, EyeOff, X,
+  ChevronUp, ChevronDown, Eye, EyeOff, X, CalendarDays, BookOpen,
 } from 'lucide-react'
 
 interface CourseRow {
@@ -53,7 +53,7 @@ export default function AdminLearningCourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>()
   const router = useRouter()
   const { t } = useI18n()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [course, setCourse] = useState<CourseRow | null>(null)
   const [tasks, setTasks] = useState<CourseTask[]>([])
@@ -253,8 +253,74 @@ export default function AdminLearningCourseDetailPage() {
         .select('id')
         .single()
       if (error) throw error
+      const newTaskId = data?.id
+      if (!newTaskId) return
+
+      // Copy lessons + activities + content from the original task
+      const { data: origLessons } = await supabase
+        .from('task_lessons')
+        .select('*')
+        .eq('task_id', task.id)
+        .order('sort_order')
+
+      for (const lesson of (origLessons || []) as any[]) {
+        const { data: newLesson } = await supabase
+          .from('task_lessons')
+          .insert({
+            task_id: newTaskId,
+            lesson_number: lesson.lesson_number,
+            title: lesson.title,
+            description: lesson.description,
+            icon: lesson.icon,
+            sort_order: lesson.sort_order,
+            status: 'draft',
+          })
+          .select('id')
+          .single()
+
+        if (!newLesson?.id) continue
+
+        // Copy activities for this lesson
+        const { data: origActivities } = await supabase
+          .from('lesson_activities')
+          .select('*')
+          .eq('lesson_id', lesson.id)
+          .order('sort_order')
+
+        for (const act of (origActivities || []) as any[]) {
+          const { data: newAct } = await supabase
+            .from('lesson_activities')
+            .insert({
+              lesson_id: newLesson.id,
+              activity_type: act.activity_type,
+              title: act.title,
+              instruction: act.instruction,
+              sort_order: act.sort_order,
+              status: 'draft',
+            })
+            .select('id')
+            .single()
+
+          // Copy activity content
+          if (newAct?.id) {
+            const { data: origContent } = await supabase
+              .from('activity_content')
+              .select('content, content_type')
+              .eq('activity_id', act.id)
+              .maybeSingle()
+            if (origContent) {
+              await supabase.from('activity_content').insert({
+                activity_id: newAct.id,
+                content_type: origContent.content_type,
+                content: origContent.content,
+              })
+            }
+          }
+        }
+      }
+
       fetchAll()
-      if (data?.id) router.push(`/admin/learning/tasks/${data.id}`)
+      router.push(`/admin/learning/tasks/${newTaskId}`)
     } catch (err: any) {
       console.error('Failed to duplicate task:', err)
     }
@@ -312,10 +378,10 @@ export default function AdminLearningCourseDetailPage() {
   }
 
   function taskStatusBadge(status: TaskStatus) {
-    const map: Record<TaskStatus, any> = {
+    const map: Record<TaskStatus, { label: string; variant: 'outline' | 'success' | 'ghost' }> = {
       draft: { label: t('tasks.statusDraft'), variant: 'outline' },
       published: { label: t('tasks.statusPublished'), variant: 'success' },
-      archived: { label: t('tasks.statusArchived'), variant: 'secondary' },
+      archived: { label: t('tasks.statusArchived'), variant: 'ghost' },
     }
     const s = map[status] ?? map.draft
     return <Badge variant={s.variant}>{s.label}</Badge>
@@ -324,14 +390,14 @@ export default function AdminLearningCourseDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
       </div>
     )
   }
 
   if (!course) {
     return (
-      <div className="py-20 text-center text-slate-400">
+      <div className="py-20 text-center text-on-surface-variant">
         <p>Course not found</p>
         <Button className="mt-4" variant="outline" onClick={() => router.push('/admin/learning/courses')}>
           {t('builder.back')}
@@ -346,46 +412,53 @@ export default function AdminLearningCourseDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => router.push('/admin/learning/courses')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{courseTitleStr || '—'}</h1>
-          <p className="text-sm text-slate-500">{course.language_code}</p>
+          <h1 className="text-2xl font-bold text-on-surface">{courseTitleStr || '—'}</h1>
+          <p className="text-sm text-on-surface-variant">{course.language_code}</p>
         </div>
       </div>
 
       {/* Master Tasks */}
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="text-lg">{t('courseDetail.tasks')}</CardTitle>
+          <CardTitle>{t('courseDetail.tasks')}</CardTitle>
           <Button onClick={openCreateTask}>
             <Plus className="mr-1 h-4 w-4" /> {t('tasks.create')}
           </Button>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           {tasks.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-400">{t('tasks.noTasks')}</p>
+            <div className="py-12 text-center">
+              <BookOpen className="mx-auto mb-3 h-10 w-10 text-on-surface-variant/40" />
+              <p className="text-sm text-on-surface-variant">{t('tasks.noTasks')}</p>
+            </div>
           ) : (
             tasks.map((task, idx) => {
               const stats = taskStats[task.id] ?? { lessons: 0, activities: 0 }
               return (
                 <div
                   key={task.id}
-                  className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-colors hover:border-slate-300"
+                  className="group flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface-container-low p-4 transition-all hover:border-border-strong hover:shadow-sm"
                 >
+                  {/* Number + Title */}
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     onClick={() => router.push(`/admin/learning/tasks/${task.id}`)}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-sm font-bold text-indigo-600">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
                       {idx + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900">{taskTitle(task)}</p>
-                      <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500">
+                      <p className="truncate font-semibold text-on-surface group-hover:text-primary transition-colors">
+                        {taskTitle(task)}
+                      </p>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-on-surface-variant">
                         <span className="flex items-center gap-1">
                           <Layers className="h-3 w-3" /> {stats.lessons} {t('tasks.lessons')}
                         </span>
@@ -395,39 +468,43 @@ export default function AdminLearningCourseDetailPage() {
                       </div>
                     </div>
                   </button>
-                  {taskStatusBadge(task.status)}
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant={task.status === 'published' ? 'outline' : 'default'}
-                      disabled={publishingId === task.id}
-                      onClick={() => toggleTaskPublish(task)}
-                      title={task.status === 'published' ? t('tasks.unpublish') : t('tasks.publish')}
-                    >
-                      {publishingId === task.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : task.status === 'published' ? (
-                        <EyeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Eye className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                    <Button size="sm" variant="ghost" title={t('tasks.edit')} onClick={() => openEditTask(task)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" title={t('tasks.duplicate')} onClick={() => duplicateTask(task)}>
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-red-600 hover:bg-red-50"
-                      title={t('tasks.delete')}
-                      disabled={deletingId === task.id}
-                      onClick={() => deleteTask(task)}
-                    >
-                      {deletingId === task.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </Button>
+
+                  {/* Status + Actions */}
+                  <div className="flex items-center gap-2">
+                    {taskStatusBadge(task.status)}
+                    <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        disabled={publishingId === task.id}
+                        onClick={() => toggleTaskPublish(task)}
+                        title={task.status === 'published' ? t('tasks.unpublish') : t('tasks.publish')}
+                      >
+                        {publishingId === task.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : task.status === 'published' ? (
+                          <EyeOff className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                      <Button size="icon-sm" variant="ghost" title={t('tasks.edit')} onClick={() => openEditTask(task)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon-sm" variant="ghost" title={t('tasks.duplicate')} onClick={() => duplicateTask(task)}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        className="text-destructive hover:bg-destructive/10"
+                        title={t('tasks.delete')}
+                        disabled={deletingId === task.id}
+                        onClick={() => deleteTask(task)}
+                      >
+                        {deletingId === task.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )
@@ -439,73 +516,97 @@ export default function AdminLearningCourseDetailPage() {
       {/* Batch Assignments */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">{t('courseDetail.batches')}</CardTitle>
+          <CardTitle>{t('courseDetail.batches')}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {batches.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-400">{t('courseDetail.noBatches')}</p>
+            <div className="py-12 text-center">
+              <CalendarDays className="mx-auto mb-3 h-10 w-10 text-on-surface-variant/40" />
+              <p className="text-sm text-on-surface-variant">{t('courseDetail.noBatches')}</p>
+            </div>
           ) : (
             batches.map((batch) => {
               const assigned = (batchAssignments[batch.id] ?? []).sort((a, b) => a.sort_order - b.sort_order)
               const assignedIds = new Set(assigned.map((a) => a.task_id))
               const available = tasks.filter((x) => !assignedIds.has(x.id))
               return (
-                <div key={batch.id} className="rounded-xl border border-slate-200 p-4">
-                  <div className="mb-3 flex items-center justify-between">
+                <div key={batch.id} className="rounded-xl border border-border bg-surface-container-low p-4">
+                  {/* Batch header */}
+                  <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-slate-900">{batch.name}</p>
-                      <p className="text-xs text-slate-500">{assigned.length} {t('courseDetail.tasksInBatch')}</p>
+                      <p className="font-semibold text-on-surface">{batch.name}</p>
+                      <p className="text-xs text-on-surface-variant">
+                        {assigned.length} {t('courseDetail.tasksInBatch')}
+                      </p>
                     </div>
                   </div>
 
+                  {/* Assigned tasks */}
                   {assigned.length === 0 ? (
-                    <p className="mb-3 text-sm text-slate-400">{t('courseDetail.tasksInBatch')}: —</p>
+                    <p className="mb-4 text-sm text-on-surface-variant/60">{t('courseDetail.tasksInBatch')}: —</p>
                   ) : (
-                    <div className="mb-3 space-y-1.5">
+                    <div className="mb-4 space-y-2">
                       {assigned.map((bt, i) => {
                         const task = tasks.find((x) => x.id === bt.task_id)
                         if (!task) return null
                         return (
-                          <div key={bt.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
-                            <span className="text-sm font-medium text-slate-600">{i + 1}.</span>
+                          <div
+                            key={bt.id}
+                            className="flex flex-wrap items-center gap-2 rounded-lg bg-surface-container-high px-3 py-2.5"
+                          >
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">
+                              {i + 1}
+                            </span>
                             <button
                               type="button"
-                              className="min-w-0 flex-1 truncate text-left text-sm text-slate-800 hover:text-indigo-600"
+                              className="min-w-0 flex-1 truncate text-left text-sm font-medium text-on-surface hover:text-primary transition-colors"
                               onClick={() => router.push(`/admin/learning/tasks/${task.id}`)}
                             >
                               {task.title}
                             </button>
-                            <div className="flex items-center gap-1">
-                              <Button size="sm" variant="ghost" disabled={i === 0} onClick={() => reorderBatchTask(batch.id, bt, -1)}>
+                            <div className="flex items-center gap-0.5">
+                              <Button size="icon-sm" variant="ghost" disabled={i === 0} onClick={() => reorderBatchTask(batch.id, bt, -1)}>
                                 <ChevronUp className="h-3.5 w-3.5" />
                               </Button>
-                              <Button size="sm" variant="ghost" disabled={i === assigned.length - 1} onClick={() => reorderBatchTask(batch.id, bt, 1)}>
+                              <Button size="icon-sm" variant="ghost" disabled={i === assigned.length - 1} onClick={() => reorderBatchTask(batch.id, bt, 1)}>
                                 <ChevronDown className="h-3.5 w-3.5" />
                               </Button>
                             </div>
-                            <Badge variant={bt.status === 'published' ? 'success' : 'outline'}>
+                            <Badge variant={bt.status === 'published' ? 'success' : 'outline'} size="sm">
                               {bt.status === 'published' ? t('courseDetail.published') : t('courseDetail.unpublished')}
                             </Badge>
-                            <Button size="sm" variant="ghost" title={t('tasks.publish')} onClick={() => toggleBatchTaskStatus(batch.id, bt)}>
+                            <Button size="icon-sm" variant="ghost" onClick={() => toggleBatchTaskStatus(batch.id, bt)}>
                               {bt.status === 'published' ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                             </Button>
-                            <div className="flex items-center gap-1 text-xs text-slate-500">
-                              <label className="text-slate-400">{t('courseDetail.availabilityStart')}:</label>
-                              <Input
-                                type="datetime-local"
-                                className="h-7 w-auto text-xs"
-                                defaultValue={bt.availability_start ? new Date(bt.availability_start).toISOString().slice(0, 16) : ''}
-                                onBlur={(e) => updateBatchAvailability(batch.id, bt, 'availability_start', e.target.value)}
-                              />
-                              <label className="text-slate-400">{t('courseDetail.availabilityEnd')}:</label>
-                              <Input
-                                type="datetime-local"
-                                className="h-7 w-auto text-xs"
-                                defaultValue={bt.availability_end ? new Date(bt.availability_end).toISOString().slice(0, 16) : ''}
-                                onBlur={(e) => updateBatchAvailability(batch.id, bt, 'availability_end', e.target.value)}
-                              />
+
+                            {/* Date pickers */}
+                            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                              <div className="flex items-center gap-1.5">
+                                <CalendarDays className="h-3 w-3 text-on-surface-variant/60" />
+                                <input
+                                  type="datetime-local"
+                                  className="h-7 rounded-md border border-border bg-surface px-2 text-xs text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 w-[150px]"
+                                  defaultValue={bt.availability_start ? new Date(bt.availability_start).toISOString().slice(0, 16) : ''}
+                                  onBlur={(e) => updateBatchAvailability(batch.id, bt, 'availability_start', e.target.value)}
+                                />
+                              </div>
+                              <span className="text-on-surface-variant/40">—</span>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="datetime-local"
+                                  className="h-7 rounded-md border border-border bg-surface px-2 text-xs text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 w-[150px]"
+                                  defaultValue={bt.availability_end ? new Date(bt.availability_end).toISOString().slice(0, 16) : ''}
+                                  onBlur={(e) => updateBatchAvailability(batch.id, bt, 'availability_end', e.target.value)}
+                                />
+                              </div>
                             </div>
-                            <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => removeTaskFromBatch(batch.id, bt)}>
+
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => removeTaskFromBatch(batch.id, bt)}
+                            >
                               <X className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -514,10 +615,11 @@ export default function AdminLearningCourseDetailPage() {
                     </div>
                   )}
 
+                  {/* Add task to batch */}
                   {available.length > 0 && (
-                    <div className="flex flex-wrap items-end gap-2">
+                    <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-border">
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs">{t('batches.selectBatch')}</Label>
+                        <Label className="text-xs text-on-surface-variant">{t('batches.selectBatch')}</Label>
                         <Select
                           value={assignBatchId || batch.id}
                           onChange={(e) => setAssignBatchId(e.target.value)}
@@ -529,7 +631,7 @@ export default function AdminLearningCourseDetailPage() {
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label className="text-xs">{t('courseDetail.addTask')}</Label>
+                        <Label className="text-xs text-on-surface-variant">{t('courseDetail.addTask')}</Label>
                         <Select value={assignTaskId} onChange={(e) => setAssignTaskId(e.target.value)} className="w-56">
                           <option value="">—</option>
                           {available.map((x) => (
@@ -559,12 +661,14 @@ export default function AdminLearningCourseDetailPage() {
 
       {/* Task create/edit modal */}
       {showTaskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setShowTaskModal(false)}>
-          <Card className="w-full max-w-lg" >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowTaskModal(false)}>
+          <Card className="w-full max-w-lg">
             <div onClick={(e) => e.stopPropagation()} className="p-5">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">{editingTaskId ? t('tasks.edit') : t('tasks.create')}</h3>
-                <Button size="sm" variant="ghost" onClick={() => setShowTaskModal(false)}>
+                <h3 className="text-lg font-semibold text-on-surface">
+                  {editingTaskId ? t('tasks.edit') : t('tasks.create')}
+                </h3>
+                <Button size="icon-sm" variant="ghost" onClick={() => setShowTaskModal(false)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -605,7 +709,7 @@ export default function AdminLearningCourseDetailPage() {
                     pathPrefix={`tasks/${courseId}/covers`}
                   />
                 </div>
-                {saveError && <p className="text-sm text-red-600">{saveError}</p>}
+                {saveError && <p className="text-sm text-destructive">{saveError}</p>}
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" onClick={() => setShowTaskModal(false)}>
                     {t('common.cancel')}

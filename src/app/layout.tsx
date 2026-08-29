@@ -5,36 +5,12 @@ import { AuthProvider } from '@/lib/auth-context'
 import { LanguageProvider } from '@/lib/i18n/client'
 import { SkipToContent } from '@/components/shared/skip-to-content'
 import { SpecialOfferPopup } from '@/components/landing/special-offer-popup'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { LANG_COOKIE, isLang, type Lang } from '@/lib/i18n/config'
 import { cookies } from 'next/headers'
 
-const DEFAULT_METADATA: Metadata = {
+export const metadata: Metadata = {
   title: 'Lexora Academy - Platform Pembelajaran Bahasa',
   description: 'Belajar bahasa asing dengan pengajar profesional dan sistem belajar terstruktur',
-}
-
-export async function generateMetadata(): Promise<Metadata> {
-  try {
-    const supabase = await createServerSupabaseClient()
-    const { data } = await supabase.from('system_settings').select('key, value')
-    const map: Record<string, string> = {}
-    for (const row of data ?? []) {
-      map[row.key] = String(row.value ?? '')
-    }
-    const name = map.brand_platform_name
-    const favicon = map.brand_favicon_url
-    const color = map.brand_primary_color
-    if (!name && !favicon && !color) return DEFAULT_METADATA
-    return {
-      ...DEFAULT_METADATA,
-      title: name ? `${name} - Platform Pembelajaran Bahasa` : DEFAULT_METADATA.title,
-      icons: favicon ? { icon: favicon } : undefined,
-      themeColor: color || undefined,
-    }
-  } catch {
-    return DEFAULT_METADATA
-  }
 }
 
 const INIT_SCRIPT = `

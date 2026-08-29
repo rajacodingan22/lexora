@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
     const { data: task, error: taskError } = await supabase
       .from('course_tasks')
-      .select('id, course_id, status')
+      .select('id, course_id, status, min_completion_score')
       .eq('id', taskId)
       .single()
 
@@ -113,6 +113,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Task availability has ended' }, { status: 403 })
     }
 
+    // Check activity unlock status (server-side)
+    const unlockRule = (task as { activity_unlock_rule?: string }).activity_unlock_rule ?? 'sequential'
+    if (unlockRule !== 'all_available') {
+      const { data: lessonActivities } = await supabase
+        .from('lesson_activities')
+        .select('id')
+        .eq('lesson_id', lessonId)
+        .eq('status', 'published')
+        .order('sort_order', { ascending: true })
+
+      if (lessonActivities && lessonActivities.length > 0) {
+        const actIdx = lessonActivities.findIndex(a => a.id === activityId)
+        if (actIdx > 0) {
+          const prevActId = lessonActivities[actIdx - 1].id
+          const { data: prevProgress } = await supabase
+            .from('student_activity_progress')
+            .select('status')
+            .eq('user_id', user.id)
+            .eq('batch_id', batchId)
+            .eq('activity_id', prevActId)
+            .maybeSingle()
+
+          if (!prevProgress || prevProgress.status !== 'completed') {
+            return NextResponse.json({ error: 'Activity is locked — complete previous activity first' }, { status: 403 })
+          }
+        }
+      }
+    }
+
     const { data: existingProgress } = await supabase
       .from('student_activity_progress')
       .select('attempts, status')
@@ -122,7 +151,8 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     const attempts = (existingProgress?.attempts ?? 0) + 1
-    const status = score >= 70 ? 'completed' : 'in_progress'
+    const minScore = (task as { min_completion_score?: number }).min_completion_score ?? 70
+    const status = score >= minScore ? 'completed' : 'in_progress'
 
     const { error: upsertError } = await supabase
       .from('student_activity_progress')
@@ -208,9 +238,16 @@ export async function POST(req: Request) {
         completed_activities: completedActivities,
         last_lesson_id: lessonId,
         last_activity_id: activityId,
-        started_at: new Date().toISOString(),
         completed_at: taskCompleted ? new Date().toISOString() : null,
       }, { onConflict: 'user_id,batch_id,task_id' })
+      // Set started_at only on first progress (don't overwrite)
+      await supabase
+        .from('student_task_progress')
+        .update({ started_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('batch_id', batchId)
+        .eq('task_id', taskId)
+        .is('started_at', null)
     } catch (e) {
       console.error('Failed to upsert task progress', e)
     }

@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.supabase.in https://opencode.ai",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
-              "font-src 'self' https://fonts.gstatic.com data:",
+              "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:",
               "img-src 'self' data: blob: https: https://*.supabase.co https://*.supabase.in",
               "media-src 'self' blob: https://*.supabase.co",
               "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://opencode.ai https://api.opencode.ai",

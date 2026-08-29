@@ -1,23 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Search, Download, Loader2, ChevronLeft, GraduationCap } from 'lucide-react'
+import { SpeakingReviewQueue } from '@/components/teacher/speaking-review-queue'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n/client'
-import type { Course, Enrollment, Assignment, Submission, Quiz, QuizAttempt, FinalExam, FinalExamAttempt, User } from '@/types'
-
-const W_TASK = 0.5
-const W_PROJECT = 0.2
-const W_QUIZ = 0.05
-const W_EXAM = 0.25
+import type { Course, Enrollment, User, GradeAggregate } from '@/types'
 
 interface StudentGrade {
   user: User
   enrollment: Enrollment
+  grade: GradeAggregate | null
   taskScore: number
   projectScore: number
   quizAvg: number
@@ -25,15 +22,10 @@ interface StudentGrade {
   overall: number
 }
 
-interface _CourseCache {
-  quizzes: Quiz[]
-  exams: FinalExam[]
-}
-
 export default function TeacherNilaiPage() {
   const { user, loading: authLoading } = useAuth()
   const { t } = useI18n()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [courses, setCourses] = useState<Course[]>([])
   const [selectedCourseId, setSelectedCourseId] = useState('')
@@ -140,83 +132,33 @@ export default function TeacherNilaiPage() {
 
       const enrList = enrollments as (Enrollment & { user: User })[]
 
-      const [{ data: allQuizzes }, { data: allExams }, { data: allAssignments }, { data: allTasks }] = await Promise.all([
-        supabase.from('quizzes').select('*').eq('course_id', selectedCourseId),
-        supabase.from('final_exams').select('*').eq('course_id', selectedCourseId),
-        supabase.from('assignments').select('*').eq('course_id', selectedCourseId),
-        supabase.from('course_tasks').select('*, task_materials(id)').eq('course_id', selectedCourseId).eq('status', 'published'),
-      ])
+      // Fetch grade_aggregates for all enrollments (computed by DB calculate_grade())
+      const enrollmentIds = enrList.map(e => e.id)
+      const { data: gradeRows } = await supabase
+        .from('grade_aggregates')
+        .select('*')
+        .in('enrollment_id', enrollmentIds)
 
-      const qList = (allQuizzes || []) as Quiz[]
-      const eList = (allExams || []) as FinalExam[]
-      const aList = (allAssignments || []) as Assignment[]
-
-      const allQuizIds = qList.map(q => q.id)
-      const allExamIds = eList.map(e => e.id)
-      const allAssignmentIds = aList.map(a => a.id)
-      const materialIds = (allTasks || []).flatMap((t: { task_materials?: { id: string }[] }) => (t.task_materials || []).map((m: { id: string }) => m.id))
-
-      const userIds = enrList.map(e => e.user_id)
-
-      const [{ data: quizAttempts }, { data: examAttempts }, { data: submissions }, { data: materialProgress }] = await Promise.all([
-        allQuizIds.length ? supabase.from('quiz_attempts').select('*').in('user_id', userIds).in('quiz_id', allQuizIds) : { data: [] },
-        allExamIds.length ? supabase.from('exam_results').select('*').in('user_id', userIds).in('exam_id', allExamIds) : { data: [] },
-        allAssignmentIds.length ? supabase.from('submissions').select('*').in('user_id', userIds).in('assignment_id', allAssignmentIds) : { data: [] },
-        materialIds.length ? supabase.from('student_material_progress').select('user_id, material_id, status').in('user_id', userIds).in('material_id', materialIds) : { data: [] },
-      ])
-
-      const qAttempts = (quizAttempts || []) as QuizAttempt[]
-      const eAttempts = (examAttempts || []) as FinalExamAttempt[]
-      const subList = (submissions || []) as Submission[]
-      const progressByUser = new Map<string, Set<string>>()
-      for (const p of (materialProgress || []) as { user_id: string; material_id: string; status: string }[]) {
-        if (p.status !== 'completed') continue
-        let set = progressByUser.get(p.user_id)
-        if (!set) { set = new Set(); progressByUser.set(p.user_id, set) }
-        set.add(p.material_id)
+      const gradeMap = new Map<string, GradeAggregate>()
+      for (const row of (gradeRows || []) as GradeAggregate[]) {
+        gradeMap.set(row.enrollment_id, row)
       }
 
-      const taskTotal = (allTasks || []).reduce((sum: number, t: { task_materials?: { id: string }[] }) => sum + (t.task_materials || []).length, 0)
-
-      const gradeMap = new Map<string, StudentGrade>()
-
-      for (const enr of enrList) {
-        const uid = enr.user_id
-
-        const doneSet = progressByUser.get(uid) || new Set<string>()
-        const taskDone = (allTasks || []).reduce((sum: number, t: { task_materials?: { id: string }[] }) =>
-          sum + (t.task_materials || []).filter(m => doneSet.has(m.id)).length, 0)
-        const taskScore = taskTotal > 0 ? (taskDone / taskTotal) * 100 : 100
-
-        const userSubs = subList.filter(s => s.user_id === uid && s.grade != null)
-        const projectScore = userSubs.length > 0
-          ? userSubs.reduce((sum, s) => sum + (s.grade ?? 0), 0) / userSubs.length
-          : 0
-
-        const userQAttempts = qAttempts.filter(qa => qa.user_id === uid && qa.score != null)
-        const quizAvg = userQAttempts.length > 0
-          ? userQAttempts.reduce((sum, qa) => sum + (qa.score ?? 0), 0) / userQAttempts.length
-          : 0
-
-        const userEAttempts = eAttempts.filter(ea => ea.user_id === uid && ea.score != null)
-        const examScore = userEAttempts.length > 0
-          ? userEAttempts.reduce((sum, ea) => sum + (ea.score ?? 0), 0) / userEAttempts.length
-          : 0
-
-        const overall = (taskScore * W_TASK) + (projectScore * W_PROJECT) + (quizAvg * W_QUIZ) + (examScore * W_EXAM)
-
-        gradeMap.set(uid, {
+      const result: StudentGrade[] = enrList.map(enr => {
+        const g = gradeMap.get(enr.id) ?? null
+        return {
           user: enr.user,
           enrollment: enr,
-          taskScore: Math.round(taskScore),
-          projectScore: Math.round(projectScore),
-          quizAvg: Math.round(quizAvg),
-          examScore: Math.round(examScore),
-          overall: Math.round(overall),
-        })
-      }
+          grade: g,
+          taskScore: g?.task_score ?? 0,
+          projectScore: g?.assignment_average ?? 0,
+          quizAvg: g?.quiz_average ?? 0,
+          examScore: g?.final_exam_score ?? 0,
+          overall: g?.weighted_total ?? 0,
+        }
+      })
 
-      setStudents(Array.from(gradeMap.values()))
+      setStudents(result)
     } catch (err) {
       console.error('Failed to fetch grades', err)
     } finally {
@@ -277,7 +219,7 @@ export default function TeacherNilaiPage() {
                 <CardDescription>{s.user.email}</CardDescription>
               </div>
               <div className="ml-auto">
-                <span className={`text-3xl font-bold ${gradeColor(s.overall)}`}>{s.overall}%</span>
+                <span className={`text-3xl font-bold ${gradeColor(s.overall)}`}>{Math.round(s.overall)}%</span>
               </div>
             </div>
           </CardHeader>
@@ -292,7 +234,7 @@ export default function TeacherNilaiPage() {
                 <div key={row.label}>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-on-surface">{row.label} <span className="text-muted">({row.weight})</span></span>
-                    <span className={`font-semibold ${gradeColor(row.value)}`}>{row.value}%</span>
+                    <span className={`font-semibold ${gradeColor(row.value)}`}>{Math.round(row.value)}%</span>
                   </div>
                   <div className="h-2.5 rounded-full bg-surface-container-highest overflow-hidden">
                     <div
@@ -303,6 +245,25 @@ export default function TeacherNilaiPage() {
                 </div>
               ))}
             </div>
+
+            {s.grade?.grade_letter && (
+              <div className="mt-4 rounded-xl bg-surface-container-low p-4 border border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-on-surface-variant">{t('teacher1.nilai.gradeLetter')}</span>
+                  <span className="text-2xl font-bold text-on-surface">{s.grade.grade_letter}</span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm text-on-surface-variant">{t('teacher1.nilai.gradePoints')}</span>
+                  <span className="font-semibold text-on-surface">{s.grade.grade_points}</span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm text-on-surface-variant">{t('teacher1.nilai.passStatus')}</span>
+                  <Badge variant={s.grade.is_passing ? 'success' : 'outline'}>
+                    {s.grade.is_passing ? t('teacher1.nilai.passing') : t('teacher1.nilai.notPassing')}
+                  </Badge>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -316,9 +277,6 @@ export default function TeacherNilaiPage() {
           <h1 className="text-2xl font-bold text-on-surface">{t('teacher1.nilai.title')}</h1>
           <p className="text-on-surface-variant">{t('teacher1.nilai.subtitle')}</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => {}}>
-          <Download className="mr-1 h-4 w-4" /> {t('teacher1.nilai.export')}
-        </Button>
       </div>
 
       <Card>
@@ -415,11 +373,11 @@ export default function TeacherNilaiPage() {
                           </div>
                         </div>
                       </td>
-                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.taskScore)}`}>{s.taskScore}%</td>
-                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.projectScore)}`}>{s.projectScore}%</td>
-                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.quizAvg)}`}>{s.quizAvg}%</td>
-                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.examScore)}`}>{s.examScore}%</td>
-                      <td className={`py-3 pr-2 font-bold ${gradeColor(s.overall)}`}>{s.overall}%</td>
+                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.taskScore)}`}>{Math.round(s.taskScore)}%</td>
+                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.projectScore)}`}>{Math.round(s.projectScore)}%</td>
+                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.quizAvg)}`}>{Math.round(s.quizAvg)}%</td>
+                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.examScore)}`}>{Math.round(s.examScore)}%</td>
+                      <td className={`py-3 pr-2 font-bold ${gradeColor(s.overall)}`}>{Math.round(s.overall)}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -428,6 +386,8 @@ export default function TeacherNilaiPage() {
           )}
         </CardContent>
       </Card>
+
+      <SpeakingReviewQueue />
     </div>
   )
 }

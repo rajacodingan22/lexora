@@ -8,10 +8,10 @@ import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase-client'
 import { useI18n } from '@/lib/i18n/client'
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { Loader2, CheckCircle2, AlertCircle, Mail, Key, Database, Bell, Palette, LogIn, Sparkles } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle, Mail, Key, Database, Bell, LogIn, Sparkles } from 'lucide-react'
 
 type SettingMap = Record<string, unknown>
-type SectionName = 'auth' | 'email' | 'ai' | 'storage' | 'notification' | 'branding' | 'payment' | 'placement'
+type SectionName = 'auth' | 'email' | 'ai' | 'storage' | 'notification' | 'payment' | 'placement'
 type SectionStatus = { type: 'success'; message: string } | { type: 'error'; message: string } | null
 
 const SENSITIVE_KEYS = ['ai_api_key', 'smtp_password', 'smtp_user']
@@ -33,9 +33,6 @@ const K = {
   STORAGE_ALLOWED_TYPES: 'storage_allowed_file_types',
   NOTIF_EMAIL: 'notif_email_enabled',
   NOTIF_PUSH: 'notif_push_enabled',
-  BRAND_NAME: 'brand_platform_name',
-  BRAND_COLOR: 'brand_primary_color',
-  BRAND_FAVICON: 'brand_favicon_url',
   PLACEMENT_POPUP: 'placement_popup_enabled',
   PLACEMENT_PERSONALITY_LINK: 'personality_test_link',
   PLACEMENT_PRICE: 'placement_test_price',
@@ -113,7 +110,6 @@ export default function AdminSettingsPage() {
     ai: null,
     storage: null,
     notification: null,
-    branding: null,
     payment: null,
     placement: null,
   })
@@ -564,55 +560,6 @@ export default function AdminSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Branding */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
-<Palette className="h-4 w-4 text-indigo-400" />
-              {t('admin2.settings.brandingTitle')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Input
-              label={t('admin2.settings.platformName')}
-              value={get(K.BRAND_NAME, '') as string}
-              onChange={(e) => set(K.BRAND_NAME, e.target.value)}
-            />
-            <div>
-              <label className="text-sm font-medium text-on-surface">{t('admin2.settings.primaryColor')}</label>
-              <div className="flex items-center gap-3 mt-1.5">
-                <div
-                  className="h-10 w-10 shrink-0 rounded-lg border-2 border-border"
-                  style={{ backgroundColor: (get(K.BRAND_COLOR, '#6366f1') as string) || '#6366f1' }}
-                />
-                <Input
-                  className="flex-1"
-                  value={get(K.BRAND_COLOR, '#6366f1') as string}
-                  onChange={(e) => set(K.BRAND_COLOR, e.target.value)}
-                />
-              </div>
-            </div>
-            <Label className="text-xs text-muted uppercase font-semibold">{t('admin2.settings.favicon')}</Label>
-            <ImageUpload
-              bucket="cms"
-              pathPrefix={`favicon/${Date.now()}`}
-              value={(get(K.BRAND_FAVICON, '') as string) || null}
-              onUpload={(url) => set(K.BRAND_FAVICON, url)}
-              onRemove={() => set(K.BRAND_FAVICON, '')}
-            />
-            <Button
-              size="sm"
-              loading={saving === 'branding'}
-              disabled={saving !== null}
-              onClick={() =>
-                saveSection('branding', [K.BRAND_NAME, K.BRAND_COLOR, K.BRAND_FAVICON])
-              }
-            >
-              {t('admin2.settings.saveBranding')}
-            </Button>
-            <SectionStatusBadge status={statuses.branding} />
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

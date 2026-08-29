@@ -68,13 +68,11 @@ export default function RegisterPage() {
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [registrationEnabled, setRegistrationEnabled] = useState(true)
   const [googleEnabled, setGoogleEnabled] = useState(true)
-  const [platformName, setPlatformName] = useState('')
 
   useEffect(() => {
     getSettingsMap().then((map) => {
       setRegistrationEnabled(settingEnabled(map, 'auth_allow_registration', true))
       setGoogleEnabled(settingEnabled(map, 'auth_allow_google_login', true))
-      setPlatformName(map.brand_platform_name || '')
       setSettingsLoaded(true)
     })
 
@@ -243,7 +241,7 @@ export default function RegisterPage() {
         <Link href="/" className="relative z-10 flex items-center gap-2.5">
           <img src="/logo.png" alt="" className="size-10 rounded-xl object-contain shadow-sm" />
           <span className="text-xl font-extrabold tracking-tight text-primary-foreground">
-            {platformName || 'Lexora Academy'}
+            Lexora Academy
           </span>
         </Link>
 

@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS public.speaking_review_submissions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  activity_progress_id uuid NOT NULL REFERENCES public.student_activity_progress(id) ON DELETE CASCADE,
+  activity_progress_id uuid REFERENCES public.student_activity_progress(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   activity_id uuid NOT NULL REFERENCES public.lesson_activities(id) ON DELETE CASCADE,
   task_id uuid NOT NULL REFERENCES public.course_tasks(id) ON DELETE CASCADE,
@@ -117,3 +117,8 @@ DROP TRIGGER IF EXISTS trg_speaking_review_updated_at ON public.speaking_review_
 CREATE TRIGGER trg_speaking_review_updated_at
   BEFORE UPDATE ON public.speaking_review_submissions
   FOR EACH ROW EXECUTE FUNCTION public.update_speaking_review_updated_at();
+
+-- Add speaking_review to lesson_activities type constraint
+ALTER TABLE public.lesson_activities DROP CONSTRAINT IF EXISTS lesson_activities_activity_type_check;
+ALTER TABLE public.lesson_activities ADD CONSTRAINT lesson_activities_activity_type_check
+  CHECK (activity_type IN ('reading', 'listening', 'quiz', 'video', 'exercise', 'image_speak', 'speaking_review'));

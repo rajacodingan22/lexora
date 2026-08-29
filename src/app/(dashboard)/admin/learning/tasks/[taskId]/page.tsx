@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Reorder } from 'framer-motion'
 import { createClient } from '@/lib/supabase-client'
@@ -44,7 +44,7 @@ export default function AdminTaskBuilderPage() {
   const { taskId } = useParams<{ taskId: string }>()
   const router = useRouter()
   const { t } = useI18n()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [tab, setTab] = useState<Tab>('overview')
   const [task, setTask] = useState<CourseTask | null>(null)
@@ -120,9 +120,10 @@ export default function AdminTaskBuilderPage() {
         })
         .eq('id', taskId)
       if (error) throw error
-      fetchAll()
+      // Don't call fetchAll() here — it creates a loop with autosave.
+      // The draft already reflects what we just saved.
     },
-    [taskId, supabase, fetchAll],
+    [taskId, supabase],
   )
 
   const [draft, setDraft] = useState<TaskDraft | null>(null)
@@ -136,7 +137,7 @@ export default function AdminTaskBuilderPage() {
 
   useEffect(() => {
     if (!task) return
-    setDraft({
+    const next: TaskDraft = {
       title: task.title,
       description: task.description || '',
       cover_image_url: task.cover_image_url || '',
@@ -149,6 +150,27 @@ export default function AdminTaskBuilderPage() {
       required_lesson_score: task.required_lesson_score ?? 70,
       activity_unlock_rule: task.activity_unlock_rule ?? 'sequential',
       status: task.status,
+    }
+    // Only update draft if values actually changed (prevents autosave loop)
+    setDraft((prev) => {
+      if (!prev) return next
+      if (
+        prev.title === next.title &&
+        prev.description === next.description &&
+        prev.cover_image_url === next.cover_image_url &&
+        prev.task_number === next.task_number &&
+        prev.sort_order === next.sort_order &&
+        prev.estimated_duration === next.estimated_duration &&
+        prev.min_completion_score === next.min_completion_score &&
+        prev.completion_requirement === next.completion_requirement &&
+        prev.lesson_unlock_rule === next.lesson_unlock_rule &&
+        prev.required_lesson_score === next.required_lesson_score &&
+        prev.activity_unlock_rule === next.activity_unlock_rule &&
+        prev.status === next.status
+      ) {
+        return prev // no change → same reference → autosave won't fire
+      }
+      return next
     })
   }, [task])
 
@@ -278,13 +300,13 @@ export default function AdminTaskBuilderPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
       </div>
     )
   }
 
   if (!task || !draft) {
-    return <div className="py-20 text-center text-slate-400">Task not found</div>
+    return <div className="py-20 text-center text-on-surface-variant">Task not found</div>
   }
 
   const tabs: { key: Tab; label: string }[] = [
@@ -308,7 +330,7 @@ export default function AdminTaskBuilderPage() {
             <Input
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              className="h-9 border-transparent bg-transparent text-xl font-bold text-slate-900 shadow-none hover:border-slate-200"
+              className="h-9 border-transparent bg-transparent text-xl font-bold text-on-surface shadow-none hover:border-border"
               placeholder="Task Title"
             />
           </div>
@@ -338,13 +360,13 @@ export default function AdminTaskBuilderPage() {
       </div>
 
       {/* tabs */}
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-border">
         {tabs.map((tb) => (
           <button
             key={tb.key}
             type="button"
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-              tab === tb.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+              tab === tb.key ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'
             }`}
             onClick={() => setTab(tb.key)}
           >
@@ -367,19 +389,19 @@ export default function AdminTaskBuilderPage() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-xl bg-slate-50 p-3 text-center">
-                  <Layers className="mx-auto mb-1 h-5 w-5 text-indigo-600" />
-                  <p className="text-lg font-bold text-slate-900">{lessons.length}</p>
-                  <p className="text-xs text-slate-500">{t('overview.lessonsCount')}</p>
+                <div className="rounded-xl bg-surface-container-low p-3 text-center">
+                  <Layers className="mx-auto mb-1 h-5 w-5 text-primary" />
+                  <p className="text-lg font-bold text-on-surface">{lessons.length}</p>
+                  <p className="text-xs text-on-surface-variant">{t('overview.lessonsCount')}</p>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3 text-center">
-                  <ListOrdered className="mx-auto mb-1 h-5 w-5 text-indigo-600" />
-                  <p className="text-lg font-bold text-slate-900">{Object.values(activitiesByLesson).reduce((s, a) => s + a.length, 0)}</p>
-                  <p className="text-xs text-slate-500">{t('overview.activitiesCount')}</p>
+                <div className="rounded-xl bg-surface-container-low p-3 text-center">
+                  <ListOrdered className="mx-auto mb-1 h-5 w-5 text-primary" />
+                  <p className="text-lg font-bold text-on-surface">{Object.values(activitiesByLesson).reduce((s, a) => s + a.length, 0)}</p>
+                  <p className="text-xs text-on-surface-variant">{t('overview.activitiesCount')}</p>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3 text-center">
-                  <p className="text-lg font-bold text-slate-900">{draft.estimated_duration || '—'}</p>
-                  <p className="text-xs text-slate-500">{t('common.duration')}</p>
+                <div className="rounded-xl bg-surface-container-low p-3 text-center">
+                  <p className="text-lg font-bold text-on-surface">{draft.estimated_duration || '—'}</p>
+                  <p className="text-xs text-on-surface-variant">{t('common.duration')}</p>
                 </div>
               </div>
               <div className="flex flex-col gap-1">
@@ -398,7 +420,7 @@ export default function AdminTaskBuilderPage() {
           <Card>
             <CardContent className="space-y-3 p-5">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-slate-800">{t('validation.title')}</h3>
+                <h3 className="font-semibold text-on-surface">{t('validation.title')}</h3>
                 {validation.ok ? (
                   <Badge variant="success">
                     <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> {t('validation.ready')}
@@ -410,7 +432,7 @@ export default function AdminTaskBuilderPage() {
                 )}
               </div>
               {validation.errors.length > 0 && (
-                <ul className="space-y-1.5 text-sm text-red-600">
+                <ul className="space-y-1.5 text-sm text-destructive">
                   {validation.errors.map((e, i) => (
                     <li key={i} className="flex items-start gap-1.5">
                       <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {e}
@@ -419,14 +441,14 @@ export default function AdminTaskBuilderPage() {
                 </ul>
               )}
               {validation.warnings.length > 0 && (
-                <ul className="space-y-1.5 text-sm text-amber-600">
+                <ul className="space-y-1.5 text-sm text-warning">
                   {validation.warnings.map((w, i) => (
                     <li key={i} className="flex items-start gap-1.5">• {w}</li>
                   ))}
                 </ul>
               )}
               {validation.ok && (
-                <p className="flex items-center gap-1.5 text-sm text-emerald-600">
+                <p className="flex items-center gap-1.5 text-sm text-success">
                   <CheckCircle2 className="h-3.5 w-3.5" /> {t('validation.ready')}
                 </p>
               )}
@@ -440,22 +462,22 @@ export default function AdminTaskBuilderPage() {
         <Card>
           <CardContent className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">{t('builder.lessons')} ({lessons.length})</h3>
+              <h3 className="font-semibold text-on-surface">{t('builder.lessons')} ({lessons.length})</h3>
               <Button size="sm" onClick={addLesson}>
                 <Plus className="mr-1 h-3.5 w-3.5" /> {t('builder.addLesson')}
               </Button>
             </div>
             {lessons.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">No lessons yet. Create the first lesson.</p>
+              <p className="py-8 text-center text-sm text-on-surface-variant">No lessons yet. Create the first lesson.</p>
             ) : (
               <Reorder.Group axis="y" values={lessons} onReorder={reorderLessons} className="space-y-2">
                 {lessons.map((lesson, i) => {
                   const acts = activitiesByLesson[lesson.id] ?? []
                   return (
-                    <Reorder.Item key={lesson.id} value={lesson} className="cursor-grab rounded-xl border border-slate-200 bg-white p-3 active:cursor-grabbing">
+                    <Reorder.Item key={lesson.id} value={lesson} className="cursor-grab rounded-xl border border-border bg-surface p-3 active:cursor-grabbing">
                       <div className="flex items-center gap-3">
-                        <GripVertical className="h-4 w-4 shrink-0 text-slate-300" />
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-sm font-bold text-indigo-600">
+                        <GripVertical className="h-4 w-4 shrink-0 text-on-surface-variant/40" />
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
                           {i + 1}
                         </span>
                         <button
@@ -463,8 +485,8 @@ export default function AdminTaskBuilderPage() {
                           className="min-w-0 flex-1 text-left"
                           onClick={() => router.push(`/admin/learning/tasks/${taskId}/lessons/${lesson.id}`)}
                         >
-                          <p className="truncate text-sm font-medium text-slate-800">{lesson.title || 'Untitled Lesson'}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="truncate text-sm font-medium text-on-surface">{lesson.title || 'Untitled Lesson'}</p>
+                          <p className="text-xs text-on-surface-variant">
                             {lesson.icon ? `${lesson.icon} ` : ''}
                             {acts.length} {t('tasks.activities')} • {lesson.estimated_duration || '—'}
                           </p>
@@ -483,7 +505,7 @@ export default function AdminTaskBuilderPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-red-600 hover:bg-red-50"
+                            className="text-destructive hover:bg-destructive/10"
                             disabled={deletingLessonId === lesson.id}
                             onClick={() => deleteLesson(lesson)}
                           >
@@ -504,7 +526,7 @@ export default function AdminTaskBuilderPage() {
       {tab === 'settings' && (
         <Card>
           <CardContent className="space-y-4 p-5">
-            <h3 className="font-semibold text-slate-800">{t('settings.title')}</h3>
+            <h3 className="font-semibold text-on-surface">{t('settings.title')}</h3>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1">
@@ -577,18 +599,18 @@ export default function AdminTaskBuilderPage() {
       {tab === 'batches' && (
         <Card>
           <CardContent className="space-y-4 p-5">
-            <h3 className="font-semibold text-slate-800">{t('batches.title')}</h3>
+            <h3 className="font-semibold text-on-surface">{t('batches.title')}</h3>
             {batches.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">{t('courseDetail.noBatches')}</p>
+              <p className="py-6 text-center text-sm text-on-surface-variant">{t('courseDetail.noBatches')}</p>
             ) : (
               batches.map((batch) => {
                 const bt = batchTasks.find((x) => x.batch_id === batch.id)
                 const inBatch = !!bt
                 return (
-                  <div key={batch.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3">
+                  <div key={batch.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-3">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-slate-800">{batch.name}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-medium text-on-surface">{batch.name}</p>
+                      <p className="text-xs text-on-surface-variant">
                         {inBatch ? `sort #${bt!.sort_order}` : t('courseDetail.tasksInBatch') + ': —'}
                       </p>
                     </div>
@@ -610,7 +632,7 @@ export default function AdminTaskBuilderPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-red-600 hover:bg-red-50"
+                          className="text-destructive hover:bg-destructive/10"
                           onClick={async () => {
                             await supabase.from('batch_tasks').delete().eq('id', bt!.id)
                             fetchAll()

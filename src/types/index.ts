@@ -296,6 +296,7 @@ export interface GradeAggregate {
   assignment_average: number
   quiz_average: number
   final_exam_score: number
+  task_score: number
   weighted_total: number
   grade_letter: string
   grade_points: number
@@ -784,6 +785,8 @@ export interface SpeakingReviewContent {
   instructions?: string
   voice?: string | null
   rate?: number
+  /** Passage text for karaoke display — if different from text */
+  passageText?: string
 }
 
 export type ActivityContentData = ReadingContent | ListeningContent | ImageSpeakContent | SpeakingReviewContent

@@ -91,7 +91,7 @@ export function TeacherReviewPanel({ submission, onSubmit, onClose }: TeacherRev
         {submission.audio_drive_link && (
           <div className="mb-4">
             <WaveformPlayer
-              audioUrl={submission.audio_drive_link}
+              audioUrl={`/api/speaking-review/audio/${submission.id}`}
               label="Rekaman Student"
               color="#10b981"
               height={56}

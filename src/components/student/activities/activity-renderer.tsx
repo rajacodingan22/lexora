@@ -18,6 +18,8 @@ export interface RendererProps {
   activity: LessonActivity
   content: Record<string, unknown>
   preview?: boolean
+  taskId?: string
+  batchId?: string
   onComplete: (payload: SubmitPayload) => void
 }
 
@@ -77,6 +79,7 @@ function ReadingRenderer({ content, onComplete }: RendererProps) {
   const [grading, setGrading] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const tts = useTts(text, null, 0.9)
 
   async function handleSubmit() {
     if (!response.trim()) return
@@ -121,13 +124,30 @@ function ReadingRenderer({ content, onComplete }: RendererProps) {
   return (
     <div className="space-y-4">
       {instructions && (
-        <p className="text-sm font-medium text-indigo-700">{instructions}</p>
+        <p className="text-sm font-medium text-on-surface-variant">{instructions}</p>
       )}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{text}</p>
+      <div className="rounded-xl border border-border bg-surface-container-low p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-on-surface flex-1">{text}</p>
+          <button
+            type="button"
+            onClick={() => tts.speaking ? tts.stop() : tts.speak()}
+            disabled={!tts.ttsAvailable}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-30"
+            title={tts.speaking ? 'Stop' : 'Dengarkan'}
+          >
+            {tts.speaking ? <Pause className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+        </div>
+        {tts.speaking && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-primary">
+            <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+            Memutar...
+          </div>
+        )}
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">{t('activity.reading.yourSummary')}</label>
+        <label className="mb-1 block text-sm font-medium text-on-surface">{t('activity.reading.yourSummary')}</label>
         <Textarea
           rows={6}
           value={response}
@@ -137,15 +157,15 @@ function ReadingRenderer({ content, onComplete }: RendererProps) {
         />
       </div>
       {feedback && (
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-          <p className="mb-1 text-sm font-semibold text-indigo-800">{t('activity.common.aiFeedback')}</p>
-          <p className="whitespace-pre-wrap text-sm text-indigo-700">{feedback}</p>
+        <div className="rounded-xl border border-info/30 bg-info/5 p-4">
+          <p className="mb-1 text-sm font-semibold text-info">{t('activity.common.aiFeedback')}</p>
+          <p className="whitespace-pre-wrap text-sm text-on-surface">{feedback}</p>
         </div>
       )}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-          <p className="mb-1 text-sm font-semibold text-red-800">{t('activity.common.error')}</p>
-          <p className="whitespace-pre-wrap text-sm text-red-700">{error}</p>
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+          <p className="mb-1 text-sm font-semibold text-destructive">{t('activity.common.error')}</p>
+          <p className="whitespace-pre-wrap text-sm text-on-surface">{error}</p>
         </div>
       )}
       <div className="flex justify-end pt-2">
@@ -214,21 +234,51 @@ function ListeningRenderer({ content, onComplete }: RendererProps) {
   return (
     <div className="space-y-4">
       {instructions && (
-        <p className="text-sm font-medium text-indigo-700">{instructions}</p>
+        <p className="text-sm font-medium text-on-surface-variant">{instructions}</p>
       )}
       {audioUrl ? (
-        <audio controls src={audioUrl} className="w-full" />
+        <div className="rounded-xl border border-border bg-surface-container-low p-4">
+          <audio controls src={audioUrl} className="w-full" />
+        </div>
       ) : (
-        <div className="flex items-center gap-2 rounded-xl bg-slate-50 p-3">
-          <Button size="sm" onClick={tts.speaking ? tts.stop : tts.speak} disabled={!tts.ttsAvailable || !audioText}>
-            {tts.speaking ? <Pause className="mr-1 h-4 w-4" /> : <Play className="mr-1 h-4 w-4" />}
-            {tts.speaking ? t('activity.listening.pause') : t('activity.listening.playAudio')}
-          </Button>
-          {!tts.ttsAvailable && <span className="text-xs text-slate-400">{t('activity.listening.ttsUnsupported')}</span>}
+        <div className="rounded-xl border border-border bg-surface-container-low p-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={tts.speaking ? tts.stop : tts.speak}
+              disabled={!tts.ttsAvailable || !audioText}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-30 shadow-sm"
+            >
+              {tts.speaking ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-on-surface">
+                {tts.speaking ? 'Memutar...' : 'Dengarkan audio'}
+              </p>
+              {!tts.ttsAvailable && (
+                <p className="text-xs text-on-surface-variant">{t('activity.listening.ttsUnsupported')}</p>
+              )}
+            </div>
+            {tts.speaking && (
+              <div className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-3 w-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+                ))}
+              </div>
+            )}
+          </div>
+          {audioText && (
+            <details className="mt-3 group">
+              <summary className="cursor-pointer text-xs text-on-surface-variant hover:text-on-surface transition-colors">
+                Lihat transkrip
+              </summary>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-on-surface/80 leading-relaxed">{audioText}</p>
+            </details>
+          )}
         </div>
       )}
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">{t('activity.listening.prompt')}</label>
+        <label className="mb-1 block text-sm font-medium text-on-surface">{t('activity.listening.prompt')}</label>
         <Textarea
           rows={6}
           value={response}
@@ -238,15 +288,15 @@ function ListeningRenderer({ content, onComplete }: RendererProps) {
         />
       </div>
       {feedback && (
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-          <p className="mb-1 text-sm font-semibold text-indigo-800">{t('activity.common.aiFeedback')}</p>
-          <p className="whitespace-pre-wrap text-sm text-indigo-700">{feedback}</p>
+        <div className="rounded-xl border border-info/30 bg-info/5 p-4">
+          <p className="mb-1 text-sm font-semibold text-info">{t('activity.common.aiFeedback')}</p>
+          <p className="whitespace-pre-wrap text-sm text-on-surface">{feedback}</p>
         </div>
       )}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-          <p className="mb-1 text-sm font-semibold text-red-800">{t('activity.common.error')}</p>
-          <p className="whitespace-pre-wrap text-sm text-red-700">{error}</p>
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+          <p className="mb-1 text-sm font-semibold text-destructive">{t('activity.common.error')}</p>
+          <p className="whitespace-pre-wrap text-sm text-on-surface">{error}</p>
         </div>
       )}
       <div className="flex justify-end pt-2">
@@ -403,9 +453,9 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
         <button
           onClick={handleRecord}
           disabled={grading}
-          className={`flex h-14 w-14 items-center justify-center rounded-full transition-all ${isRecording ? 'bg-red-500 animate-pulse scale-110' : 'bg-amber-400 hover:bg-amber-300 hover:scale-105'} shadow-lg`}
+          className={`flex h-14 w-14 items-center justify-center rounded-full transition-all ${isRecording ? 'bg-destructive animate-pulse scale-110' : 'bg-primary hover:bg-primary/90 hover:scale-105'} shadow-lg`}
         >
-          {grading ? <Loader2 className="h-6 w-6 animate-spin text-slate-800" /> : <Mic className="h-6 w-6 text-slate-800" />}
+          {grading ? <Loader2 className="h-6 w-6 animate-spin text-on-surface" /> : <Mic className="h-6 w-6 text-on-surface" />}
         </button>
         <p className="text-xs text-white/50">{isRecording ? 'Mendengarkan...' : grading ? 'Menilai...' : 'Tekan & ucapkan kalimatnya'}</p>
 
@@ -422,7 +472,7 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
           <div className="w-full max-w-md space-y-2">
             <div className="flex flex-wrap gap-1 justify-center">
               {wordScores.map((w, i) => (
-                <span key={i} className={`rounded px-2 py-0.5 text-sm font-medium ${w.accuracy >= 0.9 ? 'bg-emerald-500/20 text-emerald-300' : w.accuracy >= 0.7 ? 'bg-amber-500/20 text-amber-300' : 'bg-red-500/20 text-red-300'}`}>
+                <span key={i} className={`rounded px-2 py-0.5 text-sm font-medium ${w.accuracy >= 0.9 ? 'bg-success/20 text-success' : w.accuracy >= 0.7 ? 'bg-warning/20 text-warning' : 'bg-destructive/20 text-destructive'}`}>
                   {w.word}
                 </span>
               ))}
@@ -437,7 +487,7 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
             {overall !== null && overall < threshold && <p className="text-xs text-amber-400 text-center">Belum {Math.round(threshold * 100)}% — coba lagi.</p>}
           </div>
         )}
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
 
         <div className="flex gap-2 pt-2">
           {canContinue ? (
@@ -459,9 +509,9 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-xl bg-slate-700/80 px-4 py-3">
-        <p className="text-sm font-medium text-white">{prompt || '...'}</p>
-        <button onClick={tts.speaking ? tts.stop : tts.speak} disabled={!tts.ttsAvailable} className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+      <div className="flex items-center justify-between rounded-xl bg-surface-container-high px-4 py-3">
+        <p className="text-sm font-medium text-on-surface">{prompt || '...'}</p>
+        <button onClick={tts.speaking ? tts.stop : tts.speak} disabled={!tts.ttsAvailable} className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors">
           {tts.speaking ? <Pause className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
       </div>
@@ -474,16 +524,16 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
             <button
               key={idx}
               onClick={() => handleSelect(idx)}
-              className={`relative overflow-hidden rounded-xl transition-all ${isSelected && isCorrect ? 'ring-2 ring-emerald-400 scale-[0.97]' : isSelected && !isCorrect ? 'ring-2 ring-red-500 animate-pulse' : 'hover:ring-2 hover:ring-white/20'}`}
+              className={`relative overflow-hidden rounded-xl transition-all ${isSelected && isCorrect ? 'ring-2 ring-success scale-[0.97]' : isSelected && !isCorrect ? 'ring-2 ring-destructive animate-pulse' : 'hover:ring-2 hover:ring-border-strong'}`}
             >
               {src ? (
                 <img src={src} alt={`Option ${idx + 1}`} className="h-40 w-full object-cover sm:h-48" />
               ) : (
-                <div className="flex h-40 w-full items-center justify-center bg-slate-700 text-xs text-slate-400 sm:h-48">Upload required</div>
+                <div className="flex h-40 w-full items-center justify-center bg-surface-container-high text-xs text-on-surface-variant sm:h-48">Upload required</div>
               )}
               {isSelected && isCorrect && (
-                <span className="absolute inset-0 flex items-center justify-center bg-emerald-500/20">
-                  <CheckCircle2 className="h-10 w-10 text-emerald-400 drop-shadow-lg" />
+                <span className="absolute inset-0 flex items-center justify-center bg-success/20">
+                  <CheckCircle2 className="h-10 w-10 text-success drop-shadow-lg" />
                 </span>
               )}
             </button>
@@ -492,7 +542,7 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
       </div>
 
       {selected !== null && selected !== correctIndex && (
-        <p className="text-center text-xs font-medium text-red-400">Salah — coba lagi!</p>
+        <p className="text-center text-xs font-medium text-destructive">Salah — coba lagi!</p>
       )}
     </div>
   )
@@ -503,7 +553,7 @@ export function ActivityRenderer(props: RendererProps) {
   const { activity } = props
   const wrap = (child: React.ReactNode) => (
     <div className="space-y-4">
-      {activity.instruction && <p className="text-sm text-slate-600">{activity.instruction}</p>}
+      {activity.instruction && <p className="text-sm text-on-surface-variant">{activity.instruction}</p>}
       {child}
     </div>
   )
@@ -517,6 +567,6 @@ export function ActivityRenderer(props: RendererProps) {
     case 'speaking_review':
       return wrap(<SpeakingReviewRenderer {...props} />)
     default:
-      return <p className="py-10 text-center text-sm text-slate-400">{t('activity.common.unsupported')}</p>
+      return <p className="py-10 text-center text-sm text-on-surface-variant">{t('activity.common.unsupported')}</p>
   }
 }

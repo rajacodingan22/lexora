@@ -27,14 +27,26 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         .maybeSingle()
 
       if (enrollment) {
-        const { data: isTeacher } = await supabase
-          .from('course_teachers')
-          .select('teacher_id')
-          .eq('course_id', enrollment.course_id)
-          .eq('teacher_id', user.id)
+        // Resolve auth user → teachers row ID
+        const { data: teacherRow } = await supabase
+          .from('teachers')
+          .select('id')
+          .eq('user_id', user.id)
           .maybeSingle()
 
-        if (!isTeacher) {
+        if (teacherRow) {
+          const { data: isTeacher } = await supabase
+            .from('course_teachers')
+            .select('teacher_id')
+            .eq('course_id', enrollment.course_id)
+            .eq('teacher_id', teacherRow.id)
+            .maybeSingle()
+
+          if (!isTeacher) {
+            const { data: isAdmin } = await supabase.rpc('is_admin')
+            if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          }
+        } else {
           const { data: isAdmin } = await supabase.rpc('is_admin')
           if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }

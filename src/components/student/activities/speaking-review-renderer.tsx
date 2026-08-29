@@ -1,86 +1,84 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Loader2, Mic, Volume2, AlertTriangle, Clock, Send } from 'lucide-react'
+import { CheckCircle2, Loader2, Mic, AlertTriangle, Clock, Send } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/client'
-import type { RendererProps, SubmitPayload } from './activity-renderer'
+import type { RendererProps } from './activity-renderer'
+import type { ActivityResult } from '@/lib/learning'
 import dynamic from 'next/dynamic'
 
 const ComparisonView = dynamic(() => import('@/components/shared/comparison-view').then(m => ({ default: m.ComparisonView })), { ssr: false })
+const KaraokeText = dynamic(() => import('@/components/shared/karaoke-text').then(m => ({ default: m.KaraokeText })), { ssr: false })
 
-type Phase = 'prep' | 'listen' | 'record' | 'compare' | 'pending' | 'reviewed'
+type Phase = 'karaoke' | 'record' | 'compare' | 'pending' | 'reviewed' | 'comparison'
 
-function useTtsAudio(text: string, rate: number) {
-  const [audioUrl, setAudioUrl] = useState<string | null>(null)
-  const [speaking, setSpeaking] = useState(false)
-  const [available, setAvailable] = useState(false)
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+/**
+ * Greedy sequential matching: walk expected words and transcript words.
+ * If they match (case-insensitive), mark as spoken.
+ * If not, advance expected pointer (word was skipped).
+ * Returns Set of spoken word indices.
+ */
+function matchSpokenWords(expected: string[], transcript: string): Set<number> {
+  const spoken = new Set<number>()
+  const transcriptWords = transcript.toLowerCase().split(/\s+/).filter(Boolean)
+  let ei = 0
+  let ti = 0
 
-  useEffect(() => {
-    setAvailable(typeof window !== 'undefined' && 'speechSynthesis' in window)
-  }, [])
+  while (ei < expected.length && ti < transcriptWords.length) {
+    const expNorm = expected[ei].toLowerCase().replace(/[^a-z0-9]/g, '')
+    const trNorm = transcriptWords[ti].replace(/[^a-z0-9]/g, '')
+    if (expNorm && expNorm === trNorm) {
+      spoken.add(ei)
+      ei++
+      ti++
+    } else {
+      ei++
+    }
+  }
 
-  const generateAudio = useCallback(async () => {
-    if (!available || !text) return null
-    // Use SpeechSynthesis to create an audio blob via AudioContext
-    const synth = window.speechSynthesis
-    const u = new SpeechSynthesisUtterance(text)
-    const voices = synth.getVoices()
-    const en = voices.filter(v => v.lang?.toLowerCase().startsWith('en'))
-    const google = en.find(v => /google us english/i.test(v.name))
-    const ms = en.find(v => /microsoft (aria|zira|jenny)/i.test(v.name))
-    const us = en.find(v => /en-us/i.test(v.lang))
-    u.voice = google || ms || us || en[0] || null
-    u.lang = u.voice?.lang || 'en-US'
-    u.rate = rate || 0.9
-    u.pitch = 1
-    utteranceRef.current = u
-    return new Promise<string | null>((resolve) => {
-      // Fallback: use TTS directly for playback (no blob capture in modern browsers)
-      // We'll use a placeholder approach — record via MediaRecorder later
-      resolve(null)
-    })
-  }, [text, rate, available])
-
-  const speak = useCallback(() => {
-    if (!available || !text) return
-    const synth = window.speechSynthesis
-    synth.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    const voices = synth.getVoices()
-    const en = voices.filter(v => v.lang?.toLowerCase().startsWith('en'))
-    const google = en.find(v => /google us english/i.test(v.name))
-    const ms = en.find(v => /microsoft (aria|zira|jenny)/i.test(v.name))
-    const us = en.find(v => /en-us/i.test(v.lang))
-    u.voice = google || ms || us || en[0] || null
-    u.lang = u.voice?.lang || 'en-US'
-    u.rate = rate || 0.9
-    u.pitch = 1
-    u.onstart = () => setSpeaking(true)
-    u.onend = () => setSpeaking(false)
-    u.onerror = () => setSpeaking(false)
-    synth.speak(u)
-  }, [text, rate, available])
-
-  const stop = useCallback(() => {
-    window.speechSynthesis?.cancel()
-    setSpeaking(false)
-  }, [])
-
-  return { speak, stop, speaking, available, audioUrl, generateAudio }
+  return spoken
 }
 
-export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
+/**
+ * Find the last matched index from interim text (partial recognition).
+ * Uses the same greedy approach but stops at the last match.
+ */
+function findCurrentWordIndex(expected: string[], finalTranscript: string, interim: string): number {
+  const combined = (finalTranscript + ' ' + interim).trim()
+  if (!combined) return -1
+  const transcriptWords = combined.toLowerCase().split(/\s+/).filter(Boolean)
+  let lastMatched = -1
+  let ei = 0
+  let ti = 0
+
+  while (ei < expected.length && ti < transcriptWords.length) {
+    const expNorm = expected[ei].toLowerCase().replace(/[^a-z0-9]/g, '')
+    const trNorm = transcriptWords[ti].replace(/[^a-z0-9]/g, '')
+    if (expNorm && expNorm === trNorm) {
+      lastMatched = ei
+      ei++
+      ti++
+    } else {
+      ei++
+    }
+  }
+
+  return lastMatched
+}
+
+export function SpeakingReviewRenderer({ activity, content, taskId, batchId, onComplete }: RendererProps) {
   const { t } = useI18n()
   const text = (content.text as string) ?? ''
   const instructions = (content.instructions as string) ?? ''
   const rate = (content.rate as number) ?? 0.9
+  const expectedWords = useMemo(() => text.split(/\s+/).filter(Boolean), [text])
 
-  const [phase, setPhase] = useState<Phase>('prep')
+  const [phase, setPhase] = useState<Phase>('karaoke')
   const [isRecording, setIsRecording] = useState(false)
-  const [interimText, setInterimText] = useState('')
   const [transcript, setTranscript] = useState('')
+  const [spokenWords, setSpokenWords] = useState<Set<number>>(new Set())
+  const [currentRecordWord, setCurrentRecordWord] = useState(-1)
   const [wordScores, setWordScores] = useState<{ word: string; accuracy: number }[] | null>(null)
   const [overall, setOverall] = useState<number | null>(null)
   const [grading, setGrading] = useState(false)
@@ -88,31 +86,59 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
   const [studentBlob, setStudentBlob] = useState<Blob | null>(null)
   const [studentAudioUrl, setStudentAudioUrl] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [submissionId, setSubmissionId] = useState<string | null>(null)
   const [reviewData, setReviewData] = useState<any>(null)
+  const [ttsTimings, setTtsTimings] = useState<{ word: string; start: number; end: number }[] | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
 
-  const tts = useTtsAudio(text, rate)
+  // Sentence mapping (same as KaraokeText)
+  const { sentences, sentenceWordMap } = useMemo(() => {
+    const raw = text.split(/(?<=[.!?])\s+/).filter(Boolean)
+    let wordIdx = 0
+    const map = raw.map(sent => {
+      const sentWords = sent.split(/\s+/).filter(Boolean)
+      const start = wordIdx
+      wordIdx += sentWords.length
+      return { start, end: wordIdx - 1 }
+    })
+    return { sentences: raw, sentenceWordMap: map }
+  }, [text])
 
-  // Auto-play TTS when entering listen phase
-  useEffect(() => {
-    if (phase === 'listen') {
-      setTimeout(() => tts.speak(), 400)
-    }
-    return () => tts.stop()
-  }, [phase, tts])
-
-  // Cleanup audio URL
+  // Cleanup audio URLs
   useEffect(() => {
     return () => {
       if (studentAudioUrl) URL.revokeObjectURL(studentAudioUrl)
     }
   }, [studentAudioUrl])
 
+  // Poll for review status when pending
+  useEffect(() => {
+    if (phase !== 'pending' || !submissionId) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/speaking-review/${submissionId}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.review_status === 'reviewed') {
+            setReviewData(data)
+            setPhase('reviewed')
+            // Use teacher's overall_score if available, fallback to auto-score
+            const teacherScore = data.overall_score != null ? Math.round(data.overall_score) : Math.round((overall ?? 0) * 100)
+            onComplete({
+              answers: { transcript, word_scores: wordScores, overall: teacherScore, submission_id: submissionId },
+              result: { score: teacherScore, correct: 1, total: 1, completed: true },
+            })
+          }
+        }
+      } catch {}
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [phase, submissionId, onComplete, transcript, wordScores, overall])
+
   async function handleRecord() {
     if (isRecording) return
 
-    // Request mic
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -128,15 +154,15 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
       return
     }
 
-    // Start MediaRecorder for audio blob
+    // Start MediaRecorder
     chunksRef.current = []
-    const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4' })
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+    const recorder = new MediaRecorder(stream, { mimeType })
     recorder.ondataavailable = (e: any) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
     recorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: recorder.mimeType })
+      const blob = new Blob(chunksRef.current, { type: mimeType })
       setStudentBlob(blob)
-      const url = URL.createObjectURL(blob)
-      setStudentAudioUrl(url)
+      setStudentAudioUrl(URL.createObjectURL(blob))
       stream.getTracks().forEach(t => t.stop())
     }
     recorder.start()
@@ -145,8 +171,9 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
     // Start speech recognition
     setIsRecording(true)
     setError(null)
-    setInterimText('')
     setTranscript('')
+    setSpokenWords(new Set())
+    setCurrentRecordWord(-1)
     setWordScores(null)
     setOverall(null)
 
@@ -154,55 +181,79 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
     recognition.lang = 'en-US'
     recognition.interimResults = true
     recognition.maxAlternatives = 1
-    recognition.continuous = false
+    recognition.continuous = true
+
+    const finalChunks: string[] = []
 
     recognition.onresult = (event: any) => {
       let interim = ''
-      let final = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const t = event.results[i][0].transcript
-        if (event.results[i].isFinal) final += t
-        else interim += t
+        if (event.results[i].isFinal) {
+          finalChunks.push(t)
+        } else {
+          interim += t
+        }
       }
-      if (interim) setInterimText(interim)
-      if (final) {
-        setInterimText('')
-        setTranscript(final)
-        setIsRecording(false)
-        recorder.stop()
-        // Score
-        scoreTranscript(final)
-      }
+
+      const fullFinal = finalChunks.join(' ')
+      if (fullFinal) setTranscript(fullFinal)
+
+      // Recompute spoken words from final transcript
+      const newSpoken = matchSpokenWords(expectedWords, fullFinal)
+      setSpokenWords(newSpoken)
+
+      // Find current word from interim (partial) text
+      const curIdx = findCurrentWordIndex(expectedWords, fullFinal, interim)
+      setCurrentRecordWord(curIdx)
     }
+
     recognition.onerror = (e: any) => {
       setError(e?.error || 'Recognition failed')
       setIsRecording(false)
       recorder.stop()
       stream.getTracks().forEach(t => t.stop())
     }
+
     recognition.onend = () => {
-      setIsRecording(false)
-      if (recorder.state === 'recording') recorder.stop()
+      const fullTranscript = finalChunks.join(' ')
+      if (fullTranscript.trim().length > 0) {
+        setTranscript(fullTranscript)
+        setSpokenWords(matchSpokenWords(expectedWords, fullTranscript))
+        setCurrentRecordWord(-1)
+        setIsRecording(false)
+        recorder.stop()
+        scoreTranscript(fullTranscript)
+      } else {
+        setIsRecording(false)
+        setSpokenWords(new Set())
+        setCurrentRecordWord(-1)
+        recorder.stop()
+        stream.getTracks().forEach(t => t.stop())
+        setError('Tidak ada suara terdeteksi. Coba lagi.')
+      }
     }
+
     recognition.start()
   }
 
   async function scoreTranscript(spoken: string) {
     setGrading(true)
     try {
-      // Convert blob to base64
+      const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
       let audioBase64: string | null = null
-      let mimeType: string | null = null
-      if (studentBlob) {
-        const arrayBuf = await studentBlob.arrayBuffer()
-        audioBase64 = Buffer.from(arrayBuf).toString('base64')
-        mimeType = studentBlob.type
+      if (blob.size > 0) {
+        const arrayBuf = await blob.arrayBuffer()
+        const bytes = new Uint8Array(arrayBuf)
+        let binary = ''
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+        audioBase64 = btoa(binary)
       }
 
       const res = await fetch('/api/pronunciation/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedText: text, transcript: spoken, prompt: text, audioBase64, mimeType }),
+        body: JSON.stringify({ expectedText: text, transcript: spoken, prompt: text, audioBase64, mimeType: 'audio/webm' }),
       })
       const data = await res.json()
       if (data.error) {
@@ -221,32 +272,35 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
   async function handleSubmit() {
     setSubmitting(true)
     try {
-      // Upload audio if not yet uploaded
-      let audioDriveFileId: string | null = null
-      let audioDriveLink: string | null = null
+      let audioBase64: string | null = null
+      if (studentBlob && studentBlob.size > 0) {
+        const arrayBuf = await studentBlob.arrayBuffer()
+        const bytes = new Uint8Array(arrayBuf)
+        let binary = ''
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+        audioBase64 = btoa(binary)
+      }
 
       const res = await fetch('/api/speaking-review/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          activityId: (content as any).activityId,
-          taskId: (content as any).taskId,
-          batchId: (content as any).batchId,
-          activityProgressId: (content as any).activityProgressId,
+          activityId: activity.id,
+          taskId,
+          batchId,
           transcript,
           wordScores,
           autoScore: overall,
+          audioBase64,
+          mimeType: 'audio/webm',
         }),
       })
       const data = await res.json()
       if (data.error) {
         setError(data.error)
       } else {
+        setSubmissionId(data.submission_id)
         setPhase('pending')
-        onComplete({
-          answers: { transcript, word_scores: wordScores, overall, submission_id: data.submission_id },
-          result: { score: Math.round((overall ?? 0) * 100), correct: 1, total: 1, completed: true },
-        })
       }
     } catch (e: any) {
       setError(e?.message || 'Failed to submit')
@@ -254,49 +308,31 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
     setSubmitting(false)
   }
 
-  const canContinue = overall !== null && transcript
-
-  // ── PREP PHASE ──
-  if (phase === 'prep') {
-    return (
-      <div className="flex flex-col items-center gap-4 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-400/20">
-          <AlertTriangle className="h-7 w-7 text-amber-400" />
-        </div>
-        <h3 className="text-lg font-bold text-white">Siap untuk Berbicara?</h3>
-        {instructions && <p className="text-sm text-white/60">{instructions}</p>}
-        <div className="rounded-xl bg-white/5 p-4 text-left max-w-md w-full">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">{text}</p>
-        </div>
-        <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-300">
-          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-          <span>Kamu hanya bisa rekam <strong>1 kali</strong>. Pastikan sudah siap!</span>
-        </div>
-        <Button onClick={() => setPhase('listen')} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-          Saya Sudah Siap
-        </Button>
-      </div>
-    )
-  }
-
-  // ── LISTEN PHASE (TTS Reference) ──
-  if (phase === 'listen') {
+  // ── KARAOKE PHASE ──
+  if (phase === 'karaoke') {
     return (
       <div className="flex flex-col items-center gap-4">
-        <p className="text-sm text-white/60">Dengarkan native speaker membaca teks ini:</p>
-        <div className="rounded-xl bg-white/5 p-4 max-w-md w-full">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">{text}</p>
+        {instructions && (
+          <p className="text-sm text-on-surface-variant max-w-md text-center">{instructions}</p>
+        )}
+
+        <KaraokeText
+          text={text}
+          rate={rate}
+          onWordTimings={setTtsTimings}
+          onComplete={() => {}}
+        />
+
+        <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2 text-sm text-primary">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span>{t('speakingReview.oneTimeOnly')}</span>
         </div>
-        <button
-          onClick={tts.speaking ? tts.stop : tts.speak}
-          disabled={!tts.available}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500 hover:bg-indigo-400 transition-colors shadow-lg"
+
+        <Button
+          onClick={() => setPhase('record')}
+          className="bg-primary hover:bg-primary/90 text-on-primary"
         >
-          <Volume2 className="h-6 w-6 text-white" />
-        </button>
-        <p className="text-xs text-white/50">{tts.speaking ? 'Memutar...' : 'Klik untuk dengarkan'}</p>
-        <Button onClick={() => { tts.stop(); setPhase('record') }} variant="outline" className="border-white/20 text-white hover:bg-white/10">
-          Mulai Rekam <Mic className="ml-1 h-4 w-4" />
+          {t('speakingReview.readyRecord')} <Mic className="ml-1 h-4 w-4" />
         </Button>
       </div>
     )
@@ -306,34 +342,64 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
   if (phase === 'record') {
     return (
       <div className="flex flex-col items-center gap-4">
-        <div className="rounded-xl bg-white/5 p-4 max-w-md w-full">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">{text}</p>
+        {/* Karaoke text with proper matching */}
+        <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10 max-w-2xl w-full">
+          <div className="text-base leading-loose tracking-wide">
+            {sentences.map((sentence, si) => {
+              const wordStart = sentenceWordMap[si].start
+              const wordEnd = sentenceWordMap[si].end
+
+              // Check if any word in this sentence is the current recording word
+              const hasCurrentWord = currentRecordWord >= wordStart && currentRecordWord <= wordEnd
+
+              return (
+                <span
+                  key={si}
+                  className={`inline transition-all duration-300 rounded-lg px-1 py-0.5 ${
+                    hasCurrentWord && isRecording ? 'bg-indigo-500/10 border border-indigo-500/20' : ''
+                  }`}
+                >
+                  {expectedWords.slice(wordStart, wordEnd + 1).map((word, wi) => {
+                    const globalIdx = wordStart + wi
+                    let style = 'text-white/30' // future / not spoken
+
+                    if (spokenWords.has(globalIdx)) {
+                      style = 'text-emerald-300 bg-emerald-500/10' // spoken (green)
+                    } else if (globalIdx === currentRecordWord && isRecording) {
+                      style = 'text-white bg-indigo-500/40 scale-105 font-bold shadow-sm shadow-indigo-500/20' // current (indigo)
+                    }
+
+                    return (
+                      <span
+                        key={globalIdx}
+                        className={`inline-block rounded px-1 py-0.5 mx-0.5 transition-all duration-150 ${style}`}
+                      >
+                        {word}
+                      </span>
+                    )
+                  })}
+                  {' '}
+                </span>
+              )
+            })}
+          </div>
         </div>
 
+        {/* Mic button */}
         <button
           onClick={handleRecord}
           disabled={grading}
           className={`flex h-16 w-16 items-center justify-center rounded-full transition-all shadow-lg ${
-            isRecording ? 'bg-red-500 animate-pulse scale-110' : 'bg-amber-400 hover:bg-amber-300 hover:scale-105'
+            isRecording ? 'bg-destructive animate-pulse scale-110' : 'bg-primary hover:bg-primary/90 hover:scale-105'
           }`}
         >
-          {grading ? <Loader2 className="h-7 w-7 animate-spin text-slate-800" /> : <Mic className="h-7 w-7 text-slate-800" />}
+          {grading ? <Loader2 className="h-7 w-7 animate-spin text-on-primary" /> : <Mic className="h-7 w-7 text-on-primary" />}
         </button>
-        <p className="text-xs text-white/50">
-          {isRecording ? 'Mendengarkan... ucapkan sekarang!' : grading ? 'Menilai...' : 'Tekan untuk mulai rekam'}
+        <p className="text-xs text-on-surface-variant">
+          {isRecording ? t('speakingReview.listening') : grading ? t('speakingReview.grading') : t('speakingReview.pressToRecord')}
         </p>
 
-        {(interimText || transcript) && (
-          <div className="rounded-lg bg-white/5 px-4 py-2 max-w-md w-full">
-            {isRecording && interimText ? (
-              <p className="text-sm text-white/40 italic">{interimText}...</p>
-            ) : transcript ? (
-              <p className="text-sm text-white/70">&quot;{transcript}&quot;</p>
-            ) : null}
-          </div>
-        )}
-
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
     )
   }
@@ -342,16 +408,15 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
   if (phase === 'compare') {
     return (
       <div className="flex flex-col items-center gap-4">
-        <h3 className="text-sm font-semibold text-white">Hasil Rekaman</h3>
+        <h3 className="text-sm font-semibold text-on-surface">{t('speakingReview.result')}</h3>
 
-        {/* Word scores */}
         {wordScores && (
           <div className="flex flex-wrap gap-1 justify-center max-w-md">
             {wordScores.map((w, i) => (
               <span key={i} className={`rounded px-2 py-0.5 text-sm font-medium ${
-                w.accuracy >= 0.9 ? 'bg-emerald-500/20 text-emerald-300' :
-                w.accuracy >= 0.7 ? 'bg-amber-500/20 text-amber-300' :
-                'bg-red-500/20 text-red-300'
+                w.accuracy >= 0.9 ? 'bg-success/20 text-success' :
+                w.accuracy >= 0.7 ? 'bg-warning/20 text-warning' :
+                'bg-destructive/20 text-destructive'
               }`}>
                 {w.word}
               </span>
@@ -361,32 +426,24 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
 
         {overall !== null && (
           <div className="flex items-center gap-2">
-            <div className="h-2 w-32 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full bg-gradient-to-r from-amber-400 to-emerald-400" style={{ width: `${Math.round(overall * 100)}%` }} />
+            <div className="h-2 w-32 overflow-hidden rounded-full bg-border">
+              <div className="h-full bg-gradient-to-r from-primary to-success" style={{ width: `${Math.round(overall * 100)}%` }} />
             </div>
-            <span className="text-xs font-bold text-white">{Math.round(overall * 100)}%</span>
+            <span className="text-xs font-bold text-on-surface">{Math.round(overall * 100)}%</span>
           </div>
         )}
 
-        {/* A/B Comparison */}
-        <div className="w-full max-w-lg">
-          <ComparisonView
-            studentAudioBlob={studentBlob ?? undefined}
-            ttsAudioUrl={undefined}
-          />
-        </div>
-
-        <p className="text-xs text-white/40 flex items-center gap-1">
+        <p className="text-xs text-on-surface-variant flex items-center gap-1">
           <Clock className="h-3 w-3" />
-          Setelah dikirim, guru akan memberikan review.
+          {t('speakingReview.waitingReview')}
         </p>
 
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
 
         <div className="flex gap-2">
-          <Button onClick={handleSubmit} disabled={submitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={handleSubmit} disabled={submitting} className="bg-success hover:bg-success/90 text-on-primary">
             {submitting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
-            Kirim untuk Review
+            {t('speakingReview.submitReview')}
           </Button>
         </div>
       </div>
@@ -397,13 +454,16 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
   if (phase === 'pending') {
     return (
       <div className="flex flex-col items-center gap-4 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/20">
-          <Clock className="h-7 w-7 text-blue-400" />
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-info/20">
+          <Clock className="h-7 w-7 text-info" />
         </div>
-        <h3 className="text-lg font-bold text-white">Menunggu Review Tutor</h3>
-        <p className="text-sm text-white/60 max-w-sm">
-          Rekamanmu sudah dikirim. Guru akan segera memberikan feedback dan penilaian.
+        <h3 className="text-lg font-bold text-on-surface">{t('speakingReview.waitingReview')}</h3>
+        <p className="text-sm text-on-surface-variant max-w-sm">
+          {t('speakingReview.submittedMsg')}
         </p>
+        <div className="flex items-center gap-2 text-xs text-on-surface-variant/60">
+          <Loader2 className="h-3 w-3 animate-spin" /> {t('speakingReview.checkingStatus')}
+        </div>
       </div>
     )
   }
@@ -412,35 +472,49 @@ export function SpeakingReviewRenderer({ content, onComplete }: RendererProps) {
   if (phase === 'reviewed' && reviewData) {
     return (
       <div className="flex flex-col items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20">
-          <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/20">
+          <CheckCircle2 className="h-7 w-7 text-success" />
         </div>
-        <h3 className="text-lg font-bold text-white">Review Selesai!</h3>
+        <h3 className="text-lg font-bold text-on-surface">{t('speakingReview.reviewDone')}</h3>
 
         <div className="w-full max-w-md space-y-2">
           {[
-            { label: 'Kelancaran', score: reviewData.score_fluency },
-            { label: 'Intonasi', score: reviewData.score_intonation },
-            { label: 'Pronunciation', score: reviewData.score_pronunciation },
-            { label: 'Confidence', score: reviewData.score_confidence },
-            { label: 'Comprehension', score: reviewData.score_comprehension },
+            { label: t('speakingReview.fluency'), score: reviewData.score_fluency },
+            { label: t('speakingReview.intonation'), score: reviewData.score_intonation },
+            { label: t('speakingReview.pronunciation'), score: reviewData.score_pronunciation },
+            { label: t('speakingReview.confidence'), score: reviewData.score_confidence },
+            { label: t('speakingReview.comprehension'), score: reviewData.score_comprehension },
           ].map(({ label, score }) => (
             <div key={label} className="flex items-center gap-2">
-              <span className="w-28 text-xs text-white/60">{label}</span>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full bg-gradient-to-r from-amber-400 to-emerald-400" style={{ width: `${score ?? 0}%` }} />
+              <span className="w-28 text-xs text-on-surface-variant">{label}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
+                <div className="h-full bg-gradient-to-r from-primary to-success" style={{ width: `${score ?? 0}%` }} />
               </div>
-              <span className="text-xs font-bold text-white w-8 text-right">{score ?? '-'}</span>
+              <span className="text-xs font-bold text-on-surface w-8 text-right">{score ?? '-'}</span>
             </div>
           ))}
         </div>
 
+        {reviewData.overall_score != null && (
+          <p className="text-lg font-bold text-success">Overall: {Math.round(reviewData.overall_score)}%</p>
+        )}
+
         {reviewData.teacher_feedback && (
-          <div className="rounded-xl bg-white/5 p-3 max-w-md w-full">
-            <p className="text-xs text-white/40 mb-1">Feedback Guru:</p>
-            <p className="text-sm text-white/80">{reviewData.teacher_feedback}</p>
+          <div className="rounded-xl bg-surface-container-low p-3 max-w-md w-full border border-border">
+            <p className="text-xs text-on-surface-variant mb-1">{t('speakingReview.teacherFeedback')}</p>
+            <p className="text-sm text-on-surface">{reviewData.teacher_feedback}</p>
           </div>
         )}
+
+        <div className="w-full max-w-2xl">
+          <ComparisonView
+            studentAudioBlob={studentBlob ?? undefined}
+            studentAudioUrl={studentAudioUrl ?? undefined}
+            passageText={text}
+            wordTimings={ttsTimings ?? undefined}
+            wordScores={wordScores ?? undefined}
+          />
+        </div>
       </div>
     )
   }

@@ -21,13 +21,11 @@ export default function LoginPage() {
   const [resending, setResending] = useState(false)
   const [resent, setResent] = useState(false)
   const [googleEnabled, setGoogleEnabled] = useState(true)
-  const [platformName, setPlatformName] = useState('')
   const router = useRouter()
 
   useEffect(() => {
     getSettingsMap().then((map) => {
       setGoogleEnabled(settingEnabled(map, 'auth_allow_google_login', true))
-      setPlatformName(map.brand_platform_name || '')
     })
   }, [])
 
@@ -114,7 +112,7 @@ export default function LoginPage() {
         <Link href="/" className="relative z-10 flex items-center gap-2.5">
           <img src="/logo.png" alt="" className="size-10 rounded-xl object-contain shadow-sm" />
           <span className="text-xl font-extrabold tracking-tight text-primary-foreground">
-              {platformName || 'Lexora Academy'}
+              Lexora Academy
           </span>
         </Link>
 
@@ -141,7 +139,7 @@ export default function LoginPage() {
           <Link href="/" className="mb-8 inline-flex items-center gap-2 lg:hidden">
             <img src="/logo.png" alt="" className="size-9 rounded-lg object-contain shadow-sm" />
             <span className="text-lg font-extrabold tracking-tight text-on-surface">
-            {platformName || 'Lexora Academy'}
+            Lexora Academy
             </span>
           </Link>
 

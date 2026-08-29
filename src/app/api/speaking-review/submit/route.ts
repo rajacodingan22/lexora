@@ -93,6 +93,7 @@ export async function POST(req: Request) {
         .select('id')
         .eq('user_id', user.id)
         .eq('activity_id', activityId)
+        .eq('batch_id', batchId || '')
         .maybeSingle()
       progressId = existing?.id
     }
@@ -101,7 +102,7 @@ export async function POST(req: Request) {
     const { data: submission, error: insertErr } = await supabase
       .from('speaking_review_submissions')
       .insert({
-        activity_progress_id: progressId,
+        activity_progress_id: progressId || null,
         user_id: user.id,
         activity_id: activityId,
         task_id: taskId,
@@ -143,9 +144,20 @@ export async function POST(req: Request) {
             .eq('id', user.id)
             .maybeSingle()
 
-          for (const t of teachers) {
+          // Resolve teacher_id (teachers table row ID) → user_id (users table)
+          const teacherRowIds = teachers.map(t => t.teacher_id).filter(Boolean)
+          let teacherUserIds: string[] = []
+          if (teacherRowIds.length > 0) {
+            const { data: teacherRows } = await supabase
+              .from('teachers')
+              .select('user_id')
+              .in('id', teacherRowIds)
+            teacherUserIds = (teacherRows || []).map(t => t.user_id).filter(Boolean)
+          }
+
+          for (const uid of teacherUserIds) {
             await supabase.from('notifications').insert({
-              user_id: t.teacher_id,
+              user_id: uid,
               type: 'info',
               title: 'Speaking Review Menunggu',
               body: `${studentProfile?.display_name || 'Student'} mengirim rekaman berbicara untuk review.`,

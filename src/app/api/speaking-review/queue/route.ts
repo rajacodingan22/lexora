@@ -8,13 +8,24 @@ export async function GET(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(req.url)
-    const status = url.searchParams.get('status') || 'pending' // pending | reviewed | all
+    const status = url.searchParams.get('status') || 'pending'
 
     // Get courses this teacher teaches
+    // First resolve auth user → teachers row ID
+    const { data: teacherRow } = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!teacherRow) {
+      return NextResponse.json({ submissions: [] })
+    }
+
     const { data: teacherCourses } = await supabase
       .from('course_teachers')
       .select('course_id')
-      .eq('teacher_id', user.id)
+      .eq('teacher_id', teacherRow.id)
 
     if (!teacherCourses || teacherCourses.length === 0) {
       return NextResponse.json({ submissions: [] })
@@ -34,10 +45,10 @@ export async function GET(req: Request) {
 
     const batchIds = batches.map(b => b.id)
 
-    // Get enrollments for these batches
+    // Get enrollments
     const { data: enrollments } = await supabase
       .from('enrollments')
-      .select('user_id, batch_id, course_id')
+      .select('user_id')
       .in('batch_id', batchIds)
       .in('status', ['active', 'completed'])
 
@@ -65,15 +76,22 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Query failed' }, { status: 500 })
     }
 
-    // Enrich with student names
-    const enriched = await Promise.all((submissions || []).map(async (s) => {
-      const { data: student } = await supabase
-        .from('users')
-        .select('display_name, email')
-        .eq('id', s.user_id)
-        .maybeSingle()
+    if (!submissions || submissions.length === 0) {
+      return NextResponse.json({ submissions: [] })
+    }
 
-      return { ...s, student_name: student?.display_name || student?.email || 'Unknown' }
+    // Fetch all student names in ONE query (fix N+1)
+    const subUserIds = [...new Set(submissions.map(s => s.user_id))]
+    const { data: students } = await supabase
+      .from('users')
+      .select('id, display_name, email')
+      .in('id', subUserIds)
+
+    const studentMap = new Map(students?.map(s => [s.id, s]) ?? [])
+
+    const enriched = submissions.map(s => ({
+      ...s,
+      student_name: studentMap.get(s.user_id)?.display_name || studentMap.get(s.user_id)?.email || 'Unknown',
     }))
 
     return NextResponse.json({ submissions: enriched })

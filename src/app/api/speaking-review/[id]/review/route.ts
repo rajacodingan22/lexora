@@ -29,15 +29,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     if (!enrollment) return NextResponse.json({ error: 'No enrollment found' }, { status: 400 })
 
-    const { data: isTeacher } = await supabase
-      .from('course_teachers')
-      .select('teacher_id')
-      .eq('course_id', enrollment.course_id)
-      .eq('teacher_id', user.id)
+    // Resolve auth user → teachers row ID
+    const { data: teacherRow } = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('user_id', user.id)
       .maybeSingle()
 
-    const { data: isAdmin } = await supabase.rpc('is_admin')
-    if (!isTeacher && !isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!teacherRow) {
+      const { data: isAdmin } = await supabase.rpc('is_admin')
+      if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    } else {
+      const { data: isTeacher } = await supabase
+        .from('course_teachers')
+        .select('teacher_id')
+        .eq('course_id', enrollment.course_id)
+        .eq('teacher_id', teacherRow.id)
+        .maybeSingle()
+
+      const { data: isAdmin } = await supabase.rpc('is_admin')
+      if (!isTeacher && !isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Calculate overall
     const scores = [scoreFluency, scoreIntonation, scorePronunciation, scoreConfidence, scoreComprehension].filter(s => typeof s === 'number')
@@ -62,6 +74,122 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (updateErr) {
       console.error('[speaking-review] update error', updateErr)
       return NextResponse.json({ error: 'Failed to save review' }, { status: 500 })
+    }
+
+    // Update student_activity_progress with the speaking review score
+    if (overallScore !== null) {
+      try {
+        // Find the activity_progress record for this submission
+        const { data: submissionFull } = await supabase
+          .from('speaking_review_submissions')
+          .select('activity_progress_id, activity_id, user_id, batch_id, task_id')
+          .eq('id', id)
+          .single()
+
+        if (submissionFull) {
+          let progressId = submissionFull.activity_progress_id
+
+          // If no progress ID linked, try to find or create one
+          if (!progressId) {
+            const { data: existing } = await supabase
+              .from('student_activity_progress')
+              .select('id')
+              .eq('user_id', submissionFull.user_id)
+              .eq('activity_id', submissionFull.activity_id)
+              .eq('batch_id', submissionFull.batch_id || '')
+              .maybeSingle()
+            progressId = existing?.id
+
+            if (!progressId) {
+              const { data: newProgress } = await supabase
+                .from('student_activity_progress')
+                .insert({
+                  user_id: submissionFull.user_id,
+                  activity_id: submissionFull.activity_id,
+                  batch_id: submissionFull.batch_id,
+                  task_id: submissionFull.task_id,
+                  status: 'completed',
+                  score: overallScore,
+                })
+                .select('id')
+                .single()
+              progressId = newProgress?.id
+            }
+          }
+
+          if (progressId) {
+            // Upsert the score into activity progress
+            await supabase
+              .from('student_activity_progress')
+              .update({ score: overallScore, status: 'completed' })
+              .eq('id', progressId)
+
+            // Link the submission to the progress record if not already linked
+            if (!submissionFull.activity_progress_id) {
+              await supabase
+                .from('speaking_review_submissions')
+                .update({ activity_progress_id: progressId })
+                .eq('id', id)
+            }
+
+            // Re-roll-up lesson progress (recalculate score from all activities)
+            if (submissionFull.activity_id) {
+              const { data: activityRow } = await supabase
+                .from('lesson_activities')
+                .select('lesson_id')
+                .eq('id', submissionFull.activity_id)
+                .maybeSingle()
+
+              if (activityRow) {
+                const { data: allActProgress } = await supabase
+                  .from('student_activity_progress')
+                  .select('score, status')
+                  .eq('user_id', submissionFull.user_id)
+                  .eq('batch_id', submissionFull.batch_id || '')
+                  .eq('lesson_id', activityRow.lesson_id)
+
+                const scores = (allActProgress || [])
+                  .filter(p => typeof p.score === 'number' && p.score > 0)
+                  .map(p => p.score as number)
+                const lessonScore = scores.length > 0
+                  ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+                  : overallScore
+
+                const completedCount = (allActProgress || []).filter(p => p.status === 'completed').length
+                const { data: totalActs } = await supabase
+                  .from('lesson_activities')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('lesson_id', activityRow.lesson_id)
+                  .eq('status', 'published')
+
+                const lessonCompleted = completedCount === (totalActs?.length ?? 0) && (totalActs?.length ?? 0) > 0
+
+                await supabase
+                  .from('student_lesson_progress')
+                  .update({ score: lessonScore, status: lessonCompleted ? 'completed' : 'in_progress' })
+                  .eq('user_id', submissionFull.user_id)
+                  .eq('batch_id', submissionFull.batch_id || '')
+                  .eq('lesson_id', activityRow.lesson_id)
+              }
+            }
+          }
+
+          // Trigger grade recalculation for this enrollment
+          const { data: enrollmentForGrade } = await supabase
+            .from('enrollments')
+            .select('id')
+            .eq('user_id', submissionFull.user_id)
+            .eq('batch_id', submissionFull.batch_id)
+            .maybeSingle()
+
+          if (enrollmentForGrade) {
+            await supabase.rpc('calculate_grade', { p_enrollment_id: enrollmentForGrade.id })
+          }
+        }
+      } catch (progressErr) {
+        console.error('[speaking-review] progress update error', progressErr)
+        // Non-fatal: grade still works via client-side computation
+      }
     }
 
     // Notify student

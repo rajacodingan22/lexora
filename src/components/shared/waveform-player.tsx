@@ -10,6 +10,7 @@ interface WaveformPlayerProps {
   color?: string
   height?: number
   onReady?: (duration: number) => void
+  onTimeUpdate?: (time: number) => void
   externalPlay?: boolean
   externalPause?: boolean
 }
@@ -21,6 +22,7 @@ export function WaveformPlayer({
   color = '#6366f1',
   height = 64,
   onReady,
+  onTimeUpdate,
   externalPlay,
   externalPause,
 }: WaveformPlayerProps) {
@@ -69,7 +71,9 @@ export function WaveformPlayer({
 
       ws.on('audioprocess', () => {
         if (destroyed) return
-        setCurrentTime(ws.getCurrentTime())
+        const t = ws.getCurrentTime()
+        setCurrentTime(t)
+        onTimeUpdate?.(t)
       })
 
       ws.on('play', () => !destroyed && setPlaying(true))
@@ -83,27 +87,27 @@ export function WaveformPlayer({
       wsRef.current = ws
     }
 
-    init()
+    init().catch(err => console.error('WaveformPlayer init error:', err))
 
     return () => {
       destroyed = true
       ws?.destroy()
       wsRef.current = null
     }
-  }, [audioUrl, audioBlob, color, height])
+  }, [audioUrl, audioBlob, color, height, onTimeUpdate])
 
   // External play/pause control
   useEffect(() => {
-    if (externalPlay && wsRef.current) {
+    if (externalPlay && wsRef.current && ready) {
       wsRef.current.play()
     }
-  }, [externalPlay])
+  }, [externalPlay, ready])
 
   useEffect(() => {
-    if (externalPause && wsRef.current) {
+    if (externalPause && wsRef.current && ready) {
       wsRef.current.pause()
     }
-  }, [externalPause])
+  }, [externalPause, ready])
 
   const togglePlay = useCallback(() => {
     wsRef.current?.playPause()
