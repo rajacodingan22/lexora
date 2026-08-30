@@ -60,6 +60,7 @@ export default function LoginPage() {
       } else if (role === 'admin') {
         router.push('/admin/dashboard')
       } else {
+        // Check teacher application only for pending_review — other statuses should not block student dashboard
         const { data: application } = await supabase
           .from('teacher_applications')
           .select('status')
@@ -67,7 +68,7 @@ export default function LoginPage() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
-        if (application && ['draft', 'pending_review', 'needs_revision', 'rejected'].includes(application.status)) {
+        if (application && application.status === 'pending_review') {
           router.push('/teacher/apply')
         } else {
           router.push('/student/dashboard')

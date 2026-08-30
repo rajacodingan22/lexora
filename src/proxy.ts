@@ -59,7 +59,7 @@ export async function proxy(req: NextRequest) {
   // isApi bypass is intentional to prevent redirecting API calls to /masuk (JSON vs HTML).
   // publicApiPrefixes documents which APIs are intentionally public; others are protected per-route.
   if (isPublic || isApi || isAuth || !isDashboard) {
-    return NextResponse.next()
+    return response
   }
 
   const supabase = createServerClient(
@@ -98,24 +98,10 @@ export async function proxy(req: NextRequest) {
   const role = (profile as { role?: string; status?: string } | null)?.role || 'student'
   const profileStatus = (profile as { role?: string; status?: string } | null)?.status || 'active'
 
-  // Teacher applicants remain students until admin approval. While an
-  // application is pending review (or needs revision), the applicant must be
-  // restricted to the application status page only — no dashboard access.
-  if (role === 'student' && !isTeacherApplication) {
-    const { data: application } = await supabase
-      .from('teacher_applications')
-      .select('status')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    const appStatus = application?.status
-    if (appStatus === 'pending_review' || appStatus === 'needs_revision') {
-      const url = req.nextUrl.clone()
-      url.pathname = '/teacher/apply'
-      return NextResponse.redirect(url)
-    }
-  }
+  // Teacher applicants remain students until admin approval.
+  // Pending review should NOT block student dashboard — only teacher dashboard is gated.
+  // We keep this check but only for direct /teacher access attempts, not for /student.
+  // So no redirect here; student with pending can still use /student/*.
 
   // Redirect to the correct dashboard based on role
   if (pathname.startsWith('/student') && role !== 'student') {

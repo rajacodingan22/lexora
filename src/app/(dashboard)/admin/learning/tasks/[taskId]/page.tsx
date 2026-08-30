@@ -332,26 +332,6 @@ export default function AdminTaskBuilderPage() {
     fetchAll()
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
-      </div>
-    )
-  }
-
-  if (!task || !draft) {
-    return <div className="py-20 text-center text-on-surface-variant">Task not found</div>
-  }
-
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'overview', label: t('builder.overview') },
-    { key: 'lessons', label: t('builder.lessons') },
-    { key: 'settings', label: t('builder.settings') },
-    { key: 'dialog', label: 'Dialog Bot' },
-    { key: 'batches', label: t('builder.batches') },
-  ]
-
   const validation = useMemo(() => {
     if (lastValidation) return lastValidation
     if (!task || !draft) return { ok: false, errors: ['Loading...'], warnings: [] as string[] }
@@ -371,6 +351,26 @@ export default function AdminTaskBuilderPage() {
       contents,
     })
   }, [lastValidation, task, draft, lessons, activitiesByLesson, contents])
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
+      </div>
+    )
+  }
+
+  if (!task || !draft) {
+    return <div className="py-20 text-center text-on-surface-variant">Task not found</div>
+  }
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'overview', label: t('builder.overview') },
+    { key: 'lessons', label: t('builder.lessons') },
+    { key: 'settings', label: t('builder.settings') },
+    { key: 'dialog', label: 'Dialog Bot' },
+    { key: 'batches', label: t('builder.batches') },
+  ]
 
   return (
     <div className="space-y-5">
