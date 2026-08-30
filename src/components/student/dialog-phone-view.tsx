@@ -359,21 +359,16 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
                 )}
               </Card>
 
-              {/* Waveform dual: last user turn vs bot TTS */}
+              {/* Waveform dual: terpisah — native TTS langsung, student asli */}
               {turns.length > 0 && (
                 <Card className="bg-white/5 border-white/10 p-4 space-y-3">
                   <p className="text-sm font-medium text-white">Perbandingan Gelombang Suara</p>
-                  <p className="text-xs text-white/60">Student (hijau) vs Native (ungu). Putar untuk bandingkan intonasi.</p>
+                  <p className="text-xs text-white/60">Student (hijau, rekaman asli) vs Native (ungu, TTS) — terpisah, tap play.</p>
                   {turns.map((t, originalIdx) => ({ t, originalIdx })).filter(({ t: tt }) => tt.role === 'user' && (tt as Record<string, unknown>).drive_file_id).slice(-1).map(({ t: tt, originalIdx }) => (
                     <WaveformPlayer key={originalIdx} audioUrl={`/api/dialog/audio/${session.id}?turn=${originalIdx}`} label={`Kamu: ${String(tt.text).slice(0, 40)}`} color="#10b981" />
                   ))}
-                  {turns.filter(t => t.role === 'bot').slice(-1).map((t, idx) => (
-                    <div key={idx} className="space-y-2">
-                      <p className="text-xs text-white/60">Native: {String(t.text).slice(0, 80)}</p>
-                      <Button size="sm" variant="secondary" className="rounded-full" onClick={() => speakBot(String(t.text), session.language_code)}>
-                        <Volume2 className="h-3 w-3 mr-1" /> Putar Native
-                      </Button>
-                    </div>
+                  {turns.filter(t => t.role === 'bot').slice(-1).map((t: any, idx) => (
+                    <WaveformPlayer key={`bot-${idx}`} audioUrl={`/api/tts?text=${encodeURIComponent(String(t.text).slice(0, 500))}&lang=${session.language_code}`} label={`Native: ${String(t.text).slice(0, 40)}`} color="#6366f1" />
                   ))}
                   {turns.filter(t => t.role === 'user').length === 0 && <p className="text-xs text-white/40">Belum ada rekaman.</p>}
                 </Card>

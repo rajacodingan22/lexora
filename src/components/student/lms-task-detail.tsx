@@ -297,11 +297,6 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
               <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           )}
-          {view.completed && dialogEnabled && dialogStatus !== 'completed' && (
-            <Button size="sm" onClick={() => setDialogOpen(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white">
-              <Phone className="mr-1 h-4 w-4" /> {dialogStatus === 'active' ? `Lanjutkan Dialog ${dialogRemaining !== null ? `(${Math.floor(dialogRemaining/60)}:${String(dialogRemaining%60).padStart(2,'0')})` : ''}` : 'Mulai Dialog 7 Menit (Wajib)'}
-            </Button>
-          )}
           {view.completed && dialogEnabled && dialogStatus === 'completed' && (
             <Badge variant="success"><CheckCircle2 className="mr-1 h-3 w-3" /> Dialog Selesai</Badge>
           )}
@@ -429,22 +424,6 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
             </div>
           </div>
         </div>
-      )}
-
-      {/* Dialog CTA card when at end of unit */}
-      {view.completed && dialogEnabled && dialogStatus !== 'completed' && (
-        <Card className="overflow-hidden border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20">
-          <CardContent className="p-5 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-emerald-700 dark:text-emerald-300">Wajib: Simulasi Telepon 7 Menit</p>
-              <p className="text-sm text-emerald-600/80 dark:text-emerald-300/70">Ngobrol turn-based tentang topik unit. Bot hanya membahas topik unit — durasi dari server, refresh tidak reset.</p>
-              {dialogStatus === 'active' && dialogRemaining !== null && <p className="text-xs text-emerald-600 mt-1">Sisa waktu: {Math.floor(dialogRemaining/60)}:{String(dialogRemaining%60).padStart(2,'0')}</p>}
-            </div>
-            <Button onClick={() => setDialogOpen(true)} className="rounded-full bg-emerald-600 hover:bg-emerald-500">
-              <Phone className="mr-1 h-4 w-4" /> {dialogStatus === 'active' ? 'Lanjutkan' : 'Mulai'}
-            </Button>
-          </CardContent>
-        </Card>
       )}
 
       <DialogPhoneView taskId={taskId} open={dialogOpen} onClose={() => { setDialogOpen(false); fetchView() }} onCompleted={() => { setDialogStatus('completed'); fetchView() }} />
