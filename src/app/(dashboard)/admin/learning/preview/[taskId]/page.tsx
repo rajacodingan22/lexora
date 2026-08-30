@@ -66,15 +66,15 @@ export default function AdminPreviewPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* admin preview banner */}
-      <div className="sticky top-0 z-40 flex items-center justify-center gap-3 bg-indigo-600 px-4 py-2 text-sm font-medium text-white">
+      <div className="sticky top-0 z-40 flex items-center justify-center gap-3 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
         ADMIN PREVIEW MODE — no student progress will be saved
         <Button
           size="sm"
@@ -89,8 +89,8 @@ export default function AdminPreviewPage() {
       <div className="mx-auto flex max-w-6xl gap-5 p-5">
         {/* lesson sidebar */}
         <div className="w-64 shrink-0">
-          <div className="rounded-2xl border border-slate-200 bg-white p-3">
-            <p className="mb-2 truncate px-2 text-sm font-semibold text-slate-800">{task?.title}</p>
+          <div className="rounded-2xl border border-border bg-surface p-3">
+            <p className="mb-2 truncate px-2 text-sm font-semibold text-on-surface">{task?.title}</p>
             {lessons.map((l, i) => {
               const lessonActs = activities.filter((a) => a.lesson_id === l.id)
               const allPublished = lessonActs.length > 0 && lessonActs.every((a) => a.status === 'published')
@@ -100,17 +100,17 @@ export default function AdminPreviewPage() {
                   type="button"
                   onClick={() => router.replace(`/admin/learning/preview/${taskId}?lesson=${l.id}`)}
                   className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors ${
-                    activeLesson?.id === l.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                    activeLesson?.id === l.id ? 'bg-primary-soft text-primary' : 'text-on-surface-variant hover:bg-surface-container-low'
                   }`}
                 >
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-slate-500">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-muted">
                     {i + 1}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{l.title}</span>
                   {lessonActs.length > 0 && allPublished ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
                   ) : lessonActs.length > 0 ? (
-                    <Lock className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-muted/40" />
                   ) : null}
                 </button>
               )
@@ -121,36 +121,36 @@ export default function AdminPreviewPage() {
         {/* activity viewer */}
         <div className="min-w-0 flex-1">
           {!activeLesson ? (
-            <div className="py-20 text-center text-slate-400">No lessons in this task</div>
+            <div className="py-20 text-center text-muted">No lessons in this task</div>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-lg font-bold text-slate-900">
+                  <h1 className="text-lg font-bold text-on-surface">
                     {activeLesson.icon ? `${activeLesson.icon} ` : ''}
                     {activeLesson.title}
                   </h1>
-                  <p className="text-xs text-slate-500">{activeLesson.description}</p>
+                  <p className="text-xs text-on-surface-variant">{activeLesson.description}</p>
                 </div>
                 <Badge variant="outline">{activeLesson.lesson_number}</Badge>
               </div>
 
               {activeActivities.length === 0 ? (
-                <p className="py-16 text-center text-sm text-slate-400">No activities in this lesson</p>
+                <p className="py-16 text-center text-sm text-muted">No activities in this lesson</p>
               ) : (
                 activeActivities.map((a) => {
                   const content = contents[a.id] ?? {}
                   const ready = activityContentReady(a.activity_type, content)
                   const Icon = getActivityIcon(a.activity_type)
                   return (
-                    <div key={a.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div key={a.id} className="rounded-2xl border border-border bg-surface p-4">
                       <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-                          <Icon className="h-4.5 w-4.5 text-indigo-600" />
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
+                          <Icon className="h-4.5 w-4.5 text-primary" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-slate-800">{a.title}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="truncate text-sm font-semibold text-on-surface">{a.title}</p>
+                          <p className="text-xs text-on-surface-variant">
                             {getActivityTypeLabel(a.activity_type).en} • {a.status}
                           </p>
                         </div>
@@ -160,7 +160,7 @@ export default function AdminPreviewPage() {
                           <Badge variant="warning">Incomplete</Badge>
                         )}
                       </div>
-                      <div className="mt-3 border-t border-slate-100 pt-4">
+                      <div className="mt-3 border-t border-border pt-4">
                         <ActivityRenderer
                           activity={a}
                           content={content}
@@ -168,7 +168,7 @@ export default function AdminPreviewPage() {
                           onComplete={(payload) => setPreviewResult(payload)}
                         />
                         {previewResult && (
-                          <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
+                          <div className="mt-3 rounded-xl bg-success/10 border border-success/20 p-3 text-sm text-success">
                             Preview result: {previewResult.result.score}% ({previewResult.result.correct}/{previewResult.result.total})
                           </div>
                         )}

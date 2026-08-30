@@ -258,13 +258,13 @@ export default function AdminLessonBuilderPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted" />
       </div>
     )
   }
 
   if (!task || !lesson) {
-    return <div className="py-20 text-center text-slate-400">Lesson not found</div>
+    return <div className="py-20 text-center text-muted">Lesson not found</div>
   }
 
   return (
@@ -275,8 +275,8 @@ export default function AdminLessonBuilderPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{lesson.title || 'Untitled Lesson'}</h1>
-            <p className="text-xs text-slate-500">{task.title} • Lesson {lesson.lesson_number}</p>
+            <h1 className="text-xl font-bold text-on-surface">{lesson.title || 'Untitled Lesson'}</h1>
+            <p className="text-xs text-on-surface-variant">{task.title} • Lesson {lesson.lesson_number}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -323,7 +323,7 @@ export default function AdminLessonBuilderPage() {
 
       <Card className="p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold text-slate-800">Activities ({activities.length})</h2>
+          <h2 className="font-semibold text-on-surface">Activities ({activities.length})</h2>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={() => setLibraryOpen(true)}>
               <Library className="mr-1 h-3.5 w-3.5" /> Use from Library
@@ -335,17 +335,17 @@ export default function AdminLessonBuilderPage() {
         </div>
 
         {activities.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">No activities yet. Add the first activity.</p>
+          <p className="py-8 text-center text-sm text-muted">No activities yet. Add the first activity.</p>
         ) : (
           <Reorder.Group axis="y" values={activities} onReorder={reorder} className="space-y-2">
             {activities.map((a) => {
               const Icon = getActivityIcon(a.activity_type)
               return (
-                <Reorder.Item key={a.id} value={a} className="cursor-grab rounded-xl border border-slate-200 bg-white p-3 active:cursor-grabbing">
+                <Reorder.Item key={a.id} value={a} className="cursor-grab rounded-xl border border-border bg-surface p-3 active:cursor-grabbing">
                   <div className="flex items-center gap-3">
-                    <GripVertical className="h-4 w-4 shrink-0 text-slate-300" />
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-                      <Icon className="h-4.5 w-4.5 text-indigo-600" />
+                    <GripVertical className="h-4 w-4 shrink-0 text-muted/40" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
+                      <Icon className="h-4.5 w-4.5 text-primary" />
                     </span>
                     <button
                       type="button"
@@ -355,8 +355,8 @@ export default function AdminLessonBuilderPage() {
                         setEditingContent(contents[a.id] ?? defaultContentFor(a.activity_type))
                       }}
                     >
-                      <p className="truncate text-sm font-medium text-slate-800">{a.title}</p>
-                      <p className="truncate text-xs text-slate-500">
+                      <p className="truncate text-sm font-medium text-on-surface">{a.title}</p>
+                      <p className="truncate text-xs text-on-surface-variant">
                         {getActivityTypeLabel(a.activity_type).en}
                         {a.instruction ? ` • ${a.instruction}` : ''}
                       </p>

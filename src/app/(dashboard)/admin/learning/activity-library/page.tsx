@@ -46,13 +46,13 @@ export default function AdminActivityLibraryPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{t('library.title')}</h1>
-        <p className="text-sm text-slate-500">{t('library.subtitle')}</p>
+        <h1 className="text-2xl font-bold text-on-surface">{t('library.title')}</h1>
+        <p className="text-sm text-on-surface-variant">{t('library.subtitle')}</p>
       </div>
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('library.search')} className="pl-9" />
         </div>
         <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as ActivityType | '')} className="w-48">
@@ -65,11 +65,11 @@ export default function AdminActivityLibraryPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-muted" />
         </div>
       ) : filtered.length === 0 ? (
         <Card>
-          <CardContent className="py-16 text-center text-sm text-slate-400">
+          <CardContent className="py-16 text-center text-sm text-muted">
             {t('library.noItems')}
           </CardContent>
         </Card>
@@ -81,18 +81,18 @@ export default function AdminActivityLibraryPage() {
               <Card key={item.id}>
                 <CardContent className="space-y-2 p-4">
                   <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-                      <Icon className="h-4.5 w-4.5 text-indigo-600" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
+                      <Icon className="h-4.5 w-4.5 text-primary" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-slate-800">{item.title}</p>
-                      {item.description && <p className="line-clamp-2 text-xs text-slate-500">{item.description}</p>}
+                      <p className="truncate font-medium text-on-surface">{item.title}</p>
+                      {item.description && <p className="line-clamp-2 text-xs text-on-surface-variant">{item.description}</p>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{getActivityTypeLabel(item.activity_type).en}</Badge>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted">
                         {item.usage_count || 0}× {t('library.usageCount')}
                       </span>
                     </div>
