@@ -41,10 +41,10 @@ export function ActivityTypePicker({
 }) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-surface border border-border p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Choose Activity Type</h3>
+          <h3 className="text-lg font-semibold text-on-surface">Choose Activity Type</h3>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
@@ -56,11 +56,11 @@ export function ActivityTypePicker({
               <button
                 key={type}
                 type="button"
-                className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 p-6 transition-colors hover:border-indigo-400 hover:bg-indigo-50"
+                className="flex flex-col items-center gap-2 rounded-xl border border-border p-6 transition-colors hover:border-primary hover:bg-primary-soft"
                 onClick={() => onSelect(type)}
               >
-                <Icon className="h-8 w-8 text-indigo-600" />
-                <span className="text-sm font-medium text-slate-700">{getActivityTypeLabel(type).en}</span>
+                <Icon className="h-8 w-8 text-primary" />
+                <span className="text-sm font-medium text-on-surface">{getActivityTypeLabel(type).en}</span>
               </button>
             )
           })}

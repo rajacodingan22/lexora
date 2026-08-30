@@ -232,7 +232,7 @@ export default function AdminLessonBuilderPage() {
     setActivities(newList)
     const rows = newList.map((a, i) => ({ id: a.id, sort_order: i }))
     await supabase.from('lesson_activities').upsert(rows)
-    fetchAll()
+    // optimistic: keep local order, no full reload
   }
 
   async function saveLesson() {
@@ -248,9 +248,11 @@ export default function AdminLessonBuilderPage() {
       })
       .eq('id', lessonId)
     if (error) window.alert(error.message)
+    else {
+      setLesson(prev => prev ? { ...prev, title: lessonForm.title, description: lessonForm.description, icon: lessonForm.icon, estimated_duration: lessonForm.estimated_duration, status: lessonForm.status as TaskLesson['status'] } as TaskLesson : prev)
+    }
     setLessonSaving(false)
     setLessonModalOpen(false)
-    fetchAll()
   }
 
   if (loading) {
@@ -404,8 +406,8 @@ export default function AdminLessonBuilderPage() {
       <LibraryModal open={libraryOpen} onClose={() => setLibraryOpen(false)} onUse={useFromLibrary} />
 
       {lessonModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setLessonModalOpen(false)}>
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4" onClick={() => setLessonModalOpen(false)}>
+          <div className="w-full max-w-lg rounded-2xl bg-surface border border-border p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold">Edit Lesson</h3>
               <Button size="sm" variant="ghost" onClick={() => setLessonModalOpen(false)}>

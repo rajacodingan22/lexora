@@ -46,17 +46,17 @@ export function LibraryModal({
   const filtered = items.filter((it) => it.title.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="flex h-[70vh] w-full max-w-3xl flex-col rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-          <h3 className="text-lg font-semibold text-slate-900">{t('library.title')}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="flex h-[70vh] w-full max-w-3xl flex-col rounded-2xl bg-surface border border-border shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <h3 className="text-lg font-semibold text-on-surface">{t('library.title')}</h3>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-3">
+        <div className="flex items-center gap-2 border-b border-border px-5 py-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('library.search')} className="pl-9" />
           </div>
         <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as ActivityType | '')} className="w-44">
@@ -69,21 +69,21 @@ export function LibraryModal({
         <div className="flex-1 space-y-2 overflow-y-auto p-5">
           {loading ? (
             <div className="flex justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="py-10 text-center text-sm text-slate-400">{t('library.noItems')}</p>
+            <p className="py-10 text-center text-sm text-muted">{t('library.noItems')}</p>
           ) : (
             filtered.map((item) => {
               const Icon = getActivityIcon(item.activity_type)
               return (
-                <div key={item.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-                    <Icon className="h-4.5 w-4.5 text-indigo-600" />
+                <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
+                    <Icon className="h-4.5 w-4.5 text-primary" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-800">{item.title}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="truncate text-sm font-medium text-on-surface">{item.title}</p>
+                    <p className="text-xs text-on-surface-variant">
                       {getActivityTypeLabel(item.activity_type).en} • {item.usage_count} {t('library.usageCount')}
                     </p>
                   </div>
