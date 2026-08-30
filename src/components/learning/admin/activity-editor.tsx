@@ -17,7 +17,7 @@ import { Loader2, Plus, X, Play } from 'lucide-react'
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <Label className="text-xs text-slate-500">{label}</Label>
+      <Label className="text-xs text-on-surface-variant">{label}</Label>
       {children}
     </div>
   )
@@ -217,23 +217,23 @@ function ImageSpeakEditor({ content, onChange, t }: { content: any; onChange: (c
       <Field label="Prompt (kalimat yang diucapkan)">
         <Input
           value={content.prompt ?? ''}
-          onChange={(e) => onChange({ ...content, prompt: e.target.value, expectedText: content.expectedText || e.target.value })}
+          onChange={(e) => onChange({ ...content, prompt: e.target.value, expectedText: content.expectedText === undefined || content.expectedText === content.prompt ? e.target.value : content.expectedText })}
           placeholder="The girl is running."
         />
       </Field>
       <Field label="Expected Text (untuk ASR, default sama dengan prompt)">
         <Input
-          value={content.expectedText ?? content.prompt ?? ''}
+          value={content.expectedText ?? ''}
+          placeholder={content.prompt ?? 'The girl is running.'}
           onChange={(e) => onChange({ ...content, expectedText: e.target.value })}
-          placeholder="The girl is running."
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         {[0, 1, 2, 3].map((idx) => (
-          <div key={idx} className="space-y-1 rounded-xl border border-slate-200 p-3">
+          <div key={idx} className="space-y-1 rounded-xl border border-border bg-surface-container-low p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold">Gambar {idx + 1}</span>
-              <label className="flex items-center gap-1 text-xs cursor-pointer">
+              <span className="text-xs font-semibold text-on-surface">Gambar {idx + 1}</span>
+              <label className="flex items-center gap-1 text-xs cursor-pointer text-on-surface">
                 <input
                   type="radio"
                   name="correctIndex"
@@ -245,16 +245,16 @@ function ImageSpeakEditor({ content, onChange, t }: { content: any; onChange: (c
             </div>
             {images[idx] ? (
               <div className="space-y-2">
-                <img src={images[idx]} alt={`Preview ${idx + 1}`} className="h-28 w-full rounded-lg object-cover border border-slate-200" />
-                <Button type="button" size="sm" variant="ghost" className="w-full text-red-600" onClick={() => removeImage(idx)}>
+                <img src={images[idx]} alt={`Preview ${idx + 1}`} className="h-28 w-full rounded-lg object-cover border border-border" />
+                <Button type="button" size="sm" variant="ghost" className="w-full text-destructive" onClick={() => removeImage(idx)}>
                   Hapus & Ganti
                 </Button>
               </div>
             ) : (
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500 hover:bg-slate-50 hover:border-indigo-300 transition-colors">
-                {uploadingIdx === idx ? <Loader2 className="h-5 w-5 animate-spin text-indigo-500" /> : <Plus className="h-5 w-5 mb-1" />}
-                <span className="text-xs">{uploadingIdx === idx ? 'Mengupload...' : 'Klik untuk Upload'}</span>
-                <span className="text-[10px] text-slate-400 mt-1">PNG, JPG, WebP (maks 5MB)</span>
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border p-6 text-sm text-muted hover:bg-surface-container-low hover:border-primary transition-colors">
+                {uploadingIdx === idx ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Plus className="h-5 w-5 mb-1 text-muted" />}
+                <span className="text-xs text-on-surface">Klik untuk Upload</span>
+                <span className="text-[10px] text-muted mt-1">PNG, JPG, WebP (maks 5MB)</span>
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, idx)} />
               </label>
             )}
@@ -280,7 +280,7 @@ function ImageSpeakEditor({ content, onChange, t }: { content: any; onChange: (c
           />
         </Field>
       </div>
-      <p className="text-xs text-slate-500">Siswa: tap gambar → fullscreen ✓ jika benar → mic → warna per kata ≥90% baru lanjut. <span className="font-semibold text-amber-600">Hanya upload, tidak ada URL.</span></p>
+      <p className="text-xs text-muted">Siswa: tap gambar → fullscreen ✓ jika benar → mic → warna per kata ≥90% baru lanjut. <span className="font-semibold text-warning">Hanya upload, tidak ada URL.</span></p>
     </div>
   )
 }
@@ -344,23 +344,34 @@ export function ActivityEditorModal({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
+  // Track initial content to avoid overwriting user edits when parent refetches
+  const initialContentRef = useRef<string | null>(null)
   useEffect(() => {
     if (open) {
-      setDraft(content)
-      setActForm({ title: activity.title, instruction: activity.instruction ?? '' })
-      setSaveStatus('idle')
+      const contentStr = JSON.stringify(content)
+      if (initialContentRef.current !== contentStr) {
+        initialContentRef.current = contentStr
+        setDraft(content)
+        setActForm({ title: activity.title, instruction: activity.instruction ?? '' })
+        setSaveStatus('idle')
+      }
+    } else {
+      initialContentRef.current = null
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, activity.id])
+  }, [open, activity.id, content])
 
   useEffect(() => {
     if (!open) return
+    // Don't autosave if draft hasn't changed from initial
+    if (JSON.stringify(draft) === initialContentRef.current && actForm.title === activity.title && (actForm.instruction ?? '') === (activity.instruction ?? '')) return
     if (timerRef.current) clearTimeout(timerRef.current)
-    setSaveStatus('saving')
     timerRef.current = setTimeout(async () => {
+      setSaveStatus('saving')
       try {
         await onSave({ activity: actForm, content: draft })
         setSaveStatus('saved')
+        // update ref so next change can be detected
+        initialContentRef.current = JSON.stringify(draft)
         setTimeout(() => setSaveStatus('idle'), 2000)
       } catch {
         setSaveStatus('error')
@@ -369,8 +380,7 @@ export function ActivityEditorModal({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, actForm, open])
+  }, [draft, actForm, open, activity.id, activity.instruction, activity.title])
 
   if (!open) return null
 
@@ -385,12 +395,12 @@ export function ActivityEditorModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4">
-      <div className="mt-8 w-full max-w-3xl rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between rounded-t-2xl border-b border-slate-200 px-5 py-3">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/60 backdrop-blur-sm p-4">
+      <div className="mt-8 w-full max-w-3xl rounded-2xl bg-surface border border-border shadow-xl">
+        <div className="flex items-center justify-between rounded-t-2xl border-b border-border px-5 py-3">
           <div>
-            <p className="text-sm font-semibold text-slate-900">{title}</p>
-            <p className="text-xs text-slate-500">{activity.activity_type}</p>
+            <p className="text-sm font-semibold text-on-surface">{title}</p>
+            <p className="text-xs text-on-surface-variant">{activity.activity_type}</p>
           </div>
           <div className="flex items-center gap-2">
             <SaveIndicator status={saveStatus} />
@@ -413,14 +423,17 @@ export function ActivityEditorModal({
           </div>
           {renderEditor()}
         </div>
-        <div className="flex items-center justify-between rounded-b-2xl border-t border-slate-200 px-5 py-3">
+        <div className="flex items-center justify-between rounded-b-2xl border-t border-border px-5 py-3">
           <Badge variant="outline">{activity.status}</Badge>
           <Button
             disabled={saving}
             onClick={async () => {
+              if (timerRef.current) clearTimeout(timerRef.current)
               setSaving(true)
               try {
                 await onSave({ activity: actForm, content: draft })
+                setSaveStatus('saved')
+                setTimeout(() => setSaveStatus('idle'), 2000)
               } finally {
                 setSaving(false)
               }

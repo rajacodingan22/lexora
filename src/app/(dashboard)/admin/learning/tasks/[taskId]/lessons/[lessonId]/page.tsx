@@ -161,7 +161,9 @@ export default function AdminLessonBuilderPage() {
         schema_version: 1,
       }, { onConflict: 'activity_id' })
     if (cErr) throw cErr
-    fetchAll()
+    // Optimistic update — don't trigger full loading flash
+    setContents(prev => ({ ...prev, [activityId]: clean }))
+    setActivities(prev => prev.map(a => a.id === activityId ? { ...a, ...patch.activity } as LessonActivity : a))
   }
 
   async function duplicateActivity(a: LessonActivity) {
