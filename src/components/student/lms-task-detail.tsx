@@ -25,7 +25,7 @@ interface PathNode {
   id: string
   x: number
   y: number
-  kind: 'lesson'
+  kind: 'lesson' | 'dialog'
   locked: boolean
   done: boolean
   current: boolean
@@ -147,8 +147,41 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
         href: `/student/kursus/${courseId}/tasks/${taskId}/lessons/${lv.lesson.id}`,
       })
     })
+    // Dialog bot — selalu di akhir learning path (di atasnya semua lessons baru)
+    if (dialogEnabled) {
+      const taskTitle = (view.tree.task as unknown as Record<string, unknown>).dialog_topic as string | undefined
+      const topicShort = taskTitle ? taskTitle.slice(0, 24) : 'Bot Dialog'
+      const y = NODE_START_Y + out.length * NODE_GAP
+      const done = dialogStatus === 'completed'
+      // locked until semua lesson benar-benar completed (bukan sticky taskProgress)
+      const allLessonsDone = view.lessonViews.length > 0 && view.lessonViews.every(lv => lv.status === 'completed')
+      const locked = !allLessonsDone
+      const isCurrent = !done && !locked
+      const circleCls = done
+        ? 'border-emerald-200 bg-emerald-500'
+        : isCurrent
+          ? 'border-amber-100 bg-amber-400 ring-8 ring-amber-400/25'
+          : locked
+            ? 'border-slate-200/70 bg-slate-300/80'
+            : 'border-indigo-100 bg-indigo-500'
+      const iconCls = done || isCurrent ? 'text-white' : locked ? 'text-slate-400' : 'text-white'
+      out.push({
+        id: '__dialog__',
+        x: 50,
+        y,
+        kind: 'dialog',
+        locked,
+        done,
+        current: isCurrent,
+        title: topicShort,
+        subtitle: done ? 'Selesai • Wajib' : locked ? 'Selesaikan semua lesson dulu' : dialogStatus === 'active' && dialogRemaining !== null ? `Sisa ${Math.floor(dialogRemaining/60)}:${String(dialogRemaining%60).padStart(2,'0')} • Wajib` : 'Wajib • 7 Menit • Tap untuk mulai',
+        icon: done ? <CheckCircle2 className={`h-7 w-7 ${iconCls}`} /> : <Phone className={`h-6 w-6 ${iconCls}`} />,
+        circleCls,
+        href: '#dialog',
+      })
+    }
     return out
-  }, [view, courseId, taskId, t])
+  }, [view, dialogEnabled, dialogStatus, dialogRemaining, courseId, taskId, t])
 
   const last = nodes[nodes.length - 1]
   const pathHeight = last ? last.y + 110 : 120
@@ -365,7 +398,11 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
                 <button
                   type="button"
                   disabled={n.locked}
-                  onClick={() => !n.locked && router.push(n.href)}
+                  onClick={() => {
+                    if (n.locked) return
+                    if (n.kind === 'dialog') setDialogOpen(true)
+                    else router.push(n.href)
+                  }}
                   className={`relative z-10 flex shrink-0 items-center justify-center rounded-full border-4 shadow-lg transition-transform ${
                     n.circleCls
                   } ${n.locked ? 'cursor-not-allowed' : 'hover:scale-110'}`}
