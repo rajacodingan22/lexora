@@ -936,9 +936,9 @@ export default function CourseDetailPage() {
                 </CardContent>
               </Card>
 
-              {isEnrolled && courseSchedules.length > 0 && (
+              {courseSchedules.length > 0 && (
                 <Card>
-                  <CardHeader><CardTitle className="text-sm">{t('student1.courseDetail.weeklySchedule')}</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-sm">{t('student1.courseDetail.weeklySchedule')}</CardTitle><p className="text-xs text-muted">Jadwal tetap kelas ini — {isEnrolled ? 'kamu sudah terdaftar' : 'lihat dulu sebelum bayar'}</p></CardHeader>
                   <CardContent className="space-y-2">
                     {courseSchedules.map((slot) => (
                       <div key={slot.id} className="flex items-center gap-3 rounded-lg border border-border bg-surface-container-low p-3">
@@ -960,6 +960,31 @@ export default function CourseDetailPage() {
                   </CardContent>
                 </Card>
               )}
+
+              <Card>
+                <CardHeader><CardTitle className="text-sm">Yang Kamu Dapatkan Jika Beli Kelas Ini</CardTitle><p className="text-xs text-muted">Preview lengkap sebelum bayar — jadwal, link Zoom per batch, & goals</p></CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                      <p className="text-xs font-semibold text-on-surface">Pertemuan</p>
+                      <p className="text-sm text-on-surface-variant">{course.meeting_count || 0} sesi live + Live Zoom {(enrolledBatch as unknown as Record<string,string>)?.zoom_link ? 'sudah ada' : 'akan dibuat admin (notif jika belum)'}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                      <p className="text-xs font-semibold text-on-surface">Project</p>
+                      <p className="text-sm text-on-surface-variant">{course.project_count || 0} project — diingatkan 2 minggu sebelum mulai</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                      <p className="text-xs font-semibold text-on-surface">Goals</p>
+                      <p className="text-sm text-on-surface-variant">{Array.isArray((course as unknown as Record<string,unknown>).syllabus) ? ((course as unknown as Record<string,unknown>).syllabus as string[]).slice(0,3).join(' • ') : (typeof course.description === 'object' ? (course.description as Record<string,string>)?.id?.slice(0,80) : String(course.description||'').slice(0,80))} • Sertifikat lulus</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                      <p className="text-xs font-semibold text-on-surface">Jadwal Tetap</p>
+                      <p className="text-sm text-on-surface-variant">{courseSchedules.length>0 ? `${courseSchedules.length} slot/minggu` : 'Jadwal akan dibuat admin manual'} • Link Zoom per batch</p>
+                    </div>
+                  </div>
+                  {!isEnrolled && <p className="text-xs text-muted">Lihat dulu detail di atas — klik Enroll untuk pilih batch & bayar, nggak langsung charge.</p>}
+                </CardContent>
+              </Card>
 
               {isEnrolled && (
                 <Card>
