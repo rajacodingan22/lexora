@@ -305,7 +305,7 @@ export default function CourseDetailPage() {
       if (enrolled?.batch_id) {
         const { data: batch } = await supabase
           .from('batches')
-          .select('id, name, start_date, end_date, status, capacity, current_students')
+          .select('id, name, start_date, end_date, status, capacity, current_students, zoom_link')
           .eq('id', enrolled.batch_id)
           .maybeSingle()
         setEnrolledBatch((batch as any) || null)
@@ -752,11 +752,10 @@ export default function CourseDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          {isEnrolled && upcomingSessions.length > 0 && isMeetingLinkOpen(upcomingSessions[0]) && (              <Button onClick={() => window.open(upcomingSessions[0].meeting_link || '#', '_blank')}>
+          {isEnrolled && upcomingSessions.length > 0 && isMeetingLinkOpen(upcomingSessions[0]) && ((upcomingSessions[0].meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link) ? <Button onClick={() => window.open(upcomingSessions[0].meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link || '#', '_blank')}>
               <Video className="mr-1 h-4 w-4" /> {t('student1.courseDetail.joinLive')}
 
-            </Button>
-          )}
+            </Button> : null)}
           {!isEnrolled && course.status === 'active' && (
             <div className="flex flex-col items-end gap-2">
               {waitListed ? (
@@ -921,11 +920,11 @@ export default function CourseDetailPage() {
                             {sPhase === 'ongoing' ? 'Berlangsung' : 'Scheduled'}
                           </Badge>
                         </div>
-                        {isEnrolled && s.meeting_link && isMeetingLinkOpen(s) && (
+                        {isEnrolled && (s.meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link) && isMeetingLinkOpen(s) && (
                           <Button
                             size="sm"
                             className="mt-2 w-full"
-                            onClick={() => window.open(s.meeting_link, '_blank')}
+                            onClick={() => window.open(s.meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link || '#', '_blank')}
                           >
                             <Video className="mr-1 h-3 w-3" /> Join
                           </Button>
