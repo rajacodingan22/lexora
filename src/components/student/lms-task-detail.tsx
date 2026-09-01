@@ -174,7 +174,7 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
         done,
         current: isCurrent,
         title: topicShort,
-        subtitle: done ? 'Selesai • Wajib' : locked ? 'Selesaikan semua lesson dulu' : dialogStatus === 'active' && dialogRemaining !== null ? `Sisa ${Math.floor(dialogRemaining/60)}:${String(dialogRemaining%60).padStart(2,'0')} • Wajib` : 'Wajib • 7 Menit • Tap untuk mulai',
+        subtitle: done ? t('dialog.done') : locked ? t('dialog.lockedHint') : dialogStatus === 'active' && dialogRemaining !== null ? t('dialog.remaining', {time: `${Math.floor(dialogRemaining/60)}:${String(dialogRemaining%60).padStart(2,'0')}`}) : t('dialog.tapToStart'),
         icon: done ? <CheckCircle2 className={`h-7 w-7 ${iconCls}`} /> : <Phone className={`h-6 w-6 ${iconCls}`} />,
         circleCls,
         href: '#dialog',
