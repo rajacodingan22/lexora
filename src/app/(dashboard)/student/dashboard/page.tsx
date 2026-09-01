@@ -704,17 +704,20 @@ export default function StudentDashboard() {
                   </div>
                 ) : (
                   notifications.map((n) => (
-                    <div key={n.id} className="flex items-start gap-3 group cursor-pointer hover:bg-surface-container-low rounded-lg p-2 -mx-2 transition-colors">
+                    <button key={n.id} onClick={async () => {
+                      try { if (!n.is_read) await fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) }) } catch {}
+                      if (n.link) window.location.href = n.link
+                    }} className="flex w-full items-start gap-3 group cursor-pointer hover:bg-surface-container-low rounded-lg p-2 -mx-2 transition-colors text-left">
                       <div className={cn(
                         'mt-1 h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-background',
                         n.type === 'assignment' ? 'bg-amber-400' : n.type === 'quiz' ? 'bg-emerald-400' : n.type === 'meeting' ? 'bg-sky-400' : 'bg-indigo-400'
                       )} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-on-surface truncate">{renderNotification(n, t).title}</p>
-                        <p className="text-xs text-muted">{timeAgo(n.created_at)}</p>
+                        <p className="text-xs text-muted">{timeAgo(n.created_at, lang)}</p>
                       </div>
                       {!n.is_read && <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />}
-                    </div>
+                    </button>
                   ))
                 )}
               </CardContent>

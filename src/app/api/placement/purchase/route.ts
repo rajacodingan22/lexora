@@ -82,10 +82,10 @@ export async function POST(req: Request) {
       user_id: user.id,
       type: 'info',
       template_key: 'placementInvoicePending',
-      params: { due: payment.due_date?.slice(0, 10) || '' },
-      title: 'Tagihan placement test menunggu pembayaran',
-      body: `Lanjutkan pembayaran placement test (kemahiran bahasa + kepribadian) sebelum ${payment.due_date?.slice(0, 10)}. Setelah diverifikasi, kamu bisa mulai tes kapan saja.`,
-      link: '/student/placement-test',
+      params: { due: payment.due_date?.slice(0, 10) || '', invoice: payment.invoice_number || '' },
+      title: 'Placement Test Payment Pending',
+      body: `Complete your placement test payment before ${payment.due_date?.slice(0, 10)}. Invoice: ${payment.invoice_number || ''}. After verification you can start the test anytime.`,
+      link: `/student/placement-test?invoice=${payment.invoice_number || ''}`,
       is_read: false,
     })
 

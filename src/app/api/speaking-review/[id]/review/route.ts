@@ -192,14 +192,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
-    // Notify student
+    // Notify student — English deep link to exact submission
     try {
+      const { data: full } = await supabase.from('speaking_review_submissions').select('activity_id, task_id, batch_id').eq('id', id).maybeSingle()
       await supabase.from('notifications').insert({
         user_id: submission.user_id,
         type: 'grade',
-        title: 'Review Berbicara Selesai',
-        body: 'Guru sudah memberikan review untuk rekaman berbicaramu.',
-        link: '/student/kursus',
+        template_key: 'speakingReviewed',
+        params: { submissionId: id, activityId: full?.activity_id || '', taskId: full?.task_id || '', batchId: full?.batch_id || '', courseId: enrollment.course_id },
+        title: 'Speaking Review Completed',
+        body: `Your speaking submission has been reviewed. Overall score: ${overallScore ?? '-'}. Check feedback.`,
+        link: `/student/kursus/${enrollment.course_id}/pertemuan?submissionId=${id}&activityId=${full?.activity_id || ''}`,
       })
     } catch (e) { console.error('[speaking-review] notify error', e) }
 

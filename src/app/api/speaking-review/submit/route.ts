@@ -159,9 +159,11 @@ export async function POST(req: Request) {
             await supabase.from('notifications').insert({
               user_id: uid,
               type: 'info',
-              title: 'Speaking Review Menunggu',
-              body: `${studentProfile?.display_name || 'Student'} mengirim rekaman berbicara untuk review.`,
-              link: '/teacher/nilai',
+              template_key: 'assessmentWaiting',
+              params: { student: studentProfile?.display_name || 'Student', studentId: user.id, submissionId: submission.id, activityId, taskId: taskId || '', batchId: batchId || '', courseId: enrollment.course_id },
+              title: `Assessment Waiting for Review: Speaking — ${studentProfile?.display_name || 'Student'}`,
+              body: `Student ${studentProfile?.display_name || 'Student'} submitted a speaking recording for review. Course: ${enrollment.course_id}, Task: ${taskId || ''}, Submission: ${submission.id}`,
+              link: `/teacher/penilaian?submissionId=${submission.id}&activityId=${activityId}${taskId ? `&taskId=${taskId}` : ''}&batchId=${batchId || ''}&courseId=${enrollment.course_id}`,
             })
           }
         }

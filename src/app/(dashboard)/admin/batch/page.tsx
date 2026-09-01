@@ -265,10 +265,10 @@ export default function AdminBatchPage() {
         user_id: teacher.user_id,
         type: 'info',
         template_key: 'batchAssigned',
-        params: { batch: batch.name, course: courseName },
-        title: 'Batch baru ditugaskan kepadamu',
-        body: `Batch "${batch.name}" kelas "${courseName}" siap. Buka kelas kamu untuk mulai mengajar.`,
-        link: '/teacher/kelas',
+        params: { batch: batch.name, course: courseName, batchId: batch.id, courseId: batch.course_id },
+        title: `New Batch Assigned — ${batch.name}`,
+        body: `Batch "${batch.name}" for course "${courseName}" is ready. Open your class to start teaching.`,
+        link: `/teacher/kelas?courseId=${batch.course_id}&batchId=${batch.id}`,
         is_read: false,
       })
       if (notifError) {

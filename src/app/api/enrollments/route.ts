@@ -32,18 +32,18 @@ export async function POST(req: Request) {
         user_id: user.id,
         type: 'info',
         template_key: 'trialWaitlist',
-        params: { course: courseTitle },
-        title: 'Menunggu slot trial class',
-        body: `Kamu masuk waiting list untuk ${courseTitle}. Admin akan menghubungi jika slot tersedia.`,
-        link: '/student/kursus',
+        params: { course: courseTitle, courseId },
+        title: 'Trial Waitlist — You are on the waiting list',
+        body: `You are on the waiting list for "${courseTitle}". We will notify you when a slot opens.`,
+        link: `/student/kursus/${courseId}`,
         is_read: false,
       })
 
       await supabase.rpc('notify_admins_for_course', {
         p_course_id: courseId,
-        p_title: 'Siswa masuk waiting list',
-        p_body: `Ada siswa masuk waiting list untuk ${courseTitle}. Segera cek dan alokasikan slot.`,
-        p_link: '/admin/waiting-list',
+        p_title: 'Student on Waiting List',
+        p_body: `Student on waiting list for "${courseTitle}". Please allocate a slot.`,
+        p_link: `/admin/waiting-list?courseId=${courseId}`,
       })
 
       return NextResponse.json({
@@ -63,10 +63,13 @@ export async function POST(req: Request) {
           course: courseTitle + (programName ? ` (${programName})` : ''),
           batch: batchName || '',
           due: String(payment.due_date || '').slice(0, 10),
+          courseId,
+          batchId: batch?.id || '',
+          invoice: payment.invoice_number || '',
         },
-        title: 'Tagihan menunggu pembayaran',
-        body: `Kamu terdaftar di ${courseTitle}${programName ? ' (' + programName + ')' : ''}${batchName ? ' - ' + batchName : ''}. Lanjutkan pembayaran sebelum ${String(payment.due_date || '').slice(0, 10)}.`,
-        link: '/student/pembayaran',
+        title: 'Payment Pending — Complete Your Payment',
+        body: `You are enrolled in "${courseTitle}"${batchName ? ` — ${batchName}` : ''}. Please complete payment before ${String(payment.due_date || '').slice(0, 10)}. Invoice: ${payment.invoice_number || ''}`,
+        link: `/student/pembayaran?invoice=${payment.invoice_number || ''}&courseId=${courseId}`,
         is_read: false,
       })
     } else {
@@ -76,11 +79,13 @@ export async function POST(req: Request) {
         template_key: 'studentEnrolled',
         params: {
           course: courseTitle + (programName ? ` (${programName})` : ''),
-          batchSuffix: batchName ? ` di ${batchName}` : '',
+          batchSuffix: batchName ? ` — ${batchName}` : '',
+          courseId,
+          batchId: batch?.id || '',
         },
-        title: '🎉 Selamat! Kamu berhasil masuk kelas',
-        body: `Kamu berhasil masuk ke ${courseTitle}${programName ? ' (' + programName + ')' : ''}${batchName ? ' di ' + batchName : ''}. Selamat belajar!`,
-        link: '/student/kursus',
+        title: 'Enrolled Successfully — Welcome!',
+        body: `You are enrolled in "${courseTitle}"${batchName ? ` — ${batchName}` : ''}. Start learning now.`,
+        link: `/student/kursus/${courseId}`,
         is_read: false,
       })
     }
@@ -95,20 +100,20 @@ export async function POST(req: Request) {
 
     await supabase.rpc('notify_course_teachers', {
       p_course_id: courseId,
-      p_title: 'Siswa baru bergabung',
-      p_body: `${studentName} baru saja bergabung di kelas.`,
-      p_link: '/teacher/kelas',
+      p_title: 'New Student Joined — ' + studentName,
+      p_body: `${studentName} just joined "${courseTitle}"${batchName ? ` — ${batchName}` : ''}.`,
+      p_link: `/teacher/kelas?courseId=${courseId}&batchId=${batch?.id || ''}`,
       p_template_key: 'studentJoined',
-      p_params: { student: studentName },
+      p_params: { student: studentName, course: courseTitle, courseId, batchId: batch?.id || '' },
     })
 
     await supabase.rpc('notify_admins_for_course', {
       p_course_id: courseId,
-      p_title: payment ? 'Pembayaran menunggu verifikasi' : 'Siswa baru mendaftar',
+      p_title: payment ? 'Payment Awaiting Verification' : 'New Student Enrolled',
       p_body: payment
-        ? `${studentName} mendaftar di ${courseTitle}${batchName ? ' - ' + batchName : ''} dan menunggu verifikasi pembayaran.`
-        : `${studentName} baru saja mendaftar di ${courseTitle}${batchName ? ' - ' + batchName : ''}.`,
-      p_link: payment ? '/admin/verifikasi' : '/admin/users',
+        ? `${studentName} enrolled in "${courseTitle}"${batchName ? ` — ${batchName}` : ''} and is awaiting payment verification.`
+        : `${studentName} just enrolled in "${courseTitle}"${batchName ? ` — ${batchName}` : ''}.`,
+      p_link: payment ? `/admin/verifikasi?courseId=${courseId}&invoice=${payment.invoice_number || ''}` : `/admin/users?courseId=${courseId}`,
     })
 
     return NextResponse.json({

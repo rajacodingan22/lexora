@@ -86,16 +86,21 @@ export async function POST() {
         })
 
         if (visibleAssignments.length > 0) {
+          const first = visibleAssignments[0] as unknown as { id: string; course_id: string }
           const { count: existing } = await supabase
             .from('notifications').select('*', { count: 'exact', head: true })
             .eq('user_id', user.id).eq('type', 'assignment').eq('is_read', false)
           if (!existing) {
+            // English + deep link to the exact assignment/task
+            const aCourse = enrollList.find(e => e.course_id === first.course_id)
+            const targetTask = first.id
             await supabase.from('notifications').insert({
               user_id: user.id, sender_id: user.id, type: 'assignment',
               template_key: 'assignmentPending',
-              title: 'Tugas Menunggu',
-              body: 'Anda memiliki tugas yang perlu segera dikerjakan.',
-              link: '/student/kursus',
+              params: { assignmentId: first.id, courseId: first.course_id },
+              title: 'Assignment Waiting — Action Required',
+              body: `You have an assignment waiting: "${targetTask}". Open the task to submit before the deadline.`,
+              link: `/student/kursus/${first.course_id}`,
             })
             newCount++
           }
@@ -117,6 +122,7 @@ export async function POST() {
         })
 
         if (visibleSessions.length > 0) {
+          const firstS = visibleSessions[0] as unknown as { id: string; course_id: string }
           const { count: existing } = await supabase
             .from('notifications').select('*', { count: 'exact', head: true })
             .eq('user_id', user.id).eq('type', 'meeting').eq('is_read', false)
@@ -124,9 +130,10 @@ export async function POST() {
             await supabase.from('notifications').insert({
               user_id: user.id, sender_id: user.id, type: 'meeting',
               template_key: 'sessionUpcoming',
-              title: 'Sesi Akan Dimulai',
-              body: 'Ada sesi Zoom yang akan dimulai dalam waktu dekat.',
-              link: '/student/kalender',
+              params: { sessionId: firstS.id, courseId: firstS.course_id },
+              title: 'Upcoming Zoom Session',
+              body: `Your Zoom session is starting soon. Join from the course meeting page.`,
+              link: `/student/kursus/${firstS.course_id}/pertemuan`,
             })
             newCount++
           }

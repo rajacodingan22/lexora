@@ -137,11 +137,14 @@ export async function POST(req: Request) {
         template_key: 'studentEnrolled',
         params: {
           course: courseTitle,
-          batchSuffix: nextBatch.name ? ` di ${nextBatch.name}` : '',
+          courseId: waiting.course_id,
+          batchSuffix: nextBatch.name ? ` — ${nextBatch.name}` : '',
+          batchId: nextBatch.id,
+          invoice: (payment as any)?.invoice_number || '',
         },
-        title: 'Slot kelas tersedia',
-        body: `Selamat! Anda mendapat slot di "${courseTitle}" (Batch ${nextBatch.name || ''}). Selesaikan pembayaran sebelum ${payment.due_date?.slice(0, 10)}.`,
-        link: '/student/pembayaran',
+        title: 'Class Slot Available — Action Required',
+        body: `Great news! You got a slot in "${courseTitle}" — ${nextBatch.name || ''}. Please complete payment before ${payment.due_date?.slice(0, 10)}.`,
+        link: `/student/pembayaran?invoice=${(payment as any)?.invoice_number || ''}&courseId=${waiting.course_id}`,
         is_read: false,
       })
     } else {
@@ -151,11 +154,13 @@ export async function POST(req: Request) {
         template_key: 'studentEnrolled',
         params: {
           course: courseTitle,
-          batchSuffix: nextBatch.name ? ` di ${nextBatch.name}` : '',
+          courseId: waiting.course_id,
+          batchSuffix: nextBatch.name ? ` — ${nextBatch.name}` : '',
+          batchId: nextBatch.id,
         },
-        title: 'Slot kelas tersedia',
-        body: `Selamat! Anda mendapat slot di "${courseTitle}" (Batch ${nextBatch.name || ''}). Selamat belajar!`,
-        link: '/student/kursus',
+        title: 'Class Slot Available — Welcome!',
+        body: `Great news! You got a slot in "${courseTitle}" — ${nextBatch.name || ''}. Start learning now.`,
+        link: `/student/kursus/${waiting.course_id}`,
         is_read: false,
       })
     }
@@ -181,10 +186,10 @@ export async function POST(req: Request) {
           user_id: tid,
           type: 'info',
           template_key: 'studentJoinedSlot',
-          params: { student: studentName, course: courseTitle },
-          title: 'Siswa baru bergabung',
-          body: `${studentName} baru saja mendapat slot di "${courseTitle}" (Batch ${nextBatch.name || ''}).`,
-          link: '/teacher/kelas',
+          params: { student: studentName, course: courseTitle, courseId: waiting.course_id, batchId: nextBatch.id },
+          title: `New Student Joined — ${studentName}`,
+          body: `${studentName} just got a slot in "${courseTitle}" — ${nextBatch.name || ''}.`,
+          link: `/teacher/kelas?courseId=${waiting.course_id}&batchId=${nextBatch.id}`,
           is_read: false,
         })
       }

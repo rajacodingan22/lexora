@@ -170,8 +170,13 @@ export function NotificationBell() {
       }
     }
     setOpen(false)
-    if (notif.link) {
+    if (notif.link && notif.link.startsWith('/')) {
       router.push(notif.link)
+    } else if (notif.link) {
+      // fallback: external link
+      window.open(notif.link, '_blank')
+    } else {
+      // No link — stay, maybe toast already handled
     }
   }
 

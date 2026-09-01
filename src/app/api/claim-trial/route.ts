@@ -44,10 +44,10 @@ export async function POST() {
       user_id: user.id,
       type: 'info',
       template_key: 'studentEnrolled',
-      params: { course: courseTitle, batchSuffix: batchName ? ` di ${batchName}` : '' },
-      title: 'Trial class aktif!',
-      body: `Kamu bergabung di "${courseTitle}" batch ${batchName || ''}. Selamat belajar!`,
-      link: '/student/kursus',
+      params: { course: courseTitle, courseId: course.id, batchSuffix: batchName ? ` — ${batchName}` : '', batchId: batch?.id || '' },
+      title: 'Trial Class Active — Welcome!',
+      body: `You joined "${courseTitle}"${batchName ? ` — ${batchName}` : ''}. Start learning now.`,
+      link: `/student/kursus/${course.id}`,
       is_read: false,
     })
     if (notificationError) console.error('Trial notification error:', notificationError)
