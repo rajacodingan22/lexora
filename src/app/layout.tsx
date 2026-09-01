@@ -11,6 +11,13 @@ import { cookies } from 'next/headers'
 export const metadata: Metadata = {
   title: 'Lexora Academy - Platform Pembelajaran Bahasa',
   description: 'Belajar bahasa asing dengan pengajar profesional dan sistem belajar terstruktur',
+  icons: {
+    icon: [
+      { url: '/logo.png', type: 'image/png' },
+      { url: '/favicon.ico', type: 'image/x-icon' },
+    ],
+    apple: '/logo.png',
+  },
 }
 
 const INIT_SCRIPT = `
