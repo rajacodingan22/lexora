@@ -896,6 +896,28 @@ export default function CourseDetailPage() {
             </Card>
 
             <div className="space-y-4">
+              {/* Guru Pengajar */}
+              {displayTeacher && (
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">{t('student1.courseDetail.instructorLabel')}</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-3">
+                      {displayTeacher.user.photo_url ? (
+                        <img src={displayTeacher.user.photo_url} alt={teacherName} className="h-12 w-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/15 text-lg font-bold text-indigo-400">
+                          {teacherName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-on-surface">{teacherName}</p>
+                        <p className="text-xs text-muted">{languageName} • {levelName}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -966,25 +988,64 @@ export default function CourseDetailPage() {
                 <CardContent className="space-y-3">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                      <p className="text-xs font-semibold text-on-surface">Pertemuan</p>
+                      <p className="text-xs font-semibold text-on-surface">{t('student1.courseDetail.tabOverview').includes('Overview') ? 'Meetings' : 'Pertemuan'}</p>
                       <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetMeetings', {count: String(course.meeting_count || 0), hasZoom: String(!!(enrolledBatch as unknown as Record<string,string>)?.zoom_link)})}</p>
                     </div>
                     <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                      <p className="text-xs font-semibold text-on-surface">Project</p>
+                      <p className="text-xs font-semibold text-on-surface">{t('student1.courseDetail.tabOverview').includes('Overview') ? 'Projects' : 'Project'}</p>
                       <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetProjects', {count: String(course.project_count || 0)})}</p>
                     </div>
-                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                      <p className="text-xs font-semibold text-on-surface">Goals</p>
+                  </div>
+                  {/* Goals: tampilkan syllabus aktual jika ada, fallback ke generic */}
+                  {syllabus.length > 0 ? (
+                    <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3">
+                      <p className="text-xs font-semibold text-on-surface mb-2">{t('student1.courseDetail.syllabusTitle') || 'Goals'}</p>
+                      <div className="space-y-1">
+                        {syllabus.slice(0, 5).map((item: string, i: number) => (
+                          <div key={i} className="flex items-start gap-2 text-sm">
+                            <CheckCircle className="h-3.5 w-3.5 text-indigo-400 mt-0.5 shrink-0" />
+                            <span className="text-on-surface-variant">{item}</span>
+                          </div>
+                        ))}
+                        {syllabus.length > 5 && <p className="text-xs text-muted mt-1">+{syllabus.length - 5} lainnya</p>}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3">
+                      <p className="text-xs font-semibold text-on-surface">{t('student1.courseDetail.tabOverview').includes('Overview') ? 'Goals' : 'Goals'}</p>
                       <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetGoals')}</p>
                     </div>
-                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                      <p className="text-xs font-semibold text-on-surface">Jadwal Tetap</p>
-                      <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetSchedule', {count: String(courseSchedules.length)})}</p>
-                    </div>
+                  )}
+                  <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                    <p className="text-xs font-semibold text-on-surface">{t('student1.courseDetail.tabOverview').includes('Overview') ? 'Schedule' : 'Jadwal Tetap'}</p>
+                    <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetSchedule', {count: String(courseSchedules.length)})}</p>
                   </div>
                   {!isEnrolled && <p className="text-xs text-muted">{t('courseDetail.whatYouGetHint')}</p>}
                 </CardContent>
               </Card>
+
+              {/* CTA prominent untuk non-enrolled */}
+              {!isEnrolled && course.status === 'active' && (
+                <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent">
+                  <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
+                    <p className="text-lg font-bold text-on-surface">
+                      {course.is_try_class ? t('student1.courseDetail.claimTrialFree') : formatRp(course.price)}
+                      {!course.is_try_class && <span className="ml-1 text-xs font-normal text-on-surface-variant">{t('student1.courseDetail.perClass')}</span>}
+                    </p>
+                    <p className="text-xs text-on-surface-variant max-w-sm">
+                      {t('courseDetail.whatYouGetHint')}
+                    </p>
+                    <Button
+                      onClick={handleEnroll}
+                      disabled={enrolling || (hasPlacementForCourseLang && !isPlacementMatch && !course.is_try_class)}
+                      className="w-full sm:w-auto"
+                    >
+                      {enrolling ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <BookOpen className="mr-1 h-4 w-4" />}
+                      {enrolling ? t('student1.courseDetail.processing') : course.is_try_class ? t('student1.courseDetail.claimTrialFree') : t('student1.courseDetail.enrollPayClass')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
               {isEnrolled && (
                 <Card>
@@ -1057,15 +1118,21 @@ export default function CourseDetailPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
-                          {m.external_url ? (
-                            <Button variant="outline" size="sm" onClick={() => window.open(m.external_url!, '_blank')}>
-                              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open
-                            </Button>
-                          ) : m.file_url ? (
-                            <Button variant="outline" size="sm" onClick={() => setPreviewUrl(m.file_url!)}>
-                              <Download className="h-3.5 w-3.5 mr-1" /> Download
-                            </Button>
-                          ) : null}
+                          {isEnrolled ? (
+                            m.external_url ? (
+                              <Button variant="outline" size="sm" onClick={() => window.open(m.external_url!, '_blank')}>
+                                <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open
+                              </Button>
+                            ) : m.file_url ? (
+                              <Button variant="outline" size="sm" onClick={() => setPreviewUrl(m.file_url!)}>
+                                <Download className="h-3.5 w-3.5 mr-1" /> Download
+                              </Button>
+                            ) : null
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">
+                              <Lock className="h-3 w-3 mr-1" /> Enroll to access
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     )
@@ -1138,8 +1205,8 @@ export default function CourseDetailPage() {
                           </div>
                         )}
 
-                        {/* Inline submission form for unsubmitted assignments */}
-                        {!isSubmitted && (
+                        {/* Inline submission form for unsubmitted assignments — enrolled only */}
+                        {!isSubmitted && isEnrolled && (
                           <div className="mt-4 space-y-3 border-t border-border pt-4">
                             <p className="text-sm font-medium text-on-surface">Submit Your Work</p>
                             <div>

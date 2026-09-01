@@ -237,10 +237,10 @@ export async function fetchAssignedTasks(
       .from('batch_tasks')
       .select('*, task:course_tasks(*)')
       .eq('batch_id', batchId)
-      .eq('status', 'published')
       .order('sort_order', { ascending: true })
     return ((data ?? []) as any[])
       .filter((r) => {
+        if (r.status !== 'published') return false
         if (r.task?.status !== 'published') return false
         if (r.availability_start && r.availability_start > now) return false
         if (r.availability_end && r.availability_end < now) return false
@@ -257,11 +257,11 @@ export async function fetchAssignedTasks(
     .from('batch_tasks')
     .select('*, task:course_tasks(*)')
     .in('batch_id', batchIds)
-    .eq('status', 'published')
     .order('sort_order', { ascending: true })
 
   const dedup = new Map<string, { task: CourseTask; batchTask: BatchTask }>()
   for (const r of ((data ?? []) as any[]).filter((r) => {
+    if (r.status !== 'published') return false
     if (r.task?.status !== 'published') return false
     if (r.availability_start && r.availability_start > now) return false
     if (r.availability_end && r.availability_end < now) return false

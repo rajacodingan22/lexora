@@ -26,6 +26,7 @@ interface LmsTaskRow {
   progress: StudentTaskProgress | null
   totalActivities: number
   completedActivities: number
+  lessonTitles: string[]
 }
 
 function TaskCover({ task, className }: { task: CourseTask; className?: string }) {
@@ -240,6 +241,7 @@ export default function TasksTab({ courseId }: TasksTabProps) {
             progress: taskProgressMap.get(task.id) || null,
             totalActivities: cnt.total,
             completedActivities: cnt.completed,
+            lessonTitles: taskLessons.map((l: any) => l.title || l.name || ''),
           }
         })
       }
@@ -293,8 +295,8 @@ export default function TasksTab({ courseId }: TasksTabProps) {
   // --- Rosetta / Duolingo style pastel grid ---
   const PASTEL = ['#E8F5C8','#E6F0FA','#DDE3FF','#FDE4C8','#E0F7F7','#EDE5FD','#FFF3B0','#DDE8F7','#FFD6D6','#F5E6C8'] as const
   const allUnits = [
-    ...lmsRows.map(r => ({ id: r.task.id, task: r.task, cover: r.task.cover_image_url, title: r.task.title, number: r.task.task_number, row: r as LmsTaskRow | null, legacy: null as TaskWithMeta | null })),
-    ...legacyTasks.map(lt => ({ id: lt.id, task: lt as unknown as CourseTask, cover: (lt as any).cover_image_url ?? null, title: (lt as any).title, number: (lt as any).task_number, row: null, legacy: lt })),
+    ...lmsRows.map(r => ({ id: r.task.id, task: r.task, cover: r.task.cover_image_url, title: r.task.title, number: r.task.task_number, row: r as LmsTaskRow | null, legacy: null as TaskWithMeta | null, lessonTitles: r.lessonTitles })),
+    ...legacyTasks.map(lt => ({ id: lt.id, task: lt as unknown as CourseTask, cover: (lt as any).cover_image_url ?? null, title: (lt as any).title, number: (lt as any).task_number, row: null, legacy: lt, lessonTitles: [] as string[] })),
   ].sort((a,b) => (a.number ?? 0) - (b.number ?? 0))
 
   // Find next not-completed unit for Start button highlight (like screenshot UNIT 2)
@@ -348,6 +350,15 @@ export default function TasksTab({ courseId }: TasksTabProps) {
                 </div>
                 {/* Title */}
                 <h3 className="mt-4 line-clamp-2 min-h-[3rem] text-[18px] font-bold leading-tight text-black">{u.title}</h3>
+                {/* Lesson titles preview */}
+                {u.lessonTitles.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {u.lessonTitles.slice(0, 3).map((lt, li) => (
+                      <p key={li} className="text-[11px] text-black/60 truncate">• {lt}</p>
+                    ))}
+                    {u.lessonTitles.length > 3 && <p className="text-[10px] text-black/40">+{u.lessonTitles.length - 3} lessons</p>}
+                  </div>
+                )}
                 {/* Spacer */}
                 <div className="flex-1" />
                 {/* Image + Start button overlay */}
