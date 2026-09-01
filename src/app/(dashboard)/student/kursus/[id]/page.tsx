@@ -892,6 +892,51 @@ export default function CourseDetailPage() {
                     </div>
                   </div>
                 )}
+                {/* Meetings • Projects • Schedule • Zoom — always visible for every course */}
+                <div className="grid gap-3 pt-2 border-t border-border">
+                  <h4 className="font-medium text-on-surface text-sm">{t('student1.courseDetail.classDetailsTitle')}</h4>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                      <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.meetingsTitle')}</p>
+                      <p className="text-sm text-on-surface-variant mt-1">
+                        {course.meeting_count
+                          ? (enrolledBatch as unknown as Record<string,string>)?.zoom_link
+                            ? t('student1.courseDetail.meetingsWithZoomReady', { count: String(course.meeting_count) })
+                            : t('student1.courseDetail.meetingsWithZoomPending', { count: String(course.meeting_count) })
+                          : t('student1.courseDetail.meetingsValue', { count: String(course.meeting_count || 0) })}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                      <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-amber-400" /> {t('student1.courseDetail.projectsTitle')}</p>
+                      <p className="text-sm text-on-surface-variant mt-1">{t('student1.courseDetail.projectsValue', { count: String(course.project_count || 0) })}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.fixedScheduleTitle')}</p>
+                    {courseSchedules.length > 0 ? (
+                      <div className="mt-2 space-y-1.5">
+                        {courseSchedules.map((slot) => (
+                          <div key={slot.id} className="flex items-center gap-2 text-sm text-on-surface-variant">
+                            <span className="font-medium text-on-surface">{DAY_KEYS[slot.day_of_week] ? t(DAY_KEYS[slot.day_of_week]) : `Day ${slot.day_of_week}`}</span>
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{slot.start_time}{slot.duration_minutes ? ` • ${t('student1.courseDetail.durationMinutes', { minutes: slot.duration_minutes })}` : ''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted mt-1">{t('student1.courseDetail.scheduleEmpty')} • {t('student1.courseDetail.zoomHint')}</p>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5 text-cyan-400" /> {t('student1.courseDetail.zoomPerBatchTitle')}</p>
+                    {isEnrolled && (enrolledBatch as unknown as Record<string,string>)?.zoom_link ? (
+                      <a href={(enrolledBatch as unknown as Record<string,string>).zoom_link} target="_blank" rel="noopener noreferrer" className="text-sm text-cyan-400 hover:underline break-all mt-1 inline-flex items-center gap-1">
+                        {(enrolledBatch as unknown as Record<string,string>).zoom_link} <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    ) : (
+                      <p className="text-sm text-muted mt-1">{isEnrolled ? t('student1.courseDetail.zoomPendingEnrolled') : t('student1.courseDetail.zoomPendingGuest')}</p>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -958,94 +1003,7 @@ export default function CourseDetailPage() {
                 </CardContent>
               </Card>
 
-              {courseSchedules.length > 0 && (
-                <Card>
-                  <CardHeader><CardTitle className="text-sm">{t('student1.courseDetail.weeklySchedule')}</CardTitle><p className="text-xs text-muted">{t('courseDetail.weeklyScheduleHint', {enrolled: String(isEnrolled)})}</p></CardHeader>
-                  <CardContent className="space-y-2">
-                    {courseSchedules.map((slot) => (
-                      <div key={slot.id} className="flex items-center gap-3 rounded-lg border border-border bg-surface-container-low p-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10">
-                          <Calendar className="h-4 w-4 text-indigo-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-on-surface">
-                            {DAY_KEYS[slot.day_of_week] ? t(DAY_KEYS[slot.day_of_week]) : t('student1.days.sunday')}
-                          </p>
-                          <p className="text-xs text-muted flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {slot.start_time}
-                            {slot.duration_minutes ? ` \u2022 ${t('student1.courseDetail.durationMinutes', { minutes: slot.duration_minutes })}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
 
-              <Card>
-                <CardHeader><CardTitle className="text-sm">{t('courseDetail.whatYouGetTitle')}</CardTitle><p className="text-xs text-muted">{t('courseDetail.whatYouGetSubtitle')}</p></CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                      <p className="text-xs font-semibold text-on-surface">{t('student1.courseDetail.tabOverview').includes('Overview') ? 'Meetings' : 'Pertemuan'}</p>
-                      <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetMeetings', {count: String(course.meeting_count || 0), hasZoom: String(!!(enrolledBatch as unknown as Record<string,string>)?.zoom_link)})}</p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                      <p className="text-xs font-semibold text-on-surface">{t('student1.courseDetail.tabOverview').includes('Overview') ? 'Projects' : 'Project'}</p>
-                      <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetProjects', {count: String(course.project_count || 0)})}</p>
-                    </div>
-                  </div>
-                  {/* Goals: tampilkan syllabus aktual jika ada, fallback ke generic */}
-                  {syllabus.length > 0 ? (
-                    <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3">
-                      <p className="text-xs font-semibold text-on-surface mb-2">{t('student1.courseDetail.syllabusTitle') || 'Goals'}</p>
-                      <div className="space-y-1">
-                        {syllabus.slice(0, 5).map((item: string, i: number) => (
-                          <div key={i} className="flex items-start gap-2 text-sm">
-                            <CheckCircle className="h-3.5 w-3.5 text-indigo-400 mt-0.5 shrink-0" />
-                            <span className="text-on-surface-variant">{item}</span>
-                          </div>
-                        ))}
-                        {syllabus.length > 5 && <p className="text-xs text-muted mt-1">+{syllabus.length - 5} lainnya</p>}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3">
-                      <p className="text-xs font-semibold text-on-surface">{t('student1.courseDetail.tabOverview').includes('Overview') ? 'Goals' : 'Goals'}</p>
-                      <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetGoals')}</p>
-                    </div>
-                  )}
-                  <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                    <p className="text-xs font-semibold text-on-surface">{t('student1.courseDetail.tabOverview').includes('Overview') ? 'Schedule' : 'Jadwal Tetap'}</p>
-                    <p className="text-sm text-on-surface-variant">{t('courseDetail.whatYouGetSchedule', {count: String(courseSchedules.length)})}</p>
-                  </div>
-                  {!isEnrolled && <p className="text-xs text-muted">{t('courseDetail.whatYouGetHint')}</p>}
-                </CardContent>
-              </Card>
-
-              {/* CTA prominent untuk non-enrolled */}
-              {!isEnrolled && course.status === 'active' && (
-                <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent">
-                  <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
-                    <p className="text-lg font-bold text-on-surface">
-                      {course.is_try_class ? t('student1.courseDetail.claimTrialFree') : formatRp(course.price)}
-                      {!course.is_try_class && <span className="ml-1 text-xs font-normal text-on-surface-variant">{t('student1.courseDetail.perClass')}</span>}
-                    </p>
-                    <p className="text-xs text-on-surface-variant max-w-sm">
-                      {t('courseDetail.whatYouGetHint')}
-                    </p>
-                    <Button
-                      onClick={handleEnroll}
-                      disabled={enrolling || (hasPlacementForCourseLang && !isPlacementMatch && !course.is_try_class)}
-                      className="w-full sm:w-auto"
-                    >
-                      {enrolling ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <BookOpen className="mr-1 h-4 w-4" />}
-                      {enrolling ? t('student1.courseDetail.processing') : course.is_try_class ? t('student1.courseDetail.claimTrialFree') : t('student1.courseDetail.enrollPayClass')}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
 
               {isEnrolled && (
                 <Card>
