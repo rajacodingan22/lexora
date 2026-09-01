@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   BookOpen, Play, Calendar, BookX, CheckCircle2,
   Search, GraduationCap, Loader2, Sparkles, Users,
-  Globe, Clock, Activity, CalendarClock, ArrowRight
+  Globe, Clock, Activity, CalendarClock, ArrowRight, X, Video, FileText, ExternalLink, Link2
 } from 'lucide-react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -136,6 +136,10 @@ function StudentCoursesContent() {
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set())
   const [enrollingId, setEnrollingId] = useState<string | null>(null)
   const [successToast, setSuccessToast] = useState<{ courseTitle: string; programName: string; batchName: string } | null>(null)
+  const [previewCourse, setPreviewCourse] = useState<ExploreClass | null>(null)
+  const [previewSessions, setPreviewSessions] = useState<{ id: string; title: string; starts_at: string; meeting_link: string | null }[]>([])
+  const [previewProjects, setPreviewProjects] = useState<{ id: string; title: string; due_date: string | null }[]>([])
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   async function fetchEnrolledCourses() {
     setLoading(true)
@@ -375,6 +379,32 @@ function StudentCoursesContent() {
     return true
   })
 
+  async function openPreview(course: ExploreClass) {
+    setPreviewCourse(course)
+    setPreviewLoading(true)
+    setPreviewSessions([])
+    setPreviewProjects([])
+    try {
+      const [sessRes, projRes] = await Promise.all([
+        supabase.from('live_sessions').select('id, title, starts_at, meeting_link').eq('course_id', course.id).order('starts_at', { ascending: true }).limit(20),
+        supabase.from('assignments').select('id, title, due_date').eq('course_id', course.id).order('due_date', { ascending: true }).limit(20),
+      ])
+      setPreviewSessions((sessRes.data as any) || [])
+      // fallback ke catalog projects jika assignments kosong: ambil dari course detail
+      if ((projRes.data as any)?.length) {
+        setPreviewProjects((projRes.data as any) || [])
+      } else {
+        // coba batch_tasks -> course_tasks untuk project dengan tanggal
+        const { data: ct } = await supabase.from('course_tasks').select('id, title, created_at').eq('course_id', course.id).order('sort_order').limit(20)
+        setPreviewProjects(((ct as any) || []).map((c: any) => ({ id: c.id, title: c.title, due_date: c.created_at })))
+      }
+    } catch (e) {
+      console.error('preview fetch', e)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
   async function handleEnroll(courseId: string) {
     if (!user) return
     setEnrollingId(courseId)
@@ -406,6 +436,7 @@ function StudentCoursesContent() {
       setTimeout(() => setSuccessToast(null), 6000)
 
       await Promise.all([fetchEnrolledCourses(), fetchExploreClasses()])
+      setPreviewCourse(null)
     } catch (err: any) {
       console.error('Failed to enroll', err)
       alert(err.message || t('student1.kursus.enrollError'))
@@ -767,7 +798,7 @@ function StudentCoursesContent() {
 
                     return (
                       <motion.div key={course.id} variants={itemVariants} custom={i}>
-                        <Card className="group transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col overflow-hidden">
+                        <Card onClick={() => openPreview(course)} className="group cursor-pointer transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col overflow-hidden">
                           <div className="relative h-28 shrink-0 overflow-hidden">
                             {course.image_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -829,7 +860,7 @@ function StudentCoursesContent() {
                                 <p className="text-[10px] text-muted">{t('student1.kursus.minMaxStudents', { min: course.min_students, max: course.max_students })}</p>
                               </div>
                               {isEnrolled ? (
-                                <Link href={`/student/kursus/${course.id}`}>
+                                <Link href={`/student/kursus/${course.id}`} onClick={(e) => e.stopPropagation()}>
                                   <Button size="sm" variant="outline" className="shrink-0">
                                     <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-500" /> {t('student1.kursus.alreadyEnrolled')}
                                   </Button>
@@ -838,7 +869,7 @@ function StudentCoursesContent() {
                                 <Button
                                   size="sm"
                                   className="shrink-0 shadow-md"
-                                  onClick={() => handleEnroll(course.id)}
+                                  onClick={(e) => { e.stopPropagation(); handleEnroll(course.id) }}
                                   disabled={enrollingId === course.id || levelBlocked}
                                   title={levelBlocked ? t('student1.courseDetail.enrollLevelBlocked') : undefined}
                                 >
@@ -862,6 +893,105 @@ function StudentCoursesContent() {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      {/* Center preview modal — click block course → detail di tengah layar */}
+      <AnimatePresence>
+        {previewCourse && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setPreviewCourse(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-surface shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-surface/95 backdrop-blur p-4">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-on-surface truncate">{previewCourse.title?.id || previewCourse.title?.en || 'Course'}</h3>
+                  <p className="text-xs text-muted truncate">{previewCourse.teachers.map(t=>t.display_name).join(', ') || t('student1.kursus.teacherFallback')} • {previewCourse.meeting_count} {t('student1.kursus.meetingCount', { count: previewCourse.meeting_count }).split(' ')[1] || 'meetings'} • {previewCourse.project_count} projects</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setPreviewCourse(null)} className="shrink-0"><X className="h-4 w-4" /></Button>
+              </div>
+              <div className="p-5 space-y-4">
+                {previewCourse.description?.id || previewCourse.description?.en ? (
+                  <p className="text-sm text-on-surface-variant leading-relaxed line-clamp-3">{previewCourse.description?.id || previewCourse.description?.en}</p>
+                ) : null}
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="outline" className="text-[11px]">{previewCourse.is_try_class ? t('student1.kursus.freeTrial') : formatPrice(previewCourse.price, t)}</Badge>
+                  <Badge variant="outline" className="text-[11px]">{(previewCourse.tier || previewCourse.level_code) ? t(`common.tier.${normalizeTier(previewCourse.tier || previewCourse.level_code) || ''}`) : ''}</Badge>
+                  <Badge variant="outline" className="text-[11px]">{t(trackLabelKey(previewCourse.track_type))}</Badge>
+                </div>
+                {previewLoading ? (
+                  <div className="flex items-center gap-2 py-6 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading...</div>
+                ) : (
+                  <>
+                    <div className="rounded-xl border border-border bg-surface-container-low p-3">
+                      <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.meetingScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{previewSessions.length || previewCourse.meeting_count}</span></p>
+                      <p className="text-[11px] text-muted mt-0.5">{t('student1.courseDetail.dateFormatHint')}</p>
+                      {previewSessions.length > 0 ? (
+                        <div className="mt-2 divide-y divide-border">
+                          {previewSessions.map(s => {
+                            const d = s.starts_at ? new Date(s.starts_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : t('student1.courseDetail.scheduleEmpty')
+                            return (
+                              <div key={s.id} className="flex items-center justify-between gap-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-on-surface truncate">{s.title}</p>
+                                  <p className="text-xs text-muted flex items-center gap-1"><Calendar className="h-3 w-3" />{d}</p>
+                                </div>
+                                {s.meeting_link ? <span className="shrink-0 inline-flex items-center gap-1 text-xs text-cyan-400"><Link2 className="h-3 w-3" /> Zoom</span> : <span className="shrink-0 text-xs text-muted">—</span>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted mt-2">{t('student1.courseDetail.noMeetingSchedule')}</p>
+                      )}
+                    </div>
+                    <div className="rounded-xl border border-border bg-surface-container-low p-3">
+                      <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-amber-400" /> {t('student1.courseDetail.projectScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{previewProjects.length || previewCourse.project_count}</span></p>
+                      {previewProjects.length > 0 ? (
+                        <div className="mt-2 divide-y divide-border">
+                          {previewProjects.map(p => {
+                            const d = (p as any).due_date ? new Date((p as any).due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null
+                            return (
+                              <div key={p.id} className="flex items-center justify-between gap-3 py-2">
+                                <p className="text-sm font-medium text-on-surface truncate">{p.title}</p>
+                                <span className="shrink-0 text-xs text-muted flex items-center gap-1"><Calendar className="h-3 w-3" />{d || t('student1.courseDetail.scheduleEmpty')}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted mt-2">{t('student1.courseDetail.noProjectSchedule')}</p>
+                      )}
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-2 pt-2">
+                  <Link href={`/student/kursus/${previewCourse.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full"><BookOpen className="mr-1.5 h-4 w-4" /> Lihat Detail Lengkap</Button>
+                  </Link>
+                  {!enrolledCourseIds.has(previewCourse.id) ? (
+                    <Button className="flex-1" onClick={() => handleEnroll(previewCourse.id)} disabled={enrollingId === previewCourse.id}>
+                      {enrollingId === previewCourse.id ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <BookOpen className="mr-1.5 h-4 w-4" />}
+                      {previewCourse.is_try_class ? t('student1.kursus.claimTrial') : t('student1.kursus.enrollPay')}
+                    </Button>
+                  ) : (
+                    <Link href={`/student/kursus/${previewCourse.id}`} className="flex-1"><Button className="w-full" variant="outline"><CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-500" />{t('student1.kursus.alreadyEnrolled')}</Button></Link>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

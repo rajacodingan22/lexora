@@ -892,39 +892,68 @@ export default function CourseDetailPage() {
                     </div>
                   </div>
                 )}
-                {/* Meetings • Projects • Schedule • Zoom — always visible for every course */}
+                {/* Jadwal Pertemuan (7) & Project — manual admin, tampil Tanggal Bulan Tahun + Nama */}
                 <div className="grid gap-3 pt-2 border-t border-border">
                   <h4 className="font-medium text-on-surface text-sm">{t('student1.courseDetail.classDetailsTitle')}</h4>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                      <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.meetingsTitle')}</p>
-                      <p className="text-sm text-on-surface-variant mt-1">
-                        {course.meeting_count
-                          ? (enrolledBatch as unknown as Record<string,string>)?.zoom_link
-                            ? t('student1.courseDetail.meetingsWithZoomReady', { count: String(course.meeting_count) })
-                            : t('student1.courseDetail.meetingsWithZoomPending', { count: String(course.meeting_count) })
-                          : t('student1.courseDetail.meetingsValue', { count: String(course.meeting_count || 0) })}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                      <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-amber-400" /> {t('student1.courseDetail.projectsTitle')}</p>
-                      <p className="text-sm text-on-surface-variant mt-1">{t('student1.courseDetail.projectsValue', { count: String(course.project_count || 0) })}</p>
-                    </div>
+                  <p className="text-xs text-muted -mt-1">{t('student1.courseDetail.dateFormatHint')}</p>
+                  <div className="rounded-lg border border-border bg-surface-container-low p-3">
+                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.meetingScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{sessions.length || course.meeting_count || 0}</span></p>
+                    {sessions.length > 0 ? (
+                      <div className="mt-2 divide-y divide-border">
+                        {sessions.slice(0, 20).map((s) => {
+                          const d = s.starts_at ? new Date(s.starts_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }) : t('student1.courseDetail.scheduleEmpty')
+                          const link = (s as unknown as { meeting_link?: string }).meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link
+                          return (
+                            <div key={s.id} className="flex items-center justify-between gap-3 py-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-on-surface truncate">{s.title || `Pertemuan`}</p>
+                                <p className="text-xs text-muted flex items-center gap-1"><Calendar className="h-3 w-3" />{d}</p>
+                              </div>
+                              {link ? (
+                                isEnrolled ? (
+                                  <a href={link} target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-cyan-400 hover:underline"><ExternalLink className="h-3 w-3" /> Zoom</a>
+                                ) : (
+                                  <span className="shrink-0 text-xs text-muted flex items-center gap-1"><Link2 className="h-3 w-3" /> Zoom</span>
+                                )
+                              ) : (
+                                <span className="shrink-0 text-xs text-muted">—</span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted mt-2">{t('student1.courseDetail.noMeetingSchedule')}</p>
+                    )}
+                    {!isEnrolled && sessions.length > 0 && <p className="text-[11px] text-muted mt-2">{t('student1.courseDetail.zoomPendingGuest')}</p>}
                   </div>
                   <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.fixedScheduleTitle')}</p>
-                    {courseSchedules.length > 0 ? (
-                      <div className="mt-2 space-y-1.5">
-                        {courseSchedules.map((slot) => (
-                          <div key={slot.id} className="flex items-center gap-2 text-sm text-on-surface-variant">
-                            <span className="font-medium text-on-surface">{DAY_KEYS[slot.day_of_week] ? t(DAY_KEYS[slot.day_of_week]) : `Day ${slot.day_of_week}`}</span>
-                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{slot.start_time}{slot.duration_minutes ? ` • ${t('student1.courseDetail.durationMinutes', { minutes: slot.duration_minutes })}` : ''}</span>
+                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-amber-400" /> {t('student1.courseDetail.projectScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{assignments.length || catalogDetails.projects?.length || course.project_count || 0}</span></p>
+                    {assignments.length > 0 ? (
+                      <div className="mt-2 divide-y divide-border">
+                        {assignments.slice(0, 20).map((a) => {
+                          const d = (a as unknown as { due_date?: string }).due_date ? new Date((a as unknown as { due_date: string }).due_date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }) : null
+                          return (
+                            <div key={a.id} className="flex items-center justify-between gap-3 py-2">
+                              <p className="text-sm font-medium text-on-surface truncate">{(a as unknown as { title?: string }).title || 'Project'}</p>
+                              <span className="shrink-0 text-xs text-muted flex items-center gap-1"><Calendar className="h-3 w-3" />{d || t('student1.courseDetail.scheduleEmpty')}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : catalogDetails.projects && catalogDetails.projects.length > 0 ? (
+                      <div className="mt-2 divide-y divide-border">
+                        {catalogDetails.projects.slice(0, 20).map((p, i) => (
+                          <div key={`cat-proj-${i}`} className="flex items-center justify-between gap-3 py-2">
+                            <p className="text-sm font-medium text-on-surface truncate">{p.title}</p>
+                            <span className="shrink-0 text-xs text-muted">{t('student1.courseDetail.scheduleEmpty')}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted mt-1">{t('student1.courseDetail.scheduleEmpty')} • {t('student1.courseDetail.zoomHint')}</p>
+                      <p className="text-sm text-muted mt-2">{t('student1.courseDetail.noProjectSchedule')}</p>
                     )}
+                    {course.project_count > 0 && <p className="text-[11px] text-muted mt-2">{t('student1.courseDetail.projectsValue', { count: String(course.project_count) })}</p>}
                   </div>
                   <div className="rounded-lg border border-border bg-surface-container-low p-3">
                     <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5 text-cyan-400" /> {t('student1.courseDetail.zoomPerBatchTitle')}</p>
