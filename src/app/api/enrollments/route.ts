@@ -17,8 +17,8 @@ export async function POST(req: Request) {
     })
 
     if (error) {
-      console.error('Enrollment API error:', error)
-      return NextResponse.json({ error: error.message || 'Gagal mendaftar' }, { status: 400 })
+      console.error('Enrollment API error:', JSON.stringify({ message: error.message, code: error.code, hint: error.hint, details: error.details }))
+      return NextResponse.json({ error: error.message || 'Gagal mendaftar', code: error.code, hint: error.hint }, { status: 400 })
     }
 
     const enrollment = result?.enrollment
