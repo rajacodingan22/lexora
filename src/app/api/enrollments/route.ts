@@ -100,11 +100,11 @@ export async function POST(req: Request) {
 
     await supabase.rpc('notify_course_teachers', {
       p_course_id: courseId,
-      p_title: 'New Student Joined — ' + studentName,
-      p_body: `${studentName} just joined "${courseTitle}"${batchName ? ` — ${batchName}` : ''}.`,
+      p_title: `New student joined — ${studentName} in "${courseTitle}"${batchName ? ` — ${batchName}` : ''}`,
+      p_body: `${studentName} just joined "${courseTitle}"${batchName ? ` — ${batchName}` : ''}. Click to open the class.`,
       p_link: `/teacher/kelas?courseId=${courseId}&batchId=${batch?.id || ''}`,
       p_template_key: 'studentJoined',
-      p_params: { student: studentName, course: courseTitle, courseId, batchId: batch?.id || '' },
+      p_params: { student: studentName, course: courseTitle, courseId, batchId: batch?.id || '', batch: batchName || '', batchSuffix: batchName ? ` — ${batchName}` : '' },
     })
 
     await supabase.rpc('notify_admins_for_course', {
