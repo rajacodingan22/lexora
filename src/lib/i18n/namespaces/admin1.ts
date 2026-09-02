@@ -197,9 +197,11 @@ const id: Record<string, string> = {
   'admin1.cms.removePartner': 'Hapus mitra',
   'admin1.cms.partnersSaved': 'Mitra tersimpan',
   'admin1.cms.partnersSaveError': 'Gagal menyimpan mitra',
-  // Dashboard
+  // Dashboard — Admin: authoritative, system overview
+  'admin1.dashboard.greeting': 'Selamat datang, Admin {{name}}! 🛡️',
+  'admin1.dashboard.subtitle': 'Kelola {{users}} pengguna · {{courses}} kursus · {{batches}} batch aktif',
   'admin1.dashboard.title': 'Dasbor Admin',
-  'admin1.dashboard.subtitle': 'Ringkasan dan manajemen platform',
+  'admin1.dashboard.subtitleFallback': 'Ringkasan dan manajemen platform',
   'admin1.dashboard.statStudents': 'Total Siswa',
   'admin1.dashboard.statTeachers': 'Total Guru',
   'admin1.dashboard.statActiveCourses': 'Kursus Aktif',
@@ -723,8 +725,10 @@ const en: Record<string, string> = {
   'admin1.cms.partnersSaved': 'Partners saved',
   'admin1.cms.partnersSaveError': 'Failed to save partners',
   // Dashboard
+  'admin1.dashboard.greeting': 'Welcome, Admin {{name}}! 🛡️',
+  'admin1.dashboard.subtitle': 'Manage {{users}} users · {{courses}} courses · {{batches}} active batches',
   'admin1.dashboard.title': 'Admin Dashboard',
-  'admin1.dashboard.subtitle': 'Platform overview and management',
+  'admin1.dashboard.subtitleFallback': 'Platform overview and management',
   'admin1.dashboard.statStudents': 'Total Students',
   'admin1.dashboard.statTeachers': 'Total Teachers',
   'admin1.dashboard.statActiveCourses': 'Active Courses',
@@ -1248,8 +1252,10 @@ const zh: Record<string, string> = {
   'admin1.cms.partnersSaved': '合作伙伴已保存',
   'admin1.cms.partnersSaveError': '保存合作伙伴失败',
   // 仪表盘
+  'admin1.dashboard.greeting': '欢迎，管理员 {{name}}！🛡️',
+  'admin1.dashboard.subtitle': '管理 {{users}} 名用户 · {{courses}} 门课程 · {{batches}} 个活跃批次',
   'admin1.dashboard.title': '管理仪表盘',
-  'admin1.dashboard.subtitle': '平台概览与管理',
+  'admin1.dashboard.subtitleFallback': '平台概览与管理',
   'admin1.dashboard.statStudents': '学生总数',
   'admin1.dashboard.statTeachers': '教师总数',
   'admin1.dashboard.statActiveCourses': '在开课程',

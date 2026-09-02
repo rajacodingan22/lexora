@@ -201,27 +201,28 @@ export default function TeacherDashboard() {
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
-      {/* Hero Header */}
+      {/* Hero Header — Teacher: emerald/teal distinct from student indigo */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900/60 via-purple-900/40 to-slate-900/80 border border-indigo-500/20 p-6 sm:p-8">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900/60 via-teal-900/40 to-slate-900/80 border border-emerald-500/20 p-6 sm:p-8">
           <div className="absolute inset-0 bg-[url('/dots.svg')] opacity-20" />
-          <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
-          <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-purple-500/20 blur-3xl" />
+          <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-emerald-500/20 blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-teal-500/20 blur-3xl" />
           <div className="relative">
             <div className="flex items-start justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
                 {user?.photo_url ? (
                   <img src={user.photo_url} alt="" className="h-14 w-14 rounded-full object-cover ring-2 ring-white/20 shadow-lg shadow-indigo-500/20" />
                 ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 text-lg font-bold text-white shadow-lg shadow-indigo-500/20">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-lg font-bold text-white shadow-lg shadow-emerald-500/20">
                     {(user?.display_name || 'G')[0].toUpperCase()}
                   </div>
                 )}
                 <div>
-                  <h1 className="text-2xl font-bold text-white">
+                  <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <span className="hidden sm:inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/15 text-xs">👩‍🏫</span>
                     {t('teacher1.dashboard.greeting', { name: user?.display_name || t('teacher1.dashboard.teacher') })}
                   </h1>
-                  <p className="mt-1 text-white/70 text-sm">{t('teacher1.dashboard.subtitle')}</p>
+                  <p className="mt-1 text-white/70 text-sm">{t('teacher1.dashboard.subtitle', { students: String(totalStudents), classes: String(courses.length), pending: String(pendingSubmissions.length) })}</p>
                 </div>
               </div>
               <Link href="/teacher/kelas">

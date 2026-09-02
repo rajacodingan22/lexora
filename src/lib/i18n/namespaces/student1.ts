@@ -1,9 +1,10 @@
 ﻿import type { Lang } from '../config'
 
 const id: Record<string, string> = {
-  // Dashboard
-  'student1.dashboard.welcome': 'Selamat datang, {{name}}!',
-  'student1.dashboard.welcomeSubtitle': 'Lanjutkan perjalanan belajarmu',
+  // Dashboard — Student: warm, learning journey
+  'student1.dashboard.welcome': 'Selamat belajar, {{name}}! 🚀',
+  'student1.dashboard.welcomeSubtitle': 'Petualangan bahasa barumu menanti — {{count}} kelas aktif',
+  'student1.dashboard.welcomeSubtitleFallback': 'Lanjutkan perjalanan belajarmu',
   'student1.dashboard.placementTest': 'Placement Test',
   'student1.dashboard.statActiveCourses': 'Kursus Aktif',
   'student1.dashboard.statAvgProgress': 'Progres Rata-rata',
@@ -409,8 +410,9 @@ const id: Record<string, string> = {
 
 const en: Record<string, string> = {
   // Dashboard
-  'student1.dashboard.welcome': 'Welcome back, {{name}}!',
-  'student1.dashboard.welcomeSubtitle': 'Continue your learning journey',
+  'student1.dashboard.welcome': 'Keep learning, {{name}}! 🚀',
+  'student1.dashboard.welcomeSubtitle': 'Your language adventure awaits — {{count}} active classes',
+  'student1.dashboard.welcomeSubtitleFallback': 'Continue your learning journey',
   'student1.dashboard.placementTest': 'Placement Test',
   'student1.dashboard.statActiveCourses': 'Active Courses',
   'student1.dashboard.statAvgProgress': 'Average Progress',
@@ -816,8 +818,9 @@ const en: Record<string, string> = {
 
 const zh: Record<string, string> = {
   // Dashboard
-  'student1.dashboard.welcome': '欢迎回来，{{name}}！',
-  'student1.dashboard.welcomeSubtitle': '继续你的学习之旅',
+  'student1.dashboard.welcome': '继续学习，{{name}}！🚀',
+  'student1.dashboard.welcomeSubtitle': '你的语言冒险在等你 — {{count}} 门活跃课程',
+  'student1.dashboard.welcomeSubtitleFallback': '继续你的学习之旅',
   'student1.dashboard.placementTest': '水平测试',
   'student1.dashboard.statActiveCourses': '在学课程',
   'student1.dashboard.statAvgProgress': '平均进度',

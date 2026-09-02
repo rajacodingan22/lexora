@@ -18,7 +18,7 @@ interface RoleCounts {
 }
 
 export default function AdminDashboard() {
-  const { loading: authLoading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const { t } = useI18n()
   const supabase = createClient()
 
@@ -100,9 +100,32 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Hero — Admin: slate/amber distinct from student indigo & teacher emerald */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/80 via-amber-900/30 to-slate-900/80 border border-amber-500/20 p-6 sm:p-8">
+        <div className="absolute inset-0 bg-[url('/dots.svg')] opacity-10" />
+        <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-amber-500/15 blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-orange-500/15 blur-3xl" />
+        <div className="relative flex items-start justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-lg font-bold text-white shadow-lg shadow-amber-500/20">
+              🛡️
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                {t('admin1.dashboard.greeting', { name: (user as any)?.display_name || (user as any)?.email?.split('@')[0] || 'Admin' })}
+              </h1>
+              <p className="mt-1 text-white/70 text-sm">{t('admin1.dashboard.subtitle', { users: String(roleCounts.total), courses: String(courseCount), batches: String(activeBatchCount) })}</p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 text-xs text-white/60">
+            <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/15">{roleCounts.student} Siswa</span>
+            <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/15">{roleCounts.teacher} Guru</span>
+          </div>
+        </div>
+      </div>
       <div>
-        <h1 className="text-2xl font-bold text-on-surface">{t('admin1.dashboard.title')}</h1>
-        <p className="text-on-surface-variant">{t('admin1.dashboard.subtitle')}</p>
+        <h2 className="text-lg font-semibold text-on-surface">{t('admin1.dashboard.title')}</h2>
+        <p className="text-sm text-on-surface-variant">{t('admin1.dashboard.subtitleFallback')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
