@@ -43,6 +43,12 @@ export default function TeacherMeetingsPage() {
 
   const [meetings, setMeetings] = useState<LiveSessionWithCourse[]>([])
   const [courses, setCourses] = useState<Course[]>([])
+  const [batches, setBatches] = useState<{ id: string; course_id: string; name: string; start_date: string | null; end_date: string | null }[]>([])
+  const [showBulk, setShowBulk] = useState(false)
+  const [bulk, setBulk] = useState({ course_id: '', batch_id: '', start_date: '', start_time: '19:00', count: 7, interval_days: 7, duration_minutes: 60 })
+  const [bulkSaving, setBulkSaving] = useState(false)
+  const [bulkError, setBulkError] = useState('')
+  const [bulkDone, setBulkDone] = useState(0)
   const [attendanceMap, setAttendanceMap] = useState<Record<string, { count: number; records: AttendanceWithUser[] }>>({})
   const [loading, setLoading] = useState(true)
   const [levelMap, setLevelMap] = useState<Record<string, LanguageLevel>>({})
@@ -151,6 +157,13 @@ export default function TeacherMeetingsPage() {
         .in('course_id', courseIds)
       setSchedules((schedData || []) as any[])
       setScheduleCourseId(prev => prev || teacherCourses[0]?.id || '')
+
+      const { data: batchesData } = await supabase
+        .from('batches')
+        .select('id, course_id, name, start_date, end_date')
+        .in('course_id', courseIds)
+        .order('start_date', { ascending: true })
+      setBatches((batchesData || []) as any[])
 
       const { data: meetingsData } = await supabase
         .from('live_sessions')
@@ -276,6 +289,61 @@ export default function TeacherMeetingsPage() {
   async function handleCancel(meetingId: string) {
     await supabase.from('live_sessions').update({ status: 'cancelled' }).eq('id', meetingId)
     fetchData()
+  }
+
+  function openBulkModal() {
+    const courseId = courses[0]?.id || ''
+    const courseBatches = batches.filter(b => b.course_id === courseId)
+    const course = courses.find(c => c.id === courseId) as any
+    const today = new Date()
+    const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+    setBulk({
+      course_id: courseId,
+      batch_id: courseBatches[0]?.id || '',
+      start_date: courseBatches[0]?.start_date ? String(courseBatches[0].start_date).slice(0, 10) : localDate,
+      start_time: '19:00',
+      count: Number(course?.meeting_count) || 7,
+      interval_days: 7,
+      duration_minutes: 60,
+    })
+    setBulkError('')
+    setBulkDone(0)
+    setShowBulk(true)
+  }
+
+  async function handleBulkGenerate() {
+    if (!bulk.course_id || bulk.count < 1 || bulk.count > 60 || !bulk.start_date) return
+    setBulkSaving(true)
+    setBulkError('')
+    setBulkDone(0)
+    try {
+      const rows = []
+      for (let i = 0; i < bulk.count; i++) {
+        const d = new Date(`${bulk.start_date}T${bulk.start_time || '19:00'}:00`)
+        d.setDate(d.getDate() + i * (bulk.interval_days || 7))
+        rows.push({
+          course_id: bulk.course_id,
+          batch_id: bulk.batch_id || null,
+          teacher_id: teacherId,
+          title: `Pertemuan ${i + 1}`,
+          starts_at: d.toISOString(),
+          duration_minutes: bulk.duration_minutes || 60,
+          provider: 'Zoom',
+          meeting_link: null,
+          description: null,
+          status: 'scheduled' as const,
+        })
+      }
+      const { error } = await supabase.from('live_sessions').insert(rows)
+      if (error) throw error
+      setBulkDone(rows.length)
+      setShowBulk(false)
+      fetchData()
+    } catch (err: any) {
+      setBulkError(err?.message || t('teacher2.pertemuan.bulkError'))
+    } finally {
+      setBulkSaving(false)
+    }
   }
 
   async function openAttendanceMarking(meeting: LiveSessionWithCourse) {
@@ -434,6 +502,18 @@ export default function TeacherMeetingsPage() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {courses.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={openCreateModal}>
+            <Plus className="mr-1 h-4 w-4" /> {t('teacher2.pertemuan.createNewBtn')}
+          </Button>
+          <Button size="sm" variant="outline" onClick={openBulkModal}>
+            <Calendar className="mr-1 h-4 w-4" /> {t('teacher2.pertemuan.bulkBtn')}
+          </Button>
+          <span className="text-xs text-muted">{t('teacher2.pertemuan.bulkHint')}</span>
+        </div>
       )}
 
       {courses.length === 0 ? (
@@ -651,6 +731,102 @@ export default function TeacherMeetingsPage() {
               <Button variant="secondary" onClick={() => setShowModal(false)}>{t('teacher2.pertemuan.cancel')}</Button>
               <Button variant="default" onClick={handleSave} disabled={saving}>
                 {saving ? t('teacher2.pertemuan.saving') : (editingMeeting ? t('teacher2.pertemuan.updateBtn') : t('teacher2.pertemuan.createBtn'))}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Bulk Generate Modal ═══ */}
+      {showBulk && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-on-surface">
+                {t('teacher2.pertemuan.bulkTitle')}
+              </h2>
+              <button onClick={() => setShowBulk(false)} className="text-muted hover:text-on-surface">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>{t('teacher2.pertemuan.courseLabel')}</Label>
+                <select
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  value={bulk.course_id}
+                  onChange={(e) => {
+                    const cid = e.target.value
+                    const cb = batches.filter(b => b.course_id === cid)
+                    const course = courses.find(c => c.id === cid) as any
+                    setBulk(prev => ({
+                      ...prev,
+                      course_id: cid,
+                      batch_id: cb[0]?.id || '',
+                      start_date: cb[0]?.start_date ? String(cb[0].start_date).slice(0, 10) : prev.start_date,
+                      count: Number(course?.meeting_count) || prev.count,
+                    }))
+                  }}
+                >
+                  <option value="">{t('teacher2.pertemuan.coursePlaceholder')}</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>{getCourseLabel(c)}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>{t('teacher2.pertemuan.bulkBatch')}</Label>
+                <select
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  value={bulk.batch_id}
+                  onChange={(e) => setBulk({ ...bulk, batch_id: e.target.value })}
+                >
+                  <option value="">{t('teacher2.pertemuan.bulkNoBatch')}</option>
+                  {batches.filter(b => !bulk.course_id || b.course_id === bulk.course_id).map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>{t('teacher2.pertemuan.bulkStartDate')}</Label>
+                  <Input type="date" value={bulk.start_date} onChange={(e) => setBulk({ ...bulk, start_date: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('teacher2.pertemuan.bulkStartTime')}</Label>
+                  <Input type="time" value={bulk.start_time} onChange={(e) => setBulk({ ...bulk, start_time: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label>{t('teacher2.pertemuan.bulkCount')}</Label>
+                  <Input type="number" min={1} max={60} value={String(bulk.count)} onChange={(e) => setBulk({ ...bulk, count: parseInt(e.target.value) || 1 })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('teacher2.pertemuan.bulkInterval')}</Label>
+                  <Input type="number" min={1} max={30} value={String(bulk.interval_days)} onChange={(e) => setBulk({ ...bulk, interval_days: parseInt(e.target.value) || 7 })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t('teacher2.pertemuan.durationLabel')}</Label>
+                  <Input type="number" min={15} value={String(bulk.duration_minutes)} onChange={(e) => setBulk({ ...bulk, duration_minutes: parseInt(e.target.value) || 60 })} />
+                </div>
+              </div>
+
+              <p className="text-xs text-muted">{t('teacher2.pertemuan.bulkNote')}</p>
+            </div>
+
+            {bulkError && (
+              <p className="mt-3 text-sm font-medium text-red-400">{bulkError}</p>
+            )}
+
+            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border">
+              <Button variant="secondary" onClick={() => setShowBulk(false)}>{t('teacher2.pertemuan.cancel')}</Button>
+              <Button variant="default" onClick={handleBulkGenerate} disabled={bulkSaving || !bulk.course_id || !bulk.start_date}>
+                {bulkSaving ? t('teacher2.pertemuan.saving') : t('teacher2.pertemuan.bulkGenerate', { count: bulk.count })}
               </Button>
             </div>
           </div>

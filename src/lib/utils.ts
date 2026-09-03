@@ -132,6 +132,40 @@ export function getMeetingPhase(
   return 'past'
 }
 
+export interface BatchRange {
+  id?: string | null
+  start_date?: string | null
+  end_date?: string | null
+}
+
+/**
+ * Batch-specific session filter: jumlah link Zoom ngikutin jumlah pertemuan di batch.
+ * Urutan: 1) batch_id eksplisit (robust, anti-overlap), 2) range start_date..end_date
+ * (legacy rows yang batch_id-nya null), 3) semua sesi (preview / fallback).
+ */
+export function filterSessionsByBatch<T extends MeetingTimeWindow & { batch_id?: string | null }>(
+  sessions: T[],
+  batch: BatchRange | null | undefined,
+  isEnrolled: boolean
+): T[] {
+  if (!isEnrolled || !batch?.id) return sessions
+  const byBatch = sessions.filter(s => s.batch_id === batch.id)
+  if (byBatch.length > 0) return byBatch
+  if (!batch?.start_date) return sessions
+  const start = new Date(batch.start_date).getTime()
+  const end = batch.end_date ? new Date(batch.end_date).getTime() : null
+  if (Number.isNaN(start)) return sessions
+  const filtered = sessions.filter(s => {
+    if (!s.starts_at) return false
+    const d = new Date(s.starts_at).getTime()
+    if (Number.isNaN(d)) return false
+    if (d < start) return false
+    if (end !== null && !Number.isNaN(end) && d > end) return false
+    return true
+  })
+  return filtered.length > 0 ? filtered : sessions
+}
+
 /** Returns minutes until the meeting link opens (5 min before start). Returns 0 if already open. */
 export function minutesUntilJoinable(
   meeting: MeetingTimeWindow,

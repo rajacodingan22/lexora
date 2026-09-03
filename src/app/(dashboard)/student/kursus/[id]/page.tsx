@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n/client'
-import { formatDate, formatDateOnly, filterByTeacher, isMeetingLinkOpen, getMeetingPhase, minutesUntilJoinable } from '@/lib/utils'
+import { formatDate, formatDateOnly, filterByTeacher, filterSessionsByBatch, isMeetingLinkOpen, getMeetingPhase, minutesUntilJoinable } from '@/lib/utils'
 import { Flag } from '@/components/ui/flag'
 import {
   Play, Video, Calendar, Download, FileText, Clock, CheckCircle,
@@ -637,22 +637,7 @@ export default function CourseDetailPage() {
   const isEnrolled = !!enrollment
   const isPendingPayment = !!enrollment && enrollment.status === 'pending'
   // Batch-specific zoom: jumlah link Zoom ngikutin jumlah pertemuan di batch ini.
-  // live_sessions itu course-level, jadi filter by range batch (start_date..end_date).
-  // Kalau batch belum punya sesi di range tsb, fallback ke semua sesi (preview).
-  const batchSessions = (() => {
-    if (!isEnrolled || !enrolledBatch?.start_date) return sessions
-    const start = new Date(enrolledBatch.start_date).getTime()
-    const end = enrolledBatch.end_date ? new Date(enrolledBatch.end_date).getTime() : null
-    const filtered = sessions.filter(s => {
-      if (!s.starts_at) return false
-      const d = new Date(s.starts_at).getTime()
-      if (Number.isNaN(d)) return false
-      if (d < start) return false
-      if (end !== null && d > end) return false
-      return true
-    })
-    return filtered.length > 0 ? filtered : sessions
-  })()
+  const batchSessions = filterSessionsByBatch(sessions, enrolledBatch, isEnrolled)
 
   const now = new Date()
   const upcomingSessions = batchSessions.filter(s => getMeetingPhase(s, now) === 'upcoming' || getMeetingPhase(s, now) === 'ongoing')
@@ -769,7 +754,7 @@ export default function CourseDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          {isEnrolled && upcomingSessions.length > 0 && isMeetingLinkOpen(upcomingSessions[0]) && ((upcomingSessions[0].meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link) ? <Button onClick={() => window.open(upcomingSessions[0].meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link || '#', '_blank')}>
+          {isEnrolled && upcomingSessions.length > 0 && isMeetingLinkOpen(upcomingSessions[0]) && (upcomingSessions[0].meeting_link ? <Button onClick={() => window.open(upcomingSessions[0].meeting_link || '#', '_blank')}>
               <Video className="mr-1 h-4 w-4" /> {t('student1.courseDetail.joinLive')}
 
             </Button> : null)}
@@ -1027,11 +1012,11 @@ export default function CourseDetailPage() {
                             {sPhase === 'ongoing' ? 'Berlangsung' : 'Scheduled'}
                           </Badge>
                         </div>
-                        {isEnrolled && (s.meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link) && isMeetingLinkOpen(s) && (
+                        {isEnrolled && s.meeting_link && isMeetingLinkOpen(s) && (
                           <Button
                             size="sm"
                             className="mt-2 w-full"
-                            onClick={() => window.open(s.meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link || '#', '_blank')}
+                            onClick={() => window.open(s.meeting_link || '#', '_blank')}
                           >
                             <Video className="mr-1 h-3 w-3" /> Join
                           </Button>

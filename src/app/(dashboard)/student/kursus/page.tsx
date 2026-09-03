@@ -938,7 +938,7 @@ function StudentCoursesContent() {
                       {previewSessions.length > 0 ? (
                         <div className="mt-2 divide-y divide-border">
                           {previewSessions.map(s => {
-                            const d = s.starts_at ? new Date(s.starts_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : t('student1.courseDetail.scheduleEmpty')
+                            const d = s.starts_at ? new Date(s.starts_at).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) : t('student1.courseDetail.scheduleEmpty')
                             const isPreviewEnrolled = enrolledCourseIds.has(previewCourse.id)
                             const joinable = isPreviewEnrolled && !!(s as any).starts_at && isMeetingLinkOpen({ starts_at: (s as any).starts_at, duration_minutes: 60, status: 'scheduled' } as any)
                             const mins = !joinable && (s as any).starts_at ? minutesUntilJoinable({ starts_at: (s as any).starts_at, duration_minutes: 60 } as any) : 0
@@ -967,7 +967,7 @@ function StudentCoursesContent() {
                       {previewProjects.length > 0 ? (
                         <div className="mt-2 divide-y divide-border">
                           {previewProjects.map(p => {
-                            const d = (p as any).due_date ? new Date((p as any).due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null
+                            const d = (p as any).due_date ? new Date((p as any).due_date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) : null
                             return (
                               <div key={p.id} className="flex items-center justify-between gap-3 py-2">
                                 <p className="text-sm font-medium text-on-surface truncate">{p.title}</p>

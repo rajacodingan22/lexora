@@ -155,6 +155,7 @@ export interface PlacementResult {
 export interface LiveSession {
   id: string
   course_id: string
+  batch_id: string | null
   teacher_id: string | null
   title: string
   description: string | null

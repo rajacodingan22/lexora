@@ -113,7 +113,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <AIChatbot />
       </Suspense>
 
-      {(role === 'student' || role === 'teacher') && (
+      {(role === 'student' || role === 'teacher' || role === 'admin') && (
         <Suspense fallback={null}>
           <SessionReminder role={role} />
         </Suspense>
