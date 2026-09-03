@@ -510,8 +510,9 @@ export default function AdminBatchPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>{t('admin1.batch.zoomLinkLabel') || 'Link Zoom'}</Label>
+                <Label>{t('admin1.batch.zoomLinkLabel') || 'Link Zoom (Batch — fallback)'}</Label>
                 <Input value={form.zoom_link} onChange={e => setForm({ ...form, zoom_link: e.target.value })} placeholder="https://zoom.us/j/..." />
+                <p className="text-[11px] text-muted">Zoom utama sekarang per sesi — atur 1 link untuk tiap pertemuan di <span className="text-primary">Jadwal / Pertemuan</span>. Link batch di sini hanya fallback jika sesi belum punya link.</p>
               </div>
               {editingBatch && (
                 <div className="space-y-1.5">

@@ -902,7 +902,7 @@ export default function CourseDetailPage() {
                       <div className="mt-2 divide-y divide-border">
                         {sessions.slice(0, 20).map((s) => {
                           const d = s.starts_at ? new Date(s.starts_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }) : t('student1.courseDetail.scheduleEmpty')
-                          const link = (s as unknown as { meeting_link?: string }).meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link
+                          const link = (s as unknown as { meeting_link?: string }).meeting_link
                           const joinable = isEnrolled && !!link && isMeetingLinkOpen(s as any)
                           const mins = !joinable && (s as any).starts_at ? minutesUntilJoinable(s as any) : 0
                           return (
@@ -929,7 +929,6 @@ export default function CourseDetailPage() {
                     ) : (
                       <p className="text-sm text-muted mt-2">{t('student1.courseDetail.noMeetingSchedule')}</p>
                     )}
-                    {!isEnrolled && sessions.length > 0 && <p className="text-[11px] text-muted mt-2">{t('student1.courseDetail.zoomPendingGuest')}</p>}
                   </div>
                   <div className="rounded-lg border border-border bg-surface-container-low p-3">
                     <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-amber-400" /> {t('student1.courseDetail.projectScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{assignments.length || catalogDetails.projects?.length || course.project_count || 0}</span></p>
@@ -959,27 +958,7 @@ export default function CourseDetailPage() {
                     )}
                     {course.project_count > 0 && <p className="text-[11px] text-muted mt-2">{t('student1.courseDetail.projectsValue', { count: String(course.project_count) })}</p>}
                   </div>
-                  <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5 text-cyan-400" /> {t('student1.courseDetail.zoomPerBatchTitle')}</p>
-                    {(() => {
-                      const link = (enrolledBatch as unknown as Record<string,string>)?.zoom_link
-                      if (!isEnrolled || !link) return <p className="text-sm text-muted mt-1">{isEnrolled ? t('student1.courseDetail.zoomPendingEnrolled') : t('student1.courseDetail.zoomPendingGuest')}</p>
-                      // Batch zoom appears only when batch time arrives or within 5 min before start (like live_sessions)
-                      const batchStart = (enrolledBatch as unknown as { start_date?: string })?.start_date
-                      const batchEnd = (enrolledBatch as unknown as { end_date?: string })?.end_date
-                      const duration = batchStart && batchEnd ? Math.max(60, Math.round((new Date(batchEnd).getTime() - new Date(batchStart).getTime())/60000)) : 60
-                      const win: any = { starts_at: batchStart || null, duration_minutes: duration, status: (enrolledBatch as unknown as { status?: string })?.status }
-                      const joinable = isMeetingLinkOpen(win)
-                      const mins = minutesUntilJoinable(win)
-                      if (joinable) {
-                        return <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-400 hover:underline break-all mt-1 inline-flex items-center gap-1">{link} <ExternalLink className="h-3 w-3 shrink-0" /></a>
-                      }
-                      if (mins > 0) {
-                        return <p className="text-sm text-amber-400 mt-1 flex items-center gap-1"><Clock className="h-3 w-3" /> Akan tersedia dalam {mins} menit — mendekati waktu mulai</p>
-                      }
-                      return <p className="text-sm text-muted mt-1 flex items-center gap-1"><Clock className="h-3 w-3" /> Belum waktunya — link akan muncul saat mendekati jadwal</p>
-                    })()}
-                  </div>
+
                 </div>
               </CardContent>
             </Card>
