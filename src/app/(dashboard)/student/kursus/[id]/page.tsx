@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n/client'
-import { formatDate, formatDateOnly, filterByTeacher, isMeetingLinkOpen, getMeetingPhase } from '@/lib/utils'
+import { formatDate, formatDateOnly, filterByTeacher, isMeetingLinkOpen, getMeetingPhase, minutesUntilJoinable } from '@/lib/utils'
 import { Flag } from '@/components/ui/flag'
 import {
   Play, Video, Calendar, Download, FileText, Clock, CheckCircle,
@@ -903,6 +903,8 @@ export default function CourseDetailPage() {
                         {sessions.slice(0, 20).map((s) => {
                           const d = s.starts_at ? new Date(s.starts_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }) : t('student1.courseDetail.scheduleEmpty')
                           const link = (s as unknown as { meeting_link?: string }).meeting_link || (enrolledBatch as unknown as Record<string,string>)?.zoom_link
+                          const joinable = isEnrolled && !!link && isMeetingLinkOpen(s as any)
+                          const mins = !joinable && (s as any).starts_at ? minutesUntilJoinable(s as any) : 0
                           return (
                             <div key={s.id} className="flex items-center justify-between gap-3 py-2">
                               <div className="min-w-0">
@@ -910,8 +912,10 @@ export default function CourseDetailPage() {
                                 <p className="text-xs text-muted flex items-center gap-1"><Calendar className="h-3 w-3" />{d}</p>
                               </div>
                               {link ? (
-                                isEnrolled ? (
-                                  <a href={link} target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-cyan-400 hover:underline"><ExternalLink className="h-3 w-3" /> Zoom</a>
+                                joinable ? (
+                                  <a href={link} target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:underline"><ExternalLink className="h-3 w-3" /> Zoom</a>
+                                ) : isEnrolled ? (
+                                  <span className="shrink-0 inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="h-3 w-3" />{mins > 0 ? `${mins}m lagi` : 'Belum waktunya'}</span>
                                 ) : (
                                   <span className="shrink-0 text-xs text-muted flex items-center gap-1"><Link2 className="h-3 w-3" /> Zoom</span>
                                 )
@@ -957,13 +961,24 @@ export default function CourseDetailPage() {
                   </div>
                   <div className="rounded-lg border border-border bg-surface-container-low p-3">
                     <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5 text-cyan-400" /> {t('student1.courseDetail.zoomPerBatchTitle')}</p>
-                    {isEnrolled && (enrolledBatch as unknown as Record<string,string>)?.zoom_link ? (
-                      <a href={(enrolledBatch as unknown as Record<string,string>).zoom_link} target="_blank" rel="noopener noreferrer" className="text-sm text-cyan-400 hover:underline break-all mt-1 inline-flex items-center gap-1">
-                        {(enrolledBatch as unknown as Record<string,string>).zoom_link} <ExternalLink className="h-3 w-3 shrink-0" />
-                      </a>
-                    ) : (
-                      <p className="text-sm text-muted mt-1">{isEnrolled ? t('student1.courseDetail.zoomPendingEnrolled') : t('student1.courseDetail.zoomPendingGuest')}</p>
-                    )}
+                    {(() => {
+                      const link = (enrolledBatch as unknown as Record<string,string>)?.zoom_link
+                      if (!isEnrolled || !link) return <p className="text-sm text-muted mt-1">{isEnrolled ? t('student1.courseDetail.zoomPendingEnrolled') : t('student1.courseDetail.zoomPendingGuest')}</p>
+                      // Batch zoom appears only when batch time arrives or within 5 min before start (like live_sessions)
+                      const batchStart = (enrolledBatch as unknown as { start_date?: string })?.start_date
+                      const batchEnd = (enrolledBatch as unknown as { end_date?: string })?.end_date
+                      const duration = batchStart && batchEnd ? Math.max(60, Math.round((new Date(batchEnd).getTime() - new Date(batchStart).getTime())/60000)) : 60
+                      const win: any = { starts_at: batchStart || null, duration_minutes: duration, status: (enrolledBatch as unknown as { status?: string })?.status }
+                      const joinable = isMeetingLinkOpen(win)
+                      const mins = minutesUntilJoinable(win)
+                      if (joinable) {
+                        return <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-400 hover:underline break-all mt-1 inline-flex items-center gap-1">{link} <ExternalLink className="h-3 w-3 shrink-0" /></a>
+                      }
+                      if (mins > 0) {
+                        return <p className="text-sm text-amber-400 mt-1 flex items-center gap-1"><Clock className="h-3 w-3" /> Akan tersedia dalam {mins} menit — mendekati waktu mulai</p>
+                      }
+                      return <p className="text-sm text-muted mt-1 flex items-center gap-1"><Clock className="h-3 w-3" /> Belum waktunya — link akan muncul saat mendekati jadwal</p>
+                    })()}
                   </div>
                 </div>
               </CardContent>

@@ -11,10 +11,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { LiveSession } from '@/types'
 
 interface Props {
-  role: 'student' | 'teacher'
+  role: 'student' | 'teacher' | 'admin'
 }
 
-function getWelcomeBackMessage(lastLogin: string | null, lang: string): string | null {
+function getWelcomeBackMessage(lastLogin: string | null, lang: string, role: 'student' | 'teacher' | 'admin'): string | null {
   if (!lastLogin) return null
   const now = Date.now()
   const last = new Date(lastLogin).getTime()
@@ -22,14 +22,60 @@ function getWelcomeBackMessage(lastLogin: string | null, lang: string): string |
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
+  // Role-specific nuances: student = belajar, teacher = mengajar, admin = kelola
+  const roleHints: Record<string, { id: string[]; en: string[] }> = {
+    student: {
+      id: ['belajar', 'kelas', 'materi'],
+      en: ['learning', 'class', 'materials'],
+    },
+    teacher: {
+      id: ['mengajar', 'kelas', 'siswa'],
+      en: ['teaching', 'class', 'students'],
+    },
+    admin: {
+      id: ['kelola', 'platform', 'sistem'],
+      en: ['manage', 'platform', 'system'],
+    },
+  }
+
   if (lang === 'id') {
-    if (diffHours < 1) return 'Selamat datang kembali! ⚡ Kamu baru saja pergi sebentar.'
+    if (role === 'teacher') {
+      if (diffHours < 1) return 'Selamat datang kembali, Guru! ⚡ Siap mengajar?'
+      if (diffHours < 24) return `Halo, Guru! 👩‍🏫 Sudah ${diffHours} jam sejak terakhir mengajar. Siswa menanti bimbinganmu! 💪`
+      if (diffDays === 1) return 'Selamat pagi/siang/sore, Guru! ☀️ Kelas-kelasmu menanti. Yuk siap mengajar! 🚀'
+      if (diffDays <= 7) return `Wah, sudah ${diffDays} hari, Guru! 🔥 Siswa-siswamu kangen. Siap lanjut mengajar? 💪✨`
+      return `Lama tak jumpa, Guru! 😄 Sudah ${diffDays} hari. Mari kembali menginspirasi siswa! 🔥`
+    }
+    if (role === 'admin') {
+      if (diffHours < 1) return 'Selamat datang kembali, Admin! 🛡️ Sistem siap dikelola.'
+      if (diffHours < 24) return `Halo, Admin! 🛡️ Sudah ${diffHours} jam. Platform menanti pengelolaanmu!`
+      if (diffDays === 1) return 'Halo, Admin! ☀️ Sudah sehari. Yuk cek kursus & batch hari ini!'
+      if (diffDays <= 7) return `Sudah ${diffDays} hari, Admin! 🔧 Ekosistem Lexora menanti!`
+      return `Lama tak jumpa, Admin! 😄 Sudah ${diffDays} hari. Saatnya kelola platform!`
+    }
+    // student default
+    if (diffHours < 1) return 'Selamat datang kembali! ⚡ Kamu baru saja pergi sebentar. Yuk lanjut belajar!'
     if (diffHours < 24) return `Hore, kamu balik lagi! 🎉 Sudah ${diffHours} jam nih sejak terakhir kali. Semangat belajar ya! 💪`
     if (diffDays === 1) return 'Selamat pagi/siang/sore! ☀️ Kangen kamu nih! Sudah sehari belum login. Yuk lanjut belajar! 🚀'
     if (diffDays <= 7) return `Wah, sudah ${diffDays} hari! 🔥 Senang kamu balik! Jangan khawatir, kita mulai dari mana aja. Semangat! 💪✨`
     return `Lama sekali tidak ketemu! 😄 Sudah ${diffDays} hari nih. Tapi nggak apa-apa, mulai sekarang aja ya! Kamu pasti bisa! 🔥`
   }
-  // English fallback
+  // English
+  if (role === 'teacher') {
+    if (diffHours < 1) return 'Welcome back, Teacher! ⚡ Ready to teach?'
+    if (diffHours < 24) return `Great to see you, Teacher! 👩‍🏫 It's been ${diffHours} hours. Your students are waiting! 💪`
+    if (diffDays === 1) return 'Good day, Teacher! ☀️ Your classes await. Ready to teach? 🚀'
+    if (diffDays <= 7) return `It's been ${diffDays} days, Teacher! 🔥 Your students miss you. Ready to inspire? 💪✨`
+    return `Long time no see, Teacher! 😄 It's been ${diffDays} days. Let's inspire again! 🔥`
+  }
+  if (role === 'admin') {
+    if (diffHours < 1) return 'Welcome back, Admin! 🛡️ System ready.'
+    if (diffHours < 24) return `Hello, Admin! 🛡️ It's been ${diffHours} hours. Platform awaits!`
+    if (diffDays === 1) return 'Hello, Admin! ☀️ A day has passed. Time to check courses & batches!'
+    if (diffDays <= 7) return `It's been ${diffDays} days, Admin! 🔧 Lexora ecosystem awaits!`
+    return `Long time no see, Admin! 😄 It's been ${diffDays} days. Time to manage!`
+  }
+  // student en
   if (diffHours < 1) return 'Welcome back! ⚡ You just stepped away for a moment.'
   if (diffHours < 24) return `Great to see you again! 🎉 It's been ${diffHours} hours. Let's keep the momentum going! 💪`
   if (diffDays === 1) return 'Good day! ☀️ We missed you! It\'s been a day. Ready to continue learning? 🚀'
@@ -118,19 +164,19 @@ export function SessionReminder({ role }: Props) {
     } catch {}
   }, [user, role, supabase, dismissed])
 
-  // Check welcome back on first load
+  // Check welcome back on first load — role-specific (red toast is the welcoming)
   useEffect(() => {
     if (!user) return
     const lastLoginKey = `last_login_${user.id}`
     const lastLogin = localStorage.getItem(lastLoginKey)
-    const msg = getWelcomeBackMessage(lastLogin, lang)
+    const msg = getWelcomeBackMessage(lastLogin, lang, role)
     if (msg) {
       setWelcomeMsg(msg)
       setShowWelcome(true)
       setTimeout(() => setShowWelcome(false), 8000)
     }
     localStorage.setItem(lastLoginKey, new Date().toISOString())
-  }, [user, lang])
+  }, [user, lang, role])
 
   // Poll for sessions every 30s
   useEffect(() => {
@@ -164,9 +210,21 @@ export function SessionReminder({ role }: Props) {
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] max-w-md w-[calc(100vw-2rem)]"
           >
-            <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 p-4 shadow-xl backdrop-blur-sm">
+            <div className={`rounded-2xl border p-4 shadow-xl backdrop-blur-sm ${
+              role === 'teacher'
+                ? 'border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5'
+                : role === 'admin'
+                ? 'border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5'
+                : 'border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10'
+            }`}>
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  role === 'teacher'
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500'
+                    : role === 'admin'
+                    ? 'bg-gradient-to-br from-amber-500 to-orange-500'
+                    : 'bg-gradient-to-br from-indigo-500 to-purple-500'
+                }`}>
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">

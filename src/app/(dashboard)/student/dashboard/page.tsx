@@ -255,12 +255,11 @@ export default function StudentDashboard() {
                   </div>
                 )}
                 <div>
-                  <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-sm">🎓</span>
+                  <h1 className="text-2xl font-bold text-white">
                     {t('student1.dashboard.welcome', { name: user?.display_name || t('student1.dashboard.studentFallback') })}
                   </h1>
                   <p className="mt-1 text-white/70 text-sm">
-                    {enrollments.length > 0 ? t('student1.dashboard.welcomeSubtitle', { count: enrollments.length }) : t('student1.dashboard.welcomeSubtitleFallback')}
+                    {t('student1.dashboard.welcomeSubtitle')}
                   </p>
                 </div>
               </div>
