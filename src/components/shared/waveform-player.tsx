@@ -11,6 +11,8 @@ interface WaveformPlayerProps {
   height?: number
   onReady?: (duration: number) => void
   onTimeUpdate?: (time: number) => void
+  onError?: (message: string) => void
+  errorText?: string
   externalPlay?: boolean
   externalPause?: boolean
 }
@@ -23,13 +25,23 @@ export function WaveformPlayer({
   height = 64,
   onReady,
   onTimeUpdate,
+  onError,
+  errorText,
   externalPlay,
   externalPause,
 }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wsRef = useRef<any>(null)
+  const onErrorRef = useRef(onError)
+  onErrorRef.current = onError
+  const onReadyRef = useRef(onReady)
+  onReadyRef.current = onReady
+  const onTimeUpdateRef = useRef(onTimeUpdate)
+  onTimeUpdateRef.current = onTimeUpdate
   const [playing, setPlaying] = useState(false)
   const [ready, setReady] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
@@ -65,15 +77,30 @@ export function WaveformPlayer({
       ws.on('ready', () => {
         if (destroyed) return
         setReady(true)
+        setLoading(false)
+        setError(null)
         setDuration(ws.getDuration())
-        onReady?.(ws.getDuration())
+        onReadyRef.current?.(ws.getDuration())
+      })
+
+      ws.on('loading', (percent: number) => {
+        if (destroyed) return
+        if (percent < 100) setLoading(true)
+      })
+
+      ws.on('error', (err: unknown) => {
+        if (destroyed) return
+        const message = err instanceof Error ? err.message : 'Failed to load audio'
+        setLoading(false)
+        setError(message)
+        onErrorRef.current?.(message)
       })
 
       ws.on('audioprocess', () => {
         if (destroyed) return
         const t = ws.getCurrentTime()
         setCurrentTime(t)
-        onTimeUpdate?.(t)
+        onTimeUpdateRef.current?.(t)
       })
 
       ws.on('play', () => !destroyed && setPlaying(true))
@@ -94,7 +121,7 @@ export function WaveformPlayer({
       ws?.destroy()
       wsRef.current = null
     }
-  }, [audioUrl, audioBlob, color, height, onTimeUpdate])
+  }, [audioUrl, audioBlob, color, height])
 
   // External play/pause control
   useEffect(() => {
@@ -132,10 +159,14 @@ export function WaveformPlayer({
         </button>
         <div ref={containerRef} className="flex-1 overflow-hidden rounded-lg bg-white/5" />
       </div>
-      <div className="flex justify-between text-[10px] text-white/40">
-        <span>{formatTime(currentTime)}</span>
-        <span>{formatTime(duration)}</span>
-      </div>
+      {error ? (
+        <p className="text-[10px] text-red-400">{errorText ?? error}</p>
+      ) : (
+        <div className="flex justify-between text-[10px] text-white/40">
+          <span>{loading ? '...' : formatTime(currentTime)}</span>
+          <span>{loading ? '...' : formatTime(duration)}</span>
+        </div>
+      )}
     </div>
   )
 }

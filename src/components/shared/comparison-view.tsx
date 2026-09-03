@@ -40,6 +40,16 @@ export function ComparisonView({
   const [currentTime, setCurrentTime] = useState(0)
   const [syncPlay, setSyncPlay] = useState(false)
   const [syncPause, setSyncPause] = useState(false)
+  // Solo (A/B) pulses: play one track, pause the other
+  const [soloNative, setSoloNative] = useState(false)
+  const [soloStudent, setSoloStudent] = useState(false)
+  const [stopNative, setStopNative] = useState(false)
+  const [stopStudent, setStopStudent] = useState(false)
+  // Stable ref so time-update callbacks keep identity (prevents wavesurfer destroy loop)
+  const activeAudioRef = useRef<'native' | 'student' | null>(null)
+  useEffect(() => {
+    activeAudioRef.current = activeAudio
+  }, [activeAudio])
 
   const words = passageText?.split(/\s+/).filter(Boolean) ?? []
 
@@ -74,23 +84,29 @@ export function ComparisonView({
 
   const currentWordIndex = getCurrentWordIndex(currentTime)
 
-  // Handle native audio time updates
+  // Handle native audio time updates (stable identity via ref — no wavesurfer recreate)
   const handleNativeTimeUpdate = useCallback((time: number) => {
-    if (activeAudio === 'native' || activeAudio === null) {
+    if (activeAudioRef.current === 'native' || activeAudioRef.current === null) {
       setCurrentTime(time)
-      if (activeAudio === null) setActiveAudio('native')
+      if (activeAudioRef.current === null) {
+        activeAudioRef.current = 'native'
+        setActiveAudio('native')
+      }
     }
-  }, [activeAudio])
+  }, [])
 
-  // Handle student audio time updates
+  // Handle student audio time updates (stable identity via ref)
   const handleStudentTimeUpdate = useCallback((time: number) => {
-    if (activeAudio === 'student' || activeAudio === null) {
+    if (activeAudioRef.current === 'student' || activeAudioRef.current === null) {
       setCurrentTime(time)
-      if (activeAudio === null) setActiveAudio('student')
+      if (activeAudioRef.current === null) {
+        activeAudioRef.current = 'student'
+        setActiveAudio('student')
+      }
     }
-  }, [activeAudio])
+  }, [])
 
-  // Sync play/pause
+  // Sync play/pause (both together)
   function handleSyncToggle() {
     if (syncPlay) {
       setSyncPause(true)
@@ -99,8 +115,28 @@ export function ComparisonView({
     } else {
       setSyncPause(false)
       setSyncPlay(true)
+      activeAudioRef.current = 'native'
       setActiveAudio('native')
       setTimeout(() => setSyncPlay(false), 100)
+    }
+  }
+
+  // Solo play: play one track, pause the other (true A/B)
+  function pulse(setter: (v: boolean) => void) {
+    setter(true)
+    setTimeout(() => setter(false), 100)
+  }
+  function handleSoloPlay(track: 'native' | 'student') {
+    setSyncPlay(false)
+    setSyncPause(false)
+    activeAudioRef.current = track
+    setActiveAudio(track)
+    if (track === 'native') {
+      pulse(setSoloNative)
+      pulse(setStopStudent)
+    } else {
+      pulse(setSoloStudent)
+      pulse(setStopNative)
     }
   }
 
@@ -125,17 +161,37 @@ export function ComparisonView({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h4 className="text-sm font-semibold text-on-surface">{t('speakingReview.comparison')}</h4>
-        {hasStudent && (ttsAudioUrl || passageText) && (
-          <button
-            onClick={handleSyncToggle}
-            className="flex items-center gap-1.5 rounded-lg bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors border border-border"
-          >
-            {syncPlay ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            {syncPlay ? t('speakingReview.pauseAll') : t('speakingReview.playTogether')}
-          </button>
-        )}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {hasStudent && (
+            <button
+              onClick={() => handleSoloPlay('student')}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20"
+            >
+              <Play className="h-3 w-3" />
+              {t('speakingReview.playMine')}
+            </button>
+          )}
+          {(ttsAudioUrl || passageText) && (
+            <button
+              onClick={() => handleSoloPlay('native')}
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors border border-indigo-500/20"
+            >
+              <Play className="h-3 w-3" />
+              {t('speakingReview.playNative')}
+            </button>
+          )}
+          {hasStudent && (ttsAudioUrl || passageText) && (
+            <button
+              onClick={handleSyncToggle}
+              className="flex items-center gap-1.5 rounded-lg bg-surface-container-low px-3 py-1.5 text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors border border-border"
+            >
+              {syncPlay ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+              {syncPlay ? t('speakingReview.pauseAll') : t('speakingReview.playTogether')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Synced text display */}
@@ -163,8 +219,9 @@ export function ComparisonView({
             label={t('speakingReview.yourVoice')}
             color="#10b981"
             onTimeUpdate={handleStudentTimeUpdate}
-            externalPlay={syncPlay}
-            externalPause={syncPause}
+            externalPlay={syncPlay || soloStudent}
+            externalPause={syncPause || stopStudent}
+            errorText={t('speakingReview.audioLoadError')}
           />
         )}
         {(ttsAudioUrl || passageText) && (
@@ -173,8 +230,9 @@ export function ComparisonView({
             label={t('speakingReview.nativeSpeaker')}
             color="#6366f1"
             onTimeUpdate={handleNativeTimeUpdate}
-            externalPlay={syncPlay}
-            externalPause={syncPause}
+            externalPlay={syncPlay || soloNative}
+            externalPause={syncPause || stopNative}
+            errorText={t('speakingReview.audioLoadError')}
           />
         )}
       </div>
