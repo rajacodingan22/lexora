@@ -63,6 +63,11 @@ const id: Record<string, string> = {
   'student1.dashboard.newsViewAll': 'Lihat semua berita & event',
   'student1.dashboard.studentFallback': 'Siswa',
   'student1.dashboard.claimTrialError': 'Gagal mengaktifkan trial class',
+  // Pengumuman
+  'student1.pengumuman.title': 'Pengumuman',
+  'student1.pengumuman.subtitle': 'Berita dan kabar terbaru',
+  'student1.pengumuman.empty': 'Belum ada pengumuman',
+  'student1.pengumuman.adminFallback': 'Admin',
   // Kursus
   'student1.kursus.title': 'Kursus',
   'student1.kursus.subtitle': 'Kelola kursus kamu atau jelajahi kelas baru',
@@ -470,6 +475,11 @@ const en: Record<string, string> = {
   'student1.dashboard.newsViewAll': 'View all news & events',
   'student1.dashboard.studentFallback': 'Student',
   'student1.dashboard.claimTrialError': 'Failed to activate trial class',
+  // Pengumuman
+  'student1.pengumuman.title': 'Announcements',
+  'student1.pengumuman.subtitle': 'Latest news and updates',
+  'student1.pengumuman.empty': 'No announcements yet',
+  'student1.pengumuman.adminFallback': 'Admin',
   // Kursus
   'student1.kursus.title': 'Courses',
   'student1.kursus.subtitle': 'Manage your courses or explore new classes',
@@ -877,6 +887,11 @@ const zh: Record<string, string> = {
   'student1.dashboard.newsViewAll': '查看所有新闻与活动',
   'student1.dashboard.studentFallback': '学生',
   'student1.dashboard.claimTrialError': '激活试听课失败',
+  // Pengumuman
+  'student1.pengumuman.title': '公告',
+  'student1.pengumuman.subtitle': '最新消息与动态',
+  'student1.pengumuman.empty': '暂无公告',
+  'student1.pengumuman.adminFallback': '管理员',
   // Kursus
   'student1.kursus.title': '课程',
   'student1.kursus.subtitle': '管理你的课程或探索新课程',

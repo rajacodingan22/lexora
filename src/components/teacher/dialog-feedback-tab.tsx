@@ -60,17 +60,24 @@ export function DialogFeedbackTab({ courseId, batchId }: { courseId: string; bat
     setLoading(false)
   }
 
+  const [genError, setGenError] = useState<string | null>(null)
+
   async function generateFeedback() {
     if (!selected) return
     setGenerating(true)
+    setGenError(null)
     try {
-      const res = await fetch('/api/dialog/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: selected.id }) })
+      const res = await fetch('/api/dialog/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: selected.id }) })
       const data = await res.json()
       if (res.ok && data.feedback) {
-        setSelected({ ...selected, feedback: data.feedback, status: 'completed' })
+        setSelected({ ...selected, feedback: data.feedback })
         fetchSessions()
+      } else {
+        setGenError(data?.error || 'Failed to generate feedback')
       }
-    } catch {}
+    } catch (e: any) {
+      setGenError(e?.message || 'Failed to generate feedback')
+    }
     setGenerating(false)
   }
 
@@ -94,6 +101,7 @@ export function DialogFeedbackTab({ courseId, batchId }: { courseId: string; bat
             <Badge variant={selected.status === 'completed' ? 'success' : selected.status === 'active' ? 'warning' : 'outline'}>{selected.status}</Badge>
             <span className="text-xs text-muted">{new Date(selected.started_at).toLocaleString()}</span>
             {selected.status === 'expired' && !hasFeedback && <Button size="sm" variant="outline" onClick={generateFeedback} disabled={generating}>{generating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null} Generate Feedback</Button>}
+            {genError && <span className="text-xs text-red-400">{genError}</span>}
           </div>
 
           {!hasFeedback ? (

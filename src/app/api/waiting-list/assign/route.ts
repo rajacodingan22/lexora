@@ -168,6 +168,21 @@ export async function POST(req: Request) {
     // 7. Tandai waiting list selesai
     await supabase.from('waiting_list').update({ status: 'resolved' }).eq('id', waiting.id)
 
+    // 7b. Audit trail (fire-and-forget)
+    try {
+      const { data: { user: actor } } = await supabase.auth.getUser()
+      if (actor) {
+        await supabase.from('audit_logs').insert({
+          action: 'waiting_list.assigned',
+          user_id: actor.id,
+          role: 'admin',
+          details: { waiting_id: waiting.id, student_id: waiting.user_id, course_id: waiting.course_id, batch_id: nextBatch.id },
+        })
+      }
+    } catch (auditErr) {
+      console.error('[audit] waiting_list.assigned failed:', auditErr)
+    }
+
     // 8. Notifikasi teacher: ada siswa baru dapat slot
     const { data: profiles } = await supabase
       .from('users')

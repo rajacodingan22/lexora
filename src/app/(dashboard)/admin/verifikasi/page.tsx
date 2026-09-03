@@ -18,6 +18,7 @@ import {
 import type { Payment, User } from '@/types'
 import FilePreviewModal from '@/components/shared/file-preview-modal'
 import { getSignedUrl } from '@/lib/storage'
+import { writeAudit } from '@/lib/audit'
 
 const PER_PAGE = 10
 
@@ -90,6 +91,7 @@ export default function AdminVerifikasiPage() {
       setProcessing(null)
       return
     }
+    writeAudit(supabase, 'payment.approved', { payment_id: payment.id, invoice: (payment as any)?.invoice_number || null })
     setProcessing(null)
     setActionNotes('')
     setSelectedPayment(null)
@@ -110,6 +112,7 @@ export default function AdminVerifikasiPage() {
       setProcessing(null)
       return
     }
+    writeAudit(supabase, 'payment.rejected', { payment_id: payment.id, invoice: (payment as any)?.invoice_number || null })
     setProcessing(null)
     setActionNotes('')
     setSelectedPayment(null)

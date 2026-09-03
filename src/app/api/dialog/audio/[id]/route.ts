@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import { getAccessToken } from '@/lib/drive'
 
@@ -40,7 +40,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const drive_file_id = turn?.drive_file_id as string | undefined
     if (!drive_file_id) return NextResponse.json({ error: 'No audio for this turn' }, { status: 404 })
 
-    const { data: tokenRow } = await supabase.from('user_drive_tokens').select('encrypted_refresh_token').eq('user_id', session.user_id).maybeSingle()
+    // Teacher/admin path must read the STUDENT's token via admin client
+    // (RLS on user_drive_tokens only allows the owner, so the teacher call 404s otherwise).
+    const tokenClient = (isTeacher || isAdmin) ? createAdminSupabaseClient() : supabase
+    const { data: tokenRow } = await tokenClient.from('user_drive_tokens').select('encrypted_refresh_token').eq('user_id', session.user_id).maybeSingle()
     if (!tokenRow) return NextResponse.json({ error: 'Drive not connected' }, { status: 404 })
     const accessToken = await getAccessToken(tokenRow.encrypted_refresh_token)
     if (!accessToken) return NextResponse.json({ error: 'Drive auth failed' }, { status: 502 })

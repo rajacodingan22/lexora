@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-client'
+import { writeAudit } from '@/lib/audit'
 import { useI18n } from '@/lib/i18n/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -260,6 +261,7 @@ export default function AdminBatchPage() {
     }
     const teacher = teachers.find(t => t.id === teacherId)
     const courseName = getCourseName(batch.course_id)
+    writeAudit(supabase, 'batch.assign_teacher', { batch_id: batch.id, course_id: batch.course_id, teacher_id: teacherId })
     if (teacher) {
       const { error: notifError } = await supabase.from('notifications').insert({
         user_id: teacher.user_id,

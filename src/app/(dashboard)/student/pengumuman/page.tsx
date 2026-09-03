@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
+import { useI18n } from '@/lib/i18n/client'
 import { formatDateOnly } from '@/lib/utils'
 import {
   Loader2, AlertTriangle, Info, AlertCircle, Inbox
@@ -47,6 +48,7 @@ const priorityConfig: Record<string, { icon: React.ReactNode; badge: 'destructiv
 
 export default function StudentAnnouncementsPage() {
   const { user } = useAuth()
+  const { t } = useI18n()
   const supabase = createClient()
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
@@ -86,15 +88,15 @@ export default function StudentAnnouncementsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-on-surface">Announcements</h1>
-        <p className="text-on-surface-variant">Latest news and updates</p>
+        <h1 className="text-2xl font-bold text-on-surface">{t('student1.pengumuman.title')}</h1>
+        <p className="text-on-surface-variant">{t('student1.pengumuman.subtitle')}</p>
       </div>
 
       {announcements.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Inbox className="h-12 w-12 text-muted mb-3" />
-            <p className="text-sm text-on-surface-variant">No announcements yet</p>
+            <p className="text-sm text-on-surface-variant">{t('student1.pengumuman.empty')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -119,7 +121,7 @@ export default function StudentAnnouncementsPage() {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 text-xs text-muted">
-                          <span>{a.author?.display_name || 'Admin'}</span>
+                          <span>{a.author?.display_name || t('student1.pengumuman.adminFallback')}</span>
                           <span className="w-1 h-1 rounded-full bg-border" />
                           <span>{formatDateOnly(a.created_at)}</span>
                         </div>

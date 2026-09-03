@@ -65,6 +65,7 @@ const navConfig = {
     { key: 'sidebar.schedule', href: '/admin/jadwal', icon: Calendar },
     { key: 'sidebar.eventsNews', href: '/admin/event', icon: CalendarDays },
     { key: 'sidebar.news', href: '/admin/berita', icon: Megaphone },
+    { key: 'sidebar.announcements', href: '/admin/pengumuman', icon: Megaphone },
     { key: 'sidebar.reports', href: '/admin/laporan', icon: BarChart3 },
     { key: 'sidebar.cms', href: '/admin/cms', icon: Megaphone },
     { key: 'sidebar.auditLog', href: '/admin/audit', icon: Shield },

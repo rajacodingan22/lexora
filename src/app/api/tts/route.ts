@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 /**
  * Server-side TTS via Edge TTS (free Microsoft voices).
  * Falls back to returning a marker for client-side SpeechSynthesis if edge-tts unavailable.
+ * Requires auth (spawns a server process per call — must not be callable anonymously).
  */
+async function requireUser() {
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+}
 const VOICE_MAP: Record<string, string> = {
   en: 'en-US-AriaNeural',
   id: 'id-ID-GadisNeural',
@@ -39,6 +46,7 @@ async function handleTts(text: string, voice: string | undefined, rate: string, 
 
 export async function POST(req: Request) {
   try {
+    if (!await requireUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const body = await req.json()
     const { text, voice, rate = '+0%', pitch = '+0Hz', lang } = body as { text: string; voice?: string; rate?: string; pitch?: string; lang?: string }
     return handleTts(text, voice, rate, pitch, lang)
@@ -50,6 +58,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    if (!await requireUser()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const url = new URL(req.url)
     const text = url.searchParams.get('text') || ''
     const voice = url.searchParams.get('voice') || undefined
