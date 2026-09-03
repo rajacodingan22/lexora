@@ -634,15 +634,32 @@ export default function CourseDetailPage() {
   const catalogDetails = mergeCatalogDetails(course.details, course.program?.details)
   const languageFlag = course.language?.flag_emoji || ''
 
-  const now = new Date()
-  const upcomingSessions = sessions.filter(s => getMeetingPhase(s, now) === 'upcoming' || getMeetingPhase(s, now) === 'ongoing')
-  const _pastSessions = sessions.filter(s => getMeetingPhase(s, now) === 'past')
-
-  const _totalMeetings = course.meeting_count || sessions.length || 0
-  const _heldMeetings = _pastSessions.filter(s => s.meeting_link).length
-
   const isEnrolled = !!enrollment
   const isPendingPayment = !!enrollment && enrollment.status === 'pending'
+  // Batch-specific zoom: jumlah link Zoom ngikutin jumlah pertemuan di batch ini.
+  // live_sessions itu course-level, jadi filter by range batch (start_date..end_date).
+  // Kalau batch belum punya sesi di range tsb, fallback ke semua sesi (preview).
+  const batchSessions = (() => {
+    if (!isEnrolled || !enrolledBatch?.start_date) return sessions
+    const start = new Date(enrolledBatch.start_date).getTime()
+    const end = enrolledBatch.end_date ? new Date(enrolledBatch.end_date).getTime() : null
+    const filtered = sessions.filter(s => {
+      if (!s.starts_at) return false
+      const d = new Date(s.starts_at).getTime()
+      if (Number.isNaN(d)) return false
+      if (d < start) return false
+      if (end !== null && d > end) return false
+      return true
+    })
+    return filtered.length > 0 ? filtered : sessions
+  })()
+
+  const now = new Date()
+  const upcomingSessions = batchSessions.filter(s => getMeetingPhase(s, now) === 'upcoming' || getMeetingPhase(s, now) === 'ongoing')
+  const _pastSessions = batchSessions.filter(s => getMeetingPhase(s, now) === 'past')
+
+  const _totalMeetings = batchSessions.length || course.meeting_count || 0
+  const _heldMeetings = _pastSessions.filter(s => s.meeting_link).length
 
   // Check if this course matches the student's placement level
   // (gate hanya berlaku untuk kursus bahasa yang sama dengan hasil placement)
@@ -897,10 +914,10 @@ export default function CourseDetailPage() {
                   <h4 className="font-medium text-on-surface text-sm">{t('student1.courseDetail.classDetailsTitle')}</h4>
                   <p className="text-xs text-muted -mt-1">{t('student1.courseDetail.dateFormatHint')}</p>
                   <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.meetingScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{sessions.length || course.meeting_count || 0}</span></p>
-                    {sessions.length > 0 ? (
+                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.meetingScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{batchSessions.length || course.meeting_count || 0}</span></p>
+                    {batchSessions.length > 0 ? (
                       <div className="mt-2 divide-y divide-border">
-                        {sessions.slice(0, 20).map((s) => {
+                        {batchSessions.slice(0, 20).map((s) => {
                           const d = s.starts_at ? new Date(s.starts_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }) : t('student1.courseDetail.scheduleEmpty')
                           const link = (s as unknown as { meeting_link?: string }).meeting_link
                           const joinable = isEnrolled && !!link && isMeetingLinkOpen(s as any)

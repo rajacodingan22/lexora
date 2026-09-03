@@ -939,7 +939,8 @@ function StudentCoursesContent() {
                         <div className="mt-2 divide-y divide-border">
                           {previewSessions.map(s => {
                             const d = s.starts_at ? new Date(s.starts_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : t('student1.courseDetail.scheduleEmpty')
-                            const joinable = !!(s as any).starts_at && isMeetingLinkOpen({ starts_at: (s as any).starts_at, duration_minutes: 60, status: 'scheduled' } as any)
+                            const isPreviewEnrolled = enrolledCourseIds.has(previewCourse.id)
+                            const joinable = isPreviewEnrolled && !!(s as any).starts_at && isMeetingLinkOpen({ starts_at: (s as any).starts_at, duration_minutes: 60, status: 'scheduled' } as any)
                             const mins = !joinable && (s as any).starts_at ? minutesUntilJoinable({ starts_at: (s as any).starts_at, duration_minutes: 60 } as any) : 0
                             return (
                               <div key={s.id} className="flex items-center justify-between gap-3 py-2">
@@ -949,8 +950,9 @@ function StudentCoursesContent() {
                                 </div>
                                 {s.meeting_link ? (
                                   joinable ? <a href={s.meeting_link} target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:underline"><ExternalLink className="h-3 w-3" /> Zoom</a>
-                                  : mins > 0 ? <span className="shrink-0 inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="h-3 w-3" />{mins}m lagi</span>
-                                  : <span className="shrink-0 text-xs text-muted">Belum waktunya</span>
+                                  : isPreviewEnrolled && mins > 0 ? <span className="shrink-0 inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="h-3 w-3" />{mins}m lagi</span>
+                                  : isPreviewEnrolled ? <span className="shrink-0 text-xs text-muted">Belum waktunya</span>
+                                  : <span className="shrink-0 text-xs text-muted flex items-center gap-1"><Link2 className="h-3 w-3" /> Zoom</span>
                                 ) : <span className="shrink-0 text-xs text-muted">—</span>}
                               </div>
                             )
