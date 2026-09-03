@@ -22,7 +22,8 @@ interface WaitRow {
 
 export default function AdminWaitingListPage() {
   const supabase = createClient()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const [rows, setRows] = useState<WaitRow[]>([])
   const [loading, setLoading] = useState(true)
   const [assigning, setAssigning] = useState<string | null>(null)
@@ -131,7 +132,7 @@ export default function AdminWaitingListPage() {
                       </p>
                       <p className="text-xs text-on-surface-variant truncate">{r.user?.email}</p>
                       <p className="text-xs text-muted mt-0.5">
-                        {title} • {t('admin2.waitingList.registeredOn', { date: formatDateOnly(r.created_at) })}
+                        {title} • {t('admin2.waitingList.registeredOn', { date: formatDateOnly(r.created_at, locale) })}
                       </p>
                       {r.notes && <p className="text-xs text-orange-400 mt-0.5">{r.notes}</p>}
                     </div>

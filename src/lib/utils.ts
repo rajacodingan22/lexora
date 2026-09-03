@@ -8,15 +8,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: string | Date) {
-  return new Intl.DateTimeFormat('id-ID', {
+export function formatDate(date: string | Date, locale = 'id-ID') {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(date))
 }
 
-export function formatDateOnly(date: string | Date) {
-  return new Intl.DateTimeFormat('id-ID', {
+export function formatDateOnly(date: string | Date, locale = 'id-ID') {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
   }).format(new Date(date))
 }

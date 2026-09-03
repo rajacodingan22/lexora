@@ -60,15 +60,20 @@ export function ComparisonView({
     wordScores?.forEach(ws => scoreMap.current.set(ws.word.toLowerCase(), ws.accuracy))
   }, [wordScores])
 
-  // Estimate word timings from the full text if not provided
+  // Durasi asli dari player (untuk skala timing fallback, bukan 10s hardcode)
+  const [nativeDuration, setNativeDuration] = useState(0)
+
+  // Estimate word timings from the full text if not provided —
+  // skala ke durasi audio asli bila sudah decode (fallback 10s)
   const timings = wordTimings ?? (() => {
     if (!passageText) return []
     const totalChars = words.reduce((s, w) => s + w.length, 0)
+    const span = nativeDuration > 0 ? nativeDuration : 10
     let acc = 0
     return words.map(word => {
-      const start = (acc / totalChars) * 10
+      const start = (acc / totalChars) * span
       acc += word.length
-      const end = (acc / totalChars) * 10
+      const end = (acc / totalChars) * span
       return { word, start, end }
     })
   })()
@@ -229,6 +234,7 @@ export function ComparisonView({
             audioUrl={ttsAudioUrl}
             label={t('speakingReview.nativeSpeaker')}
             color="#6366f1"
+            onReady={setNativeDuration}
             onTimeUpdate={handleNativeTimeUpdate}
             externalPlay={syncPlay || soloNative}
             externalPause={syncPause || stopNative}

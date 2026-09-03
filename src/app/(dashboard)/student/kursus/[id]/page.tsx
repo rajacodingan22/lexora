@@ -1006,7 +1006,7 @@ export default function CourseDetailPage() {
                         <p className="text-sm font-medium text-on-surface">{s.title}</p>
                         <div className="mt-1 flex items-center justify-between">
                           <span className="text-xs text-muted flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> {formatDate(s.starts_at)}
+                            <Clock className="h-3 w-3" /> {formatDate(s.starts_at, dateLocale)}
                           </span>
                           <Badge variant={sPhase === 'ongoing' ? 'success' : 'default'}>
                             {sPhase === 'ongoing' ? 'Berlangsung' : 'Scheduled'}
@@ -1161,7 +1161,7 @@ export default function CourseDetailPage() {
                             )}
                             <div className="flex items-center gap-3 mt-1.5">
                               <span className="text-xs text-muted flex items-center gap-1">
-                                <Clock className="h-3 w-3" /> Due: {formatDateOnly(a.due_date)}
+                                <Clock className="h-3 w-3" /> Due: {formatDateOnly(a.due_date, dateLocale)}
                               </span>
                               <span className="text-xs text-muted">Max grade: {a.max_grade}</span>
                               {isSubmitted && isGraded && (
@@ -1341,7 +1341,7 @@ export default function CourseDetailPage() {
                           </div>
                         )}
                         <span className="text-sm font-medium text-on-surface">{post.user?.display_name || 'Unknown'}</span>
-                        <span className="text-xs text-muted">{formatDate(post.created_at)}</span>
+                        <span className="text-xs text-muted">{formatDate(post.created_at, dateLocale)}</span>
                         {post.is_pinned && <Pin className="h-3 w-3 text-amber-400" />}
                       </div>
                       <p className="text-sm text-on-surface-variant">{post.content}</p>
@@ -1383,7 +1383,7 @@ export default function CourseDetailPage() {
                                     <span className="text-sm font-medium text-on-surface">
                                       {reply.user?.display_name || 'Unknown'}
                                     </span>
-                                    <span className="text-[10px] text-muted">{formatDate(reply.created_at)}</span>
+                                    <span className="text-[10px] text-muted">{formatDate(reply.created_at, dateLocale)}</span>
                                   </div>
                                   <p className="text-sm text-on-surface-variant mt-0.5">{reply.content}</p>
                                 </div>

@@ -79,7 +79,8 @@ const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'S
 // ──────────────────────────────────────────────
 
 export default function AdminLaporanPage() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
 
@@ -654,7 +655,7 @@ export default function AdminLaporanPage() {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs text-muted whitespace-nowrap tabular-nums">{formatDate(e.enrolled_at)}</p>
+                      <p className="text-xs text-muted whitespace-nowrap tabular-nums">{formatDate(e.enrolled_at, locale)}</p>
                       <Badge
                         variant={
                           e.status === 'active' ? 'success'

@@ -60,7 +60,8 @@ const emptyForm: FormState = {
 }
 
 export default function AdminEventPage() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
   const [items, setItems] = useState<EventItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -242,7 +243,7 @@ export default function AdminEventPage() {
                         <Badge variant="outline">{item.event_type || '-'}</Badge>
                       </td>
                       <td className="py-3 text-on-surface-variant">
-                        {item.event_date ? formatDateOnly(item.event_date) : '-'}
+                        {item.event_date ? formatDateOnly(item.event_date, locale) : '-'}
                       </td>
                       <td className="py-3">
                         <Badge variant={item.status === 'published' ? 'success' : 'warning'}>
@@ -250,7 +251,7 @@ export default function AdminEventPage() {
                         </Badge>
                       </td>
                       <td className="py-3 text-on-surface-variant">
-                        {formatDateOnly(item.created_at)}
+                        {formatDateOnly(item.created_at, locale)}
                       </td>
                       <td className="py-3">
                         <div className="flex items-center gap-1">

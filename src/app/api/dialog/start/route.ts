@@ -8,7 +8,7 @@ function sanitize(str: string) {
   return str.slice(0, 5000).replace(/```/g, "'''").replace(/\u0000/g, '')
 }
 
-async function generateGreeting(topic: string, characterName: string | null, characterRole: string | null, languageCode: string): Promise<string> {
+async function generateGreeting(topic: string, characterName: string | null, characterRole: string | null, languageCode: string, instructions: string | null): Promise<string> {
   try {
     const admin = createAdminSupabaseClient()
     const { data: settings } = await admin.from('system_settings').select('key, value').in('key', ['ai_api_endpoint', 'ai_api_key', 'ai_model', 'ai_enabled'])
@@ -18,11 +18,13 @@ async function generateGreeting(topic: string, characterName: string | null, cha
     const endpoint = map.ai_api_endpoint || DEFAULT_ZEN_URL
     const key = map.ai_api_key
     const model = (map.ai_model || DEFAULT_MODEL).replace(/^opencode\//, '')
-    const sys = `You are ${characterName || 'a native speaker'} (${characterRole || 'friendly tutor'}). Topic lock: ONLY discuss "${sanitize(topic)}". If user goes off-topic, gently redirect back to ${sanitize(topic)}. Language: ${languageCode}. Generate a short warm greeting (1-2 sentences) to start a 7-minute phone conversation. Be natural. No JSON.`
+    const persona = instructions ? `Persona: ${sanitize(instructions).slice(0, 500)}. ` : ''
+    const sys = `You are ${characterName || 'a native speaker'} (${characterRole || 'friendly tutor'}). ${persona}Topic lock: ONLY discuss "${sanitize(topic)}". If user goes off-topic, gently redirect back to ${sanitize(topic)}. Language: ${languageCode}. Generate a short warm greeting (1-2 sentences) to start a 7-minute phone conversation. Be natural. No JSON.`
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: 'Generate greeting now.' }], max_tokens: 200, temperature: 0.7 }),
+      signal: AbortSignal.timeout(20000),
     })
     if (!res.ok) throw new Error('zen fail')
     const data = await res.json()
@@ -100,7 +102,7 @@ export async function POST(req: Request) {
     const startedAt = now
     const endsAt = durationSec === 0 ? null : new Date(startedAt.getTime() + durationSec * 1000)
 
-    const greeting = await generateGreeting(topic, task.dialog_character_name, task.dialog_character_role, language_code)
+    const greeting = await generateGreeting(topic, task.dialog_character_name, task.dialog_character_role, language_code, task.dialog_instructions || null)
 
     const initialTurns = [
       { role: 'bot', text: greeting, ts: startedAt.toISOString(), cueShown: false },
@@ -121,6 +123,16 @@ export async function POST(req: Request) {
     }).select('*').single()
 
     if (error || !inserted) {
+      // Race: another request created the active session first (partial unique index).
+      // Resume it instead of failing.
+      if ((error as any)?.code === '23505') {
+        const { data: raced } = await supabase.from('dialog_sessions').select('*').eq('user_id', user.id).eq('batch_id', batchId).eq('task_id', taskId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle()
+        if (raced) {
+          const endsAt = raced.ends_at ? new Date(raced.ends_at) : null
+          const remainingSec = endsAt ? Math.max(0, Math.ceil((endsAt.getTime() - Date.now()) / 1000)) : null
+          return NextResponse.json({ session: raced, remainingSec, resumed: true })
+        }
+      }
       console.error('[dialog/start] insert error', error)
       return NextResponse.json({ error: 'Failed to start session' }, { status: 500 })
     }

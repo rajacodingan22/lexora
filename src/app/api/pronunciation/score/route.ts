@@ -66,8 +66,8 @@ export async function POST(req: Request) {
           const accessToken = await getAccessToken(tokenRow.encrypted_refresh_token)
           if (accessToken) {
             const audioBuffer = Buffer.from(String(audioBase64), 'base64')
-            const mimeType = clientMimeType || 'audio/webm'
-            const fileName = `lexora-speaking-${Date.now()}.webm`
+  const mimeType = clientMimeType || 'audio/webm'
+  const fileName = `lexora-speaking-${Date.now()}.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`
             const result = await uploadToDrive(accessToken, audioBuffer, mimeType, fileName)
             drive_link = result.drive_link
             drive_file_id = result.drive_file_id

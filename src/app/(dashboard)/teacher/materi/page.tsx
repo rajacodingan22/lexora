@@ -99,7 +99,8 @@ function MaterialsSkeleton() {
 
 export default function TeacherMaterialsPage() {
   const { user, loading: authLoading } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
 
   const [courses, setCourses] = useState<Course[]>([])
@@ -489,7 +490,7 @@ export default function TeacherMaterialsPage() {
                                   {m.description && (
                                     <span className="truncate max-w-[200px]">{m.description}</span>
                                   )}
-                                  <span>{formatDate(m.created_at)}</span>
+                                  <span>{formatDate(m.created_at, locale)}</span>
                                 </div>
                               </div>
                             </div>

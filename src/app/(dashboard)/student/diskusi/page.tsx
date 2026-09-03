@@ -39,7 +39,8 @@ interface DiscussionWithMeta {
 
 export default function StudentDiskusiPage() {
   const { user: authUser } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
 
   const [discussions, setDiscussions] = useState<DiscussionWithMeta[]>([])
@@ -462,7 +463,7 @@ export default function StudentDiskusiPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {formatDate(post.last_activity!)}
+                        {formatDate(post.last_activity!, locale)}
                       </span>
                     </div>
                   </div>
@@ -539,7 +540,7 @@ export default function StudentDiskusiPage() {
                                 {reply.user?.display_name || 'Unknown'}
                               </span>
                               <span className="text-[10px] text-muted">
-                                {formatDate(reply.created_at)}
+                                {formatDate(reply.created_at, locale)}
                               </span>
                             </div>
                             <p className="text-sm text-on-surface-variant mt-1 whitespace-pre-wrap">

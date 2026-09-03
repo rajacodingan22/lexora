@@ -174,7 +174,7 @@ export default function TeacherCalendarPage() {
 
   const groupedByDate: Record<string, CalendarEvent[]> = {}
   events.forEach((ev) => {
-    const key = formatDateOnly(ev.datetime)
+    const key = formatDateOnly(ev.datetime, locale)
     if (!groupedByDate[key]) groupedByDate[key] = []
     groupedByDate[key].push(ev)
   })
@@ -263,7 +263,7 @@ export default function TeacherCalendarPage() {
                             <p className="text-sm text-on-surface-variant">{ev.course_title}</p>
                             <span className="flex items-center gap-1 text-xs text-muted mt-1">
                               <Clock className="h-3 w-3" />
-                              {formatDate(ev.datetime)}
+                              {formatDate(ev.datetime, locale)}
                             </span>
                           </div>
                         </div>

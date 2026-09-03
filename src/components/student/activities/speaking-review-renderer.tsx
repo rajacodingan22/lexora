@@ -112,6 +112,7 @@ export function SpeakingReviewRenderer({ activity, content, taskId, batchId, onC
   const transcriptRef = useRef('')
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const recordedMimeRef = useRef<string>('audio/webm')
 
   // Sentence mapping (same as KaraokeText)
   const { sentences, sentenceWordMap } = useMemo(() => {
@@ -216,9 +217,10 @@ export function SpeakingReviewRenderer({ activity, content, taskId, batchId, onC
       return
     }
 
-    // Start MediaRecorder
+    // Start MediaRecorder — simpan mime ASLI (Safari = mp4, Chrome = webm)
     chunksRef.current = []
     const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+    recordedMimeRef.current = mimeType
     const recorder = new MediaRecorder(stream, { mimeType })
     recorder.ondataavailable = (e: any) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
     recorder.onstop = () => {
@@ -327,7 +329,8 @@ export function SpeakingReviewRenderer({ activity, content, taskId, batchId, onC
   async function scoreTranscript(spoken: string) {
     setGrading(true)
     try {
-      const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+      const realMime = recordedMimeRef.current || 'audio/webm'
+      const blob = new Blob(chunksRef.current, { type: realMime })
       let audioBase64: string | null = null
       if (blob.size > 0) {
         const arrayBuf = await blob.arrayBuffer()
@@ -340,7 +343,7 @@ export function SpeakingReviewRenderer({ activity, content, taskId, batchId, onC
       const res = await fetch('/api/pronunciation/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedText: text, transcript: spoken, prompt: text, audioBase64, mimeType: 'audio/webm' }),
+        body: JSON.stringify({ expectedText: text, transcript: spoken, prompt: text, audioBase64, mimeType: realMime }),
       })
       const data = await res.json()
       if (data.error) {
@@ -379,7 +382,7 @@ export function SpeakingReviewRenderer({ activity, content, taskId, batchId, onC
           wordScores,
           autoScore: overall,
           audioBase64,
-          mimeType: 'audio/webm',
+          mimeType: studentBlob?.type || recordedMimeRef.current || 'audio/webm',
         }),
       })
       const data = await res.json()

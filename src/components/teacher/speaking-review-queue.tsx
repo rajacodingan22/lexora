@@ -107,7 +107,7 @@ export function SpeakingReviewQueue() {
                   <p className="text-xs font-bold text-slate-600">{Math.round(s.overall_score)}%</p>
                 )}
                 <p className="text-[10px] text-muted">
-                  {new Date(s.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                  {new Date(s.created_at).toLocaleDateString(typeof navigator !== 'undefined' ? navigator.language : 'id-ID', { day: 'numeric', month: 'short' })}
                 </p>
               </div>
             </div>

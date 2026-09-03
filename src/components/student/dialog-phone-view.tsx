@@ -56,6 +56,8 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const transcriptRef = useRef('')
   const isRecordingRef = useRef(false)
+  const sendingRef = useRef(false)
+  const streamRef = useRef<MediaStream | null>(null)
 
   // fetch session resume
   const fetchSession = useCallback(async () => {
@@ -117,16 +119,34 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
     if (!text) return
     setBotSpeaking(true)
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance(text)
-      u.lang = lang === 'id' ? 'id-ID' : lang === 'zh' ? 'zh-CN' : 'en-US'
-      u.rate = 0.9
-      const voices = window.speechSynthesis.getVoices()
+      const synth = window.speechSynthesis
+      synth.cancel()
+      const targetLang = lang === 'id' ? 'id-ID' : lang === 'zh' ? 'zh-CN' : 'en-US'
+      const utter = (voice: SpeechSynthesisVoice | undefined) => {
+        const u = new SpeechSynthesisUtterance(text)
+        u.lang = targetLang
+        u.rate = 0.9
+        if (voice) u.voice = voice
+        u.onend = () => setBotSpeaking(false)
+        u.onerror = () => setBotSpeaking(false)
+        synth.speak(u)
+      }
+      const voices = synth.getVoices()
       const match = voices.find(v => v.lang.toLowerCase().startsWith((lang || 'en').toLowerCase()))
-      if (match) u.voice = match
-      u.onend = () => setBotSpeaking(false)
-      u.onerror = () => setBotSpeaking(false)
-      window.speechSynthesis.speak(u)
+      if (match || voices.length > 0) {
+        utter(match)
+      } else if ('onvoiceschanged' in synth) {
+        // voices load async di sebagian browser — tunggu sekali lalu bicara
+        const handler = () => {
+          synth.onvoiceschanged = null
+          const vs = synth.getVoices()
+          utter(vs.find(v => v.lang.toLowerCase().startsWith((lang || 'en').toLowerCase())))
+        }
+        synth.onvoiceschanged = handler
+        setTimeout(() => { synth.onvoiceschanged = null; setBotSpeaking(false) }, 5000)
+      } else {
+        utter(undefined)
+      }
     } else {
       setTimeout(() => setBotSpeaking(false), 2000)
     }
@@ -150,47 +170,61 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   }
 
   const sendTurn = async (text: string, blob?: Blob | null) => {
-    if (!session || !text.trim()) return
+    if (!session || !text.trim() || sendingRef.current) return
+    sendingRef.current = true
     setTurnLoading(true)
     setCueCard(null)
     let audioBase64: string | null = null
     let mimeType: string | null = null
-    if (blob) {
-      const buf = await blob.arrayBuffer()
-      const bytes = new Uint8Array(buf)
-      let bin = ''
-      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
-      audioBase64 = btoa(bin)
-      mimeType = blob.type || 'audio/webm'
-    } else if (audioBlob) {
-      const buf = await audioBlob.arrayBuffer()
-      const bytes = new Uint8Array(buf)
-      let bin = ''
-      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
-      audioBase64 = btoa(bin)
-      mimeType = audioBlob.type || 'audio/webm'
+    let audioSkipped = false
+    const activeBlob = blob || audioBlob
+    if (activeBlob) {
+      // cek 5MB SEBELUM base64 (base64 +33% bisa jebol limit body)
+      if (activeBlob.size > 5 * 1024 * 1024) {
+        audioSkipped = true
+      } else {
+        const buf = await activeBlob.arrayBuffer()
+        const bytes = new Uint8Array(buf)
+        let bin = ''
+        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+        audioBase64 = btoa(bin)
+        mimeType = activeBlob.type || 'audio/webm'
+      }
     }
     try {
       const res = await fetch('/api/dialog/turn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: session.id, transcript: text, audioBase64, mimeType }),
+        signal: AbortSignal.timeout(30000),
       })
       const data = await res.json()
       if (res.ok) {
         setSession(prev => prev ? { ...prev, turns: data.turns } : prev)
-        if (data.cueCard) setCueCard(data.cueCard)
+        if (audioSkipped) {
+          setCueCard('Audio terlalu besar (>5MB), terkirim sebagai teks saja.')
+        } else if (audioBase64 && data.drive_saved === false) {
+          setCueCard('Rekaman tidak tersimpan (Drive belum connect), tapi jawaban tetap terkirim.')
+        } else if (data.cueCard) {
+          setCueCard(data.cueCard)
+        }
         if (data.botText) speakBot(data.botText, session.language_code)
+        // sukses: bersihkan input
+        setTranscript('')
+        setInputText('')
+        setAudioBlob(null)
+        if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null) }
       } else if (data.expired) {
         setSession(prev => prev ? { ...prev, status: 'expired' } : prev)
       } else {
-        console.error(data.error)
+        // gagal: JANGAN hapus teks — biarkan user retry
+        setCueCard('Gagal mengirim, coba lagi. Teks kamu masih ada.')
       }
-    } catch (e) { console.error(e) }
-    setTranscript('')
-    setInputText('')
-    setAudioBlob(null)
-    if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null) }
+    } catch (e) {
+      // gagal jaringan/timeout: teks tetap ada untuk retry
+      setCueCard('Koneksi gagal/timeout, coba lagi. Teks kamu masih ada.')
+    }
+    sendingRef.current = false
     setTurnLoading(false)
   }
 
@@ -206,6 +240,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+      streamRef.current = stream
       const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
       const mr = new MediaRecorder(stream, { mimeType: mime })
       chunksRef.current = []
@@ -253,10 +288,11 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
 
   const stopRecording = () => {
     setIsRecording(false); isRecordingRef.current = false
-    mediaRecorderRef.current?.stop()
+    try { mediaRecorderRef.current?.stop() } catch {}
     mediaRecorderRef.current = null
     if (recognitionRef.current) { try { recognitionRef.current.stop() } catch {} ; recognitionRef.current = null }
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
+    if (streamRef.current) { try { streamRef.current.getTracks().forEach(t => t.stop()) } catch {} ; streamRef.current = null }
     // auto send after stop if transcript available? let user press send
   }
 
@@ -278,6 +314,13 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
       window.speechSynthesis?.cancel()
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
       if (countdownRef.current) clearInterval(countdownRef.current)
+      // matikan mic yang mungkin masih nyala saat modal ditutup
+      try { mediaRecorderRef.current?.stop() } catch {}
+      mediaRecorderRef.current = null
+      if (recognitionRef.current) { try { recognitionRef.current.stop() } catch {} ; recognitionRef.current = null }
+      if (streamRef.current) { try { streamRef.current.getTracks().forEach(t => t.stop()) } catch {} ; streamRef.current = null }
+      isRecordingRef.current = false
+      sendingRef.current = false
     }
   }, [audioUrl])
 
@@ -336,11 +379,39 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-xl bg-white/5 p-3">
                         <p className="text-xs text-white/60">Grammar</p>
-                        <p className="text-sm text-white">{JSON.stringify((completedFeedback as Record<string, unknown>).grammar || {})}</p>
+                        {(() => {
+                          const g = (completedFeedback as Record<string, unknown>).grammar as Record<string, unknown> | undefined
+                          const issues = (g?.issues as Array<Record<string, unknown>> | undefined) || []
+                          return (
+                            <>
+                              {g?.clarity ? <p className="text-sm text-white capitalize">{String(g.clarity).replace(/_/g, ' ')}</p> : null}
+                              {issues.slice(0, 3).map((it, i) => (
+                                <div key={i} className="mt-2 text-xs text-white/80">
+                                  <p className="line-through text-white/50">{String(it.original || '')}</p>
+                                  <p className="text-emerald-300">{String(it.corrected || '')}</p>
+                                  {it.explanation ? <p className="text-white/60 mt-0.5">{String(it.explanation)}</p> : null}
+                                </div>
+                              ))}
+                              {!g?.clarity && issues.length === 0 && <p className="text-sm text-white/50">-</p>}
+                            </>
+                          )
+                        })()}
                       </div>
                       <div className="rounded-xl bg-white/5 p-3">
                         <p className="text-xs text-white/60">Pronunciation</p>
-                        <p className="text-sm text-white">{JSON.stringify((completedFeedback as Record<string, unknown>).pronunciation || {})}</p>
+                        {(() => {
+                          const pr = (completedFeedback as Record<string, unknown>).pronunciation as Record<string, unknown> | undefined
+                          const weak = (pr?.weakWords as string[] | undefined) || []
+                          return (
+                            <>
+                              {weak.slice(0, 5).map((w, i) => (
+                                <span key={i} className="inline-block rounded-full bg-white/10 px-2 py-0.5 text-xs text-white mr-1 mb-1">{String(w)}</span>
+                              ))}
+                              {pr?.tips ? <p className="text-xs text-white/70 mt-1">{String(pr.tips)}</p> : null}
+                              {weak.length === 0 && !pr?.tips && <p className="text-sm text-white/50">-</p>}
+                            </>
+                          )
+                        })()}
                       </div>
                     </div>
                     <div className="rounded-xl bg-white/5 p-3">
@@ -462,7 +533,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
                 </div>
 
                 {audioUrl && <WaveformPlayer audioUrl={audioUrl} label="Preview rekaman kamu" color="#10b981" />}
-                <p className="text-center text-xs text-white/40">Mikrofon pakai echo cancellation & noise suppression • Supabase Realtime sinkron • Edge proxy ke Zen</p>
+                <p className="text-center text-xs text-white/40">Mikrofon pakai echo cancellation & noise suppression • Riwayat tersimpan otomatis</p>
               </div>
             </div>
           </div>

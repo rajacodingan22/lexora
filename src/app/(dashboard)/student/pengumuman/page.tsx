@@ -48,7 +48,8 @@ const priorityConfig: Record<string, { icon: React.ReactNode; badge: 'destructiv
 
 export default function StudentAnnouncementsPage() {
   const { user } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
@@ -123,7 +124,7 @@ export default function StudentAnnouncementsPage() {
                         <div className="flex items-center gap-2 mt-0.5 text-xs text-muted">
                           <span>{a.author?.display_name || t('student1.pengumuman.adminFallback')}</span>
                           <span className="w-1 h-1 rounded-full bg-border" />
-                          <span>{formatDateOnly(a.created_at)}</span>
+                          <span>{formatDateOnly(a.created_at, locale)}</span>
                         </div>
                         <div className="mt-3 text-sm text-on-surface-variant whitespace-pre-wrap leading-relaxed">
                           {a.content}

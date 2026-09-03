@@ -40,7 +40,8 @@ interface ContactMessage {
 const emptyForm = { title: '', content: '', priority: 'medium', is_active: true }
 
 export default function AdminPengumumanPage() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const { user } = useAuth()
   const supabase = createClient()
   const [activeTab, setActiveTab] = useState('announcements')
@@ -203,7 +204,7 @@ export default function AdminPengumumanPage() {
                       {!a.is_active && <Badge variant="outline" className="text-[10px]">hidden</Badge>}
                     </div>
                     <p className="mt-1 line-clamp-2 text-sm text-on-surface-variant">{a.content}</p>
-                    <p className="mt-1 text-xs text-muted">{formatDateOnly(a.published_at || a.created_at)}</p>
+                    <p className="mt-1 text-xs text-muted">{formatDateOnly(a.published_at || a.created_at, locale)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Button size="sm" variant="ghost" onClick={() => openEdit(a)}>
@@ -238,7 +239,7 @@ export default function AdminPengumumanPage() {
                         {!m.is_read && <Badge variant="default" className="text-[10px]">{t('admin1.pengumuman.unread')}</Badge>}
                       </div>
                       <p className="mt-0.5 text-xs text-muted">
-                        {t('admin1.pengumuman.inboxFrom')}: {m.name} &lt;{m.email}&gt; • {formatDateOnly(m.created_at)}
+                        {t('admin1.pengumuman.inboxFrom')}: {m.name} &lt;{m.email}&gt; • {formatDateOnly(m.created_at, locale)}
                       </p>
                       <p className="mt-2 text-sm text-on-surface-variant whitespace-pre-wrap">{m.message}</p>
                     </div>

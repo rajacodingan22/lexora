@@ -40,7 +40,9 @@ async function handleTts(text: string, voice: string | undefined, rate: string, 
       headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=86400' },
     })
   } catch {
-    return NextResponse.json({ fallback: true, text, voice, rate, message: 'Server TTS unavailable, use client-side SpeechSynthesis' })
+    // 503 (bukan 200) agar WaveformPlayer tidak coba decode JSON sebagai audio —
+    // client harus fallback ke SpeechSynthesis device.
+    return NextResponse.json({ fallback: true, text, voice, rate, message: 'Server TTS unavailable, use client-side SpeechSynthesis' }, { status: 503 })
   }
 }
 

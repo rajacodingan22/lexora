@@ -41,6 +41,7 @@ async function generateBotReply(
         max_tokens: 400,
         temperature: 0.8,
       }),
+      signal: AbortSignal.timeout(25000),
     })
     if (!res.ok) throw new Error(`zen ${res.status}`)
     const data = await res.json()
@@ -105,7 +106,7 @@ export async function POST(req: Request) {
     const turns = (session.turns as Array<Record<string, unknown>>) || []
     const nowIso = new Date().toISOString()
 
-    // upload audio to GDrive student (santai — gagal pun tetap lanjut)
+    // upload audio to GDrive student — gagal pun tetap lanjut, tapi laporkan via drive_saved
     let drive_file_id: string | null = null
     let drive_link: string | null = null
     let word_scores: unknown = null
@@ -118,7 +119,8 @@ export async function POST(req: Request) {
             const token = await getAccessToken(tokenRow.encrypted_refresh_token)
             if (token) {
               const mt = mimeType || 'audio/webm'
-              const fileName = `dialog-${session.task_id}-${sessionId}-turn${turns.length}.webm`
+              const ext = mt.includes('mp4') ? 'mp4' : 'webm'
+              const fileName = `dialog-${session.task_id}-${sessionId}-turn${turns.length}.${ext}`
               const res = await uploadToDrive(token, buf, mt, fileName)
               drive_file_id = res.drive_file_id
               drive_link = res.drive_link
@@ -133,6 +135,13 @@ export async function POST(req: Request) {
     const userTurn = { role: 'user', text: text || '(audio)', ts: nowIso, drive_file_id, drive_link, mimeType: mimeType || null, word_scores }
     const updatedTurns = [...turns, userTurn]
 
+    // task instructions (diisi guru di admin) — dipakai sebagai persona bot
+    let taskInstructions: string | null = null
+    try {
+      const { data: taskRow } = await supabase.from('course_tasks').select('dialog_instructions').eq('id', session.task_id).maybeSingle()
+      taskInstructions = (taskRow as { dialog_instructions?: string } | null)?.dialog_instructions || null
+    } catch {}
+
     // generate bot reply (santai, background-like but await here for simplicity)
     const { botText, cueCard } = await generateBotReply(
       text || '(audio message)',
@@ -140,12 +149,13 @@ export async function POST(req: Request) {
       session.character_name,
       session.character_role,
       session.language_code,
-      null,
+      taskInstructions,
       updatedTurns as Array<{ role: string; text: string }>,
     )
 
     const botTurn = { role: 'bot', text: botText, ts: new Date().toISOString(), cueShown: !!cueCard, cueCard: cueCard || null }
-    const finalTurns = [...updatedTurns, botTurn]
+    // cap turns agar row jsonb tidak tumbuh tanpa batas (simpan 200 terakhir)
+    const finalTurns = [...updatedTurns, botTurn].slice(-200)
 
     const { error: updErr } = await supabase.from('dialog_sessions').update({ turns: finalTurns }).eq('id', sessionId)
     if (updErr) {
@@ -154,8 +164,9 @@ export async function POST(req: Request) {
     }
 
     const remainingSec = session.ends_at ? Math.max(0, Math.ceil((new Date(session.ends_at).getTime() - Date.now()) / 1000)) : null
+    const driveSaved = audioBase64 ? !!drive_file_id : null
 
-    return NextResponse.json({ botText, cueCard, turns: finalTurns, remainingSec })
+    return NextResponse.json({ botText, cueCard, turns: finalTurns, remainingSec, drive_saved: driveSaved })
   } catch (e) {
     console.error('[dialog/turn] error', e)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

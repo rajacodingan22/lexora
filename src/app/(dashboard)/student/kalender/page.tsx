@@ -24,7 +24,8 @@ interface CalendarItem {
 
 export default function StudentKalenderPage() {
   const { user } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
 
   const [items, setItems] = useState<CalendarItem[]>([])
@@ -114,7 +115,7 @@ export default function StudentKalenderPage() {
 
   const groupedByDate: Record<string, CalendarItem[]> = {}
   items.forEach((item) => {
-    const dateKey = formatDateOnly(item.deadline)
+    const dateKey = formatDateOnly(item.deadline, locale)
     if (!groupedByDate[dateKey]) groupedByDate[dateKey] = []
     groupedByDate[dateKey].push(item)
   })
@@ -191,7 +192,7 @@ export default function StudentKalenderPage() {
                           <p className="text-sm text-on-surface-variant">{item.course_title}</p>
                           <span className="flex items-center gap-1 text-xs text-muted mt-1">
                             <Clock className="h-3 w-3" />
-                            {formatDate(item.deadline)}
+                            {formatDate(item.deadline, locale)}
                           </span>
                         </div>
                       </div>

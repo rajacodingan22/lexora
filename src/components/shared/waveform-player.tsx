@@ -45,18 +45,22 @@ export function WaveformPlayer({
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
-  // Initialize wavesurfer
+  // Initialize wavesurfer (WebAudio dulu; kalau decode gagal mis. webm di Safari,
+  // fallback sekali ke MediaElement yang tidak perlu decode)
   useEffect(() => {
     if (!containerRef.current) return
     let ws: any = null
     let destroyed = false
+    let fellBack = false
 
     async function init() {
       const WaveSurfer = (await import('wavesurfer.js')).default
       if (destroyed || !containerRef.current) return
 
-      ws = WaveSurfer.create({
-        container: containerRef.current,
+      const container = containerRef.current
+      if (!container) return
+      const create = (backend: 'WebAudio' | 'MediaElement') => WaveSurfer.create({
+        container,
         waveColor: color + '60',
         progressColor: color,
         cursorColor: color,
@@ -65,53 +69,77 @@ export function WaveformPlayer({
         barRadius: 2,
         height,
         normalize: true,
-        backend: 'WebAudio',
+        backend,
       })
+
+      const attach = (instance: any) => {
+        ws = instance
+        wsRef.current = instance
+      }
+
+      const wire = (instance: any) => {
+        instance.on('ready', () => {
+          if (destroyed) return
+          setReady(true)
+          setLoading(false)
+          setError(null)
+          setDuration(instance.getDuration())
+          onReadyRef.current?.(instance.getDuration())
+        })
+
+        instance.on('loading', (percent: number) => {
+          if (destroyed) return
+          if (percent < 100) setLoading(true)
+        })
+
+        instance.on('error', (err: unknown) => {
+          if (destroyed) return
+          // Fallback sekali ke MediaElement (tanpa decode — untuk Safari/webm)
+          if (!fellBack && (audioUrl || audioBlob)) {
+            fellBack = true
+            try {
+              const fb = create('MediaElement')
+              try { instance.destroy() } catch {}
+              attach(fb)
+              wire(fb)
+              if (audioUrl) fb.load(audioUrl)
+              else if (audioBlob) fb.loadBlob(audioBlob)
+              return
+            } catch (e) {
+              console.error('WaveformPlayer fallback error:', e)
+            }
+          }
+          const message = err instanceof Error ? err.message : 'Failed to load audio'
+          setLoading(false)
+          setError(message)
+          onErrorRef.current?.(message)
+        })
+
+        instance.on('audioprocess', () => {
+          if (destroyed) return
+          const t = instance.getCurrentTime()
+          setCurrentTime(t)
+          onTimeUpdateRef.current?.(t)
+        })
+
+        instance.on('play', () => !destroyed && setPlaying(true))
+        instance.on('pause', () => !destroyed && setPlaying(false))
+        instance.on('finish', () => {
+          if (destroyed) return
+          setPlaying(false)
+          setCurrentTime(0)
+        })
+      }
+
+      ws = create('WebAudio')
+      attach(ws)
+      wire(ws)
 
       if (audioUrl) {
         ws.load(audioUrl)
       } else if (audioBlob) {
         ws.loadBlob(audioBlob)
       }
-
-      ws.on('ready', () => {
-        if (destroyed) return
-        setReady(true)
-        setLoading(false)
-        setError(null)
-        setDuration(ws.getDuration())
-        onReadyRef.current?.(ws.getDuration())
-      })
-
-      ws.on('loading', (percent: number) => {
-        if (destroyed) return
-        if (percent < 100) setLoading(true)
-      })
-
-      ws.on('error', (err: unknown) => {
-        if (destroyed) return
-        const message = err instanceof Error ? err.message : 'Failed to load audio'
-        setLoading(false)
-        setError(message)
-        onErrorRef.current?.(message)
-      })
-
-      ws.on('audioprocess', () => {
-        if (destroyed) return
-        const t = ws.getCurrentTime()
-        setCurrentTime(t)
-        onTimeUpdateRef.current?.(t)
-      })
-
-      ws.on('play', () => !destroyed && setPlaying(true))
-      ws.on('pause', () => !destroyed && setPlaying(false))
-      ws.on('finish', () => {
-        if (destroyed) return
-        setPlaying(false)
-        setCurrentTime(0)
-      })
-
-      wsRef.current = ws
     }
 
     init().catch(err => console.error('WaveformPlayer init error:', err))
@@ -123,21 +151,44 @@ export function WaveformPlayer({
     }
   }, [audioUrl, audioBlob, color, height])
 
-  // External play/pause control
+  // External play/pause control (dengan resume AudioContext + catch autoplay-block)
   useEffect(() => {
-    if (externalPlay && wsRef.current && ready) {
-      wsRef.current.play()
-    }
+    if (!externalPlay || !wsRef.current || !ready) return
+    const ws = wsRef.current
+    ;(async () => {
+      try {
+        const ctx = (ws as any).getAudioContext?.() || (ws as any).audioContext
+        if (ctx?.state === 'suspended') await ctx.resume()
+        await ws.play()
+      } catch (e) {
+        console.error('WaveformPlayer external play blocked:', e)
+      }
+    })()
   }, [externalPlay, ready])
 
   useEffect(() => {
     if (externalPause && wsRef.current && ready) {
-      wsRef.current.pause()
+      try {
+        const r = wsRef.current.pause()
+        if (r instanceof Promise) r.catch((e: unknown) => console.error('WaveformPlayer pause error:', e))
+      } catch (e) {
+        console.error('WaveformPlayer pause error:', e)
+      }
     }
   }, [externalPause, ready])
 
   const togglePlay = useCallback(() => {
-    wsRef.current?.playPause()
+    const ws = wsRef.current
+    if (!ws) return
+    ;(async () => {
+      try {
+        const ctx = (ws as any).getAudioContext?.() || (ws as any).audioContext
+        if (ctx?.state === 'suspended') await ctx.resume()
+        await ws.playPause()
+      } catch (e) {
+        console.error('WaveformPlayer play blocked (autoplay policy?):', e)
+      }
+    })()
   }, [])
 
   const formatTime = (s: number) => {

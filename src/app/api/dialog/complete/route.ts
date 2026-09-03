@@ -20,6 +20,7 @@ async function generateFeedback(turns: Array<{ role: string; text: string }>, la
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: `History:\n${history}\n\nGenerate feedback JSON only.` }], max_tokens: 600, temperature: 0.3 }),
+      signal: AbortSignal.timeout(30000),
     })
     if (!res.ok) throw new Error('zen')
     const data = await res.json()

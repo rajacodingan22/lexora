@@ -95,6 +95,7 @@ function getStatusLabel(status: string): string {
 export default function CertificatesPage() {
   const { user } = useAuth()
   const { lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
 
   const [certificates, setCertificates] = useState<CertificateWithCourse[]>([])
@@ -162,7 +163,7 @@ export default function CertificatesPage() {
     const studentName = escapeHtml(user?.display_name || 'Student')
     const courseName = escapeHtml(getTitle(cert.courses?.title, lang))
     const levelName = escapeHtml(getLevelName(cert.courses?.level, lang))
-    const dateStr = formatDateOnly(cert.issue_date)
+    const dateStr = formatDateOnly(cert.issue_date, locale)
     const grade = cert.final_grade
 
     const html = `<!DOCTYPE html>
@@ -390,7 +391,7 @@ export default function CertificatesPage() {
                           <Badge variant="outline">Level: {getLevelName(cert.courses.level, lang)}</Badge>
                         )}
                         <span>Grade: {cert.final_grade}%</span>
-                        <span>Issued: {formatDateOnly(cert.issue_date)}</span>
+                        <span>Issued: {formatDateOnly(cert.issue_date, locale)}</span>
                       </div>
                       <div className="mt-2 flex items-center gap-1 text-[10px] text-muted">
                         <Shield className="h-3 w-3 text-emerald-400" />
@@ -465,6 +466,7 @@ function CertificateCard({
   user: { display_name?: string | null } | null
 }) {
   const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const svgContent = generateQrSvg(cert.certificate_code, 80)
   const _encodedSvg = svgContent
     .replace(/</g, '%3C')
@@ -540,7 +542,7 @@ function CertificateCard({
           <div className="flex flex-col items-center gap-0.5">
             <span className="text-[9px] uppercase tracking-widest">Date</span>
             <span className="font-semibold text-gray-800 text-sm">
-              {formatDateOnly(cert.issue_date)}
+              {formatDateOnly(cert.issue_date, locale)}
             </span>
           </div>
           <div className="w-px bg-amber-300/50" />

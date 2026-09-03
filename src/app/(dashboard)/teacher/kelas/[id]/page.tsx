@@ -114,7 +114,8 @@ export default function TeacherClassDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
 
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -547,7 +548,7 @@ export default function TeacherClassDetailPage() {
                 const sessionsCreated = course.sessions.length
                 const sessionsRemaining = Math.max(0, totalMeetings - sessionsCreated)
                 const endDateStr = b.end_date
-                  ? new Date(b.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                  ? new Date(b.end_date).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
                   : ''
                 const daysRemaining = b.end_date
                   ? Math.ceil((new Date(b.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))

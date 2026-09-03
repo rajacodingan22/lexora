@@ -26,7 +26,8 @@ export default function AssignmentDetailPage({
   const router = useRouter()
   const supabase = createClient()
   const { user } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
 
   const [assignment, setAssignment] = useState<any>(null)
   const [course, setCourse] = useState<any>(null)
@@ -253,7 +254,7 @@ export default function AssignmentDetailPage({
                         Submission file
                       </p>
                       <p className="text-xs text-muted">
-                        {formatDate(submission.submitted_at)}
+                        {formatDate(submission.submitted_at, locale)}
                       </p>
                     </div>
                   </div>
@@ -281,7 +282,7 @@ export default function AssignmentDetailPage({
                       </div>
                     </div>
                     <p className="text-xs text-muted mt-2">
-                      Graded on {formatDate(grade.graded_at)}
+                      Graded on {formatDate(grade.graded_at, locale)}
                     </p>
                   </div>
                 )}
@@ -375,7 +376,7 @@ export default function AssignmentDetailPage({
                               Submission {allSubmissions.length - i}
                             </p>
                             <p className="text-xs text-muted">
-                              {formatDate(s.submitted_at)}
+                              {formatDate(s.submitted_at, locale)}
                             </p>
                           </div>
                         </div>
@@ -415,7 +416,7 @@ export default function AssignmentDetailPage({
                 <Calendar className="h-4 w-4 text-muted" />
                 <span className="text-on-surface-variant">Due:</span>
                 <span className={`font-medium ${isPastDue ? 'text-red-400' : 'text-on-surface'}`}>
-                  {formatDate(assignment.due_date)}
+                  {formatDate(assignment.due_date, locale)}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm">

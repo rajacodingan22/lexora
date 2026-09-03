@@ -223,7 +223,7 @@ export default function StudentMeetingsPage() {
             <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-muted">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
-                {formatDateOnly(meeting.starts_at)}
+                {formatDateOnly(meeting.starts_at, locale)}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />

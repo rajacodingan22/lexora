@@ -539,7 +539,7 @@ export default function TeacherMeetingsPage() {
             const attInfo = attendanceMap[meeting.id]
             const platformIcon = getPlatformIcon(meeting.provider)
             const startDate = new Date(meeting.starts_at)
-            const dateStr = formatDateOnly(meeting.starts_at)
+              const dateStr = formatDateOnly(meeting.starts_at, locale)
             const timeStr = startDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 
             return (
@@ -613,7 +613,7 @@ export default function TeacherMeetingsPage() {
                               <p className="text-xs font-medium text-on-surface truncate">
                                 {r.user?.display_name || t('teacher2.pertemuan.unknown')}
                               </p>
-                              <p className="text-[10px] text-muted">{formatDateOnly(r.marked_at)}</p>
+                              <p className="text-[10px] text-muted">{formatDateOnly(r.marked_at, locale)}</p>
                             </div>
                             {r.status === 'present' || r.status === 'hadir' ? (
                               <CheckCircle className="h-3.5 w-3.5 text-emerald-400 shrink-0" />

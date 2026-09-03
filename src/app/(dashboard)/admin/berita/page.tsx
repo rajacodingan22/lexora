@@ -59,7 +59,8 @@ const emptyForm: FormState = {
 }
 
 export default function AdminBeritaPage() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
   const [activeTab, setActiveTab] = useState('news')
   const [items, setItems] = useState<NewsItem[]>([])
@@ -247,10 +248,10 @@ export default function AdminBeritaPage() {
                               </Badge>
                             </td>
                             <td className="py-3 text-on-surface-variant">
-                              {item.published_at ? formatDateOnly(item.published_at) : '-'}
+                              {item.published_at ? formatDateOnly(item.published_at, locale) : '-'}
                             </td>
                             <td className="py-3 text-on-surface-variant">
-                              {formatDateOnly(item.created_at)}
+                              {formatDateOnly(item.created_at, locale)}
                             </td>
                             <td className="py-3">
                               <div className="flex items-center gap-1">

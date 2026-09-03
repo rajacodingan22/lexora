@@ -80,7 +80,8 @@ export default function ExamPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'id-ID'
   const supabase = createClient()
   const courseId = params.id as string
 
@@ -482,7 +483,7 @@ export default function ExamPage() {
                   </div>
                   <div className="w-px h-12 bg-border" />
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-on-surface">{formatDateOnly(existingResult.submitted_at)}</p>
+                    <p className="text-3xl font-bold text-on-surface">{formatDateOnly(existingResult.submitted_at, locale)}</p>
                     <p className="text-xs mt-1">{t('student2.exam.submitted')}</p>
                   </div>
                 </div>
