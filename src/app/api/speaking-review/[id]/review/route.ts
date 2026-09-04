@@ -18,7 +18,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .single()
 
     if (!submission) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    if (submission.review_status === 'reviewed') return NextResponse.json({ error: 'Already reviewed' }, { status: 400 })
+    // Re-review diizinkan: guru boleh koreksi nilai (mis. aksen tidak kebaca sistem).
+    const wasReviewed = submission.review_status === 'reviewed'
 
     const { data: enrollment } = await supabase
       .from('enrollments')
@@ -192,21 +193,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
-    // Notify student — English deep link to exact submission
+    // Notify student hanya saat review PERTAMA — re-review tidak spam notif
     try {
-      const { data: full } = await supabase.from('speaking_review_submissions').select('activity_id, task_id, batch_id').eq('id', id).maybeSingle()
-      await supabase.from('notifications').insert({
-        user_id: submission.user_id,
-        type: 'grade',
-        template_key: 'speakingReviewed',
-        params: { submissionId: id, activityId: full?.activity_id || '', taskId: full?.task_id || '', batchId: full?.batch_id || '', courseId: enrollment.course_id },
-        title: 'Speaking Review Completed',
-        body: `Your speaking submission has been reviewed. Overall score: ${overallScore ?? '-'}. Check feedback.`,
-        link: `/student/kursus/${enrollment.course_id}/pertemuan?submissionId=${id}&activityId=${full?.activity_id || ''}`,
-      })
+      if (!wasReviewed) {
+        const { data: full } = await supabase.from('speaking_review_submissions').select('activity_id, task_id, batch_id').eq('id', id).maybeSingle()
+        await supabase.from('notifications').insert({
+          user_id: submission.user_id,
+          type: 'grade',
+          template_key: 'speakingReviewed',
+          params: { submissionId: id, activityId: full?.activity_id || '', taskId: full?.task_id || '', batchId: full?.batch_id || '', courseId: enrollment.course_id },
+          title: 'Speaking Review Completed',
+          body: `Your speaking submission has been reviewed. Overall score: ${overallScore ?? '-'}. Check feedback.`,
+          link: `/student/kursus/${enrollment.course_id}/pertemuan?submissionId=${id}&activityId=${full?.activity_id || ''}`,
+        })
+      }
     } catch (e) { console.error('[speaking-review] notify error', e) }
 
-    return NextResponse.json({ success: true, overall_score: overallScore })
+    // Audit trail (re-review tercatat terpisah)
+    try {
+      await supabase.from('audit_logs').insert({
+        action: wasReviewed ? 'speaking.re_reviewed' : 'speaking.reviewed',
+        user_id: user.id,
+        details: { submission_id: id, student_id: submission.user_id, overall_score: overallScore },
+      })
+    } catch (auditErr) {
+      console.error('[audit] speaking review failed:', auditErr)
+    }
+
+    return NextResponse.json({ success: true, overall_score: overallScore, re_review: wasReviewed })
   } catch (e) {
     console.error('[speaking-review] error', e)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

@@ -15,6 +15,12 @@ interface Submission {
   review_status: string
   overall_score: number | null
   created_at: string
+  score_fluency?: number | null
+  score_intonation?: number | null
+  score_pronunciation?: number | null
+  score_confidence?: number | null
+  score_comprehension?: number | null
+  teacher_feedback?: string | null
 }
 
 export function SpeakingReviewQueue() {

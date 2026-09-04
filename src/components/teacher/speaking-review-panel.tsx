@@ -18,7 +18,14 @@ interface ReviewData {
 }
 
 interface TeacherReviewPanelProps {
-  submission: ReviewData
+  submission: ReviewData & {
+    score_fluency?: number | null
+    score_intonation?: number | null
+    score_pronunciation?: number | null
+    score_confidence?: number | null
+    score_comprehension?: number | null
+    teacher_feedback?: string | null
+  }
   onSubmit: (review: { scoreFluency: number; scoreIntonation: number; scorePronunciation: number; scoreConfidence: number; scoreComprehension: number; teacherFeedback: string }) => void
   onClose: () => void
 }
@@ -31,15 +38,18 @@ const ASPECTS = [
   { key: 'comprehension', label: 'Comprehension', description: 'Pemahaman makna dari teks' },
 ] as const
 
+const numOr = (v: unknown, fallback: number) => typeof v === 'number' && !Number.isNaN(v) ? v : fallback
+
 export function TeacherReviewPanel({ submission, onSubmit, onClose }: TeacherReviewPanelProps) {
+  // Prefill dari review sebelumnya (re-review koreksi aksen) — default 75 untuk review pertama
   const [scores, setScores] = useState<Record<string, number>>({
-    fluency: 75,
-    intonation: 75,
-    pronunciation: 75,
-    confidence: 75,
-    comprehension: 75,
+    fluency: numOr(submission.score_fluency, 75),
+    intonation: numOr(submission.score_intonation, 75),
+    pronunciation: numOr(submission.score_pronunciation, 75),
+    confidence: numOr(submission.score_confidence, 75),
+    comprehension: numOr(submission.score_comprehension, 75),
   })
-  const [feedback, setFeedback] = useState('')
+  const [feedback, setFeedback] = useState(submission.teacher_feedback || '')
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit() {
@@ -85,7 +95,8 @@ export function TeacherReviewPanel({ submission, onSubmit, onClose }: TeacherRev
         )}
 
         {/* Auto score */}
-        <p className="mb-3 text-xs text-white/40">Skor Otomatis: {Math.round((submission.auto_score || 0) * 100)}%</p>
+        <p className="mb-1 text-xs text-white/40">Skor Otomatis: {Math.round((submission.auto_score || 0) * 100)}%</p>
+        <p className="mb-3 text-[11px] text-amber-300/80">Skor otomatis dari teks — bisa bias aksen. Dengarkan audionya dulu sebelum menilai.</p>
 
         {/* Audio player */}
         {submission.audio_drive_link && (
