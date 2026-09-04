@@ -61,7 +61,6 @@ function FeedCard({ item }: { item: FeedItem }) {
       className="glass-card group flex h-full flex-col rounded-2xl p-5 hover-lift"
     >
       {image && (
-        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={image}
           alt={title}

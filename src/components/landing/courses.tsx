@@ -160,7 +160,10 @@ export function CoursesSection() {
             const nb = nextBatchLabel(course.batches, t)
             const isFull = nb.full
             const courseLang = course.language
-            const title = course.title.id || course.title.en
+            const title = lang === 'en' ? (course.title.en || course.title.id) : (course.title.id || course.title.en)
+            const desc = course.description
+              ? (lang === 'en' ? (course.description.en || course.description.id) : (course.description.id || course.description.en))
+              : ''
             return (
               <Link
                 key={course.id}
@@ -169,7 +172,6 @@ export function CoursesSection() {
               >
                 <div className="relative h-36 shrink-0 overflow-hidden">
                   {course.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={course.image_url}
                       alt={title}
@@ -211,9 +213,9 @@ export function CoursesSection() {
                     )}
                   </div>
 
-                  {course.description?.id && (
+                  {desc && (
                     <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-on-surface-variant">
-                      {course.description.id}
+                      {desc}
                     </p>
                   )}
 
@@ -222,7 +224,6 @@ export function CoursesSection() {
                       <div className="flex shrink-0 -space-x-2">
                         {course.teachers.slice(0, 3).map((t) =>
                           t.photo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img key={t.id} src={t.photo_url} alt=""
                               onError={(e) => { e.currentTarget.style.display = 'none' }}
                               className="h-7 w-7 rounded-full border-2 border-surface object-cover" />
