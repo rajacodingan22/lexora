@@ -46,7 +46,7 @@ export function HeroSection({
   ]
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-6 lg:px-8 lg:pb-24" aria-label={t('landing.hero.ariaLabel')}>
+    <section className="mx-auto max-w-7xl px-4 pb-20 pt-4 sm:px-6 lg:px-8 lg:pb-24" aria-label={t('landing.hero.ariaLabel')}>
       <div className="mx-auto max-w-3xl text-center">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface-container-lowest/60 px-4 py-1.5 backdrop-blur">
           <span className="relative flex size-2">

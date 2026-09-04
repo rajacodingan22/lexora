@@ -22,8 +22,8 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
   return (
     <section id="testimoni" className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8 lg:pb-24" aria-label={tr('landing.testimonials.ariaLabel')}>
       <div className="mb-12 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning-soft px-3 py-1 text-xs font-bold uppercase tracking-widest text-warning">
-          <Star className="size-3 fill-current" aria-hidden="true" /> {tr('landing.testimonials.badge')}
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container-low px-3 py-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+          <Star className="size-3" aria-hidden="true" /> {tr('landing.testimonials.badge')}
         </span>
         <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
           {tr('landing.testimonials.titlePart1')} <span className="gradient-text">{tr('landing.testimonials.titleHighlight')}</span>{tr('landing.testimonials.titleSuffix')}

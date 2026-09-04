@@ -39,8 +39,8 @@ export function LanguagesSection({ languages }: LanguagesSectionProps) {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24" aria-label={t('landing.languages.ariaLabel')}>
-      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8 lg:pb-24" aria-label={t('landing.languages.ariaLabel')}>
+      <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
             {t('landing.languages.titlePrefix')} <span className="gradient-text">{t('landing.languages.titleHighlight')}</span>{t('landing.languages.titleSuffix')}
