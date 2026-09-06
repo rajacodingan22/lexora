@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -463,7 +463,7 @@ export default function RegisterPage() {
 
             <div className="relative my-4">
               <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950 px-3 text-xs font-black uppercase tracking-widest text-white/40">
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950 px-3 text-xs font-black uppercase tracking-widest">
                 {t('public.daftar.or')}
               </span>
             </div>
@@ -511,5 +511,5 @@ export default function RegisterPage() {
         />
       )}
     </div>
-  )
+  );
 }
