@@ -14,9 +14,9 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const id = props.id ?? `textarea-${genId}`
     const describedBy = hint || error ? `${id}-hint` : undefined
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {label && (
-          <label htmlFor={id} className="text-sm font-medium text-on-surface">
+          <label htmlFor={id} className="text-sm font-bold text-on-surface tracking-wide">
             {label}
           </label>
         )}
@@ -27,21 +27,21 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-invalid={hasError || undefined}
           aria-describedby={describedBy}
           className={cn(
-            'flex min-h-[100px] w-full rounded-lg border bg-surface-container-lowest px-3.5 py-2.5 text-sm text-on-surface',
+            'flex min-h-[120px] w-full rounded-2xl border bg-surface-container-lowest/50 px-4 py-3 text-sm text-on-surface backdrop-blur-sm',
             'placeholder:text-muted resize-y',
-            'transition-all duration-[var(--dur-fast)] ease-[var(--ease-out)]',
-            'hover:border-border-strong',
-            'focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary',
+            'transition-all duration-300 ease-out',
+            'hover:border-border-strong hover:bg-surface-container-lowest/80',
+            'focus:outline-none focus:ring-4 focus:border-primary focus:shadow-lg focus:shadow-primary/10',
             'disabled:cursor-not-allowed disabled:opacity-50',
             hasError
-              ? 'border-destructive/60 focus:ring-destructive/40 focus:border-destructive'
-              : 'border-border',
+              ? 'border-destructive/60 focus:ring-destructive/30 focus:border-destructive bg-destructive-soft/30'
+              : 'border-border/70 focus:ring-primary/20',
             className
           )}
           {...props}
         />
         {(hint || error) && (
-          <p className={cn('text-xs', hasError ? 'text-destructive' : 'text-on-surface-variant')}>
+          <p className={cn('text-xs font-medium', hasError ? 'text-destructive' : 'text-on-surface-variant')}>
             {error || hint}
           </p>
         )}

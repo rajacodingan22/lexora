@@ -5,44 +5,47 @@ import { Loader2 } from 'lucide-react'
 
 const buttonVariants = cva(
   [
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold',
-    'transition-all duration-[var(--dur)] ease-[var(--ease-out)]',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-    'disabled:pointer-events-none disabled:opacity-50',
-    'active:translate-y-px',
-    '[&_svg]:size-4 [&_svg]:shrink-0',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-bold tracking-wide',
+    'transition-all duration-300 ease-out',
+    'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    'disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
+    'active:scale-95 hover:-translate-y-0.5',
+    '[&_svg]:size-5 [&_svg]:shrink-0',
+    'relative overflow-hidden',
+    'before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/0 before:via-white/10 before:to-white/0 before:-translate-x-full',
+    'hover:before:translate-x-full hover:before:duration-700',
   ].join(' '),
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:bg-primary/90',
+          'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 border border-primary/20',
         gradient:
-          'btn-gradient text-primary-foreground shadow-sm hover:shadow-glow',
+          'btn-gradient text-primary-foreground shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 border-0',
         secondary:
-          'bg-surface text-on-surface border border-border hover:bg-surface-hover hover:border-border-strong',
+          'bg-gradient-to-r from-surface-container-high to-surface-container-highest text-on-surface border border-border-strong hover:border-primary/50 hover:shadow-md',
         outline:
-          'border border-border bg-transparent text-on-surface hover:bg-surface hover:border-border-strong',
+          'border-2 border-primary/50 bg-transparent text-primary hover:bg-primary/10 hover:shadow-lg hover:shadow-primary/20',
         ghost:
-          'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low',
+          'text-on-surface hover:text-on-surface hover:bg-surface-container-low hover:shadow-sm',
         link:
-          'text-primary underline-offset-4 hover:underline font-medium px-0',
+          'text-primary underline-offset-4 hover:underline font-bold px-0 decoration-2',
         destructive:
-          'bg-destructive text-primary-foreground shadow-sm hover:bg-destructive/90 hover:shadow-md',
+          'bg-gradient-to-r from-destructive to-red-500 text-primary-foreground shadow-lg shadow-destructive/25 hover:shadow-xl hover:shadow-destructive/35',
         success:
-          'bg-success text-primary-foreground shadow-sm hover:bg-success/90 hover:shadow-md',
+          'bg-gradient-to-r from-success to-green-500 text-primary-foreground shadow-lg shadow-success/25 hover:shadow-xl hover:shadow-success/35',
         warning:
-          'bg-warning text-on-surface shadow-sm hover:bg-warning/90 hover:shadow-md',
+          'bg-gradient-to-r from-warning to-orange-500 text-on-surface shadow-lg shadow-warning/25 hover:shadow-xl hover:shadow-warning/35',
         info:
-          'bg-info text-primary-foreground shadow-sm hover:bg-info/90 hover:shadow-md',
+          'bg-gradient-to-r from-info to-blue-500 text-primary-foreground shadow-lg shadow-info/25 hover:shadow-xl hover:shadow-info/35',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-12 rounded-lg px-6 text-base',
-        xl: 'h-14 rounded-lg px-8 text-base',
-        icon: 'h-10 w-10 [&_svg]:size-5',
-        'icon-sm': 'h-8 w-8 [&_svg]:size-4',
+        default: 'h-12 px-6 py-3 text-sm',
+        sm: 'h-10 rounded-lg px-4 text-xs',
+        lg: 'h-14 rounded-xl px-8 text-base',
+        xl: 'h-16 rounded-2xl px-10 text-lg',
+        icon: 'h-12 w-12 [&_svg]:size-5',
+        'icon-sm': 'h-10 w-10 [&_svg]:size-4',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },
