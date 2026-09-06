@@ -1,33 +1,12 @@
-```
+```gitignore
 # Dependencies
 node_modules/
 
 # Build outputs
-.next/
 dist/
 build/
+.next/
 out/
-
-# Environment variables
-.env
-.env.local
-.env.*
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Logs
-*.log
-
-# Temp files
-*.tmp
-
-# OS generated files
-.DS_Store
-Thumbs.db
 
 # Python
 __pycache__/
@@ -38,48 +17,63 @@ __pycache__/
 env/
 venv/
 .venv/
+.ENV
+.env
+.env.local
+.env.*
+.env.local.*
+.env.vault
+.python-version
 pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
+pipenv.lock
+poetry.lock
+*.pot
+*.mo
+MANIFEST
+
+# Logs
+logs/
 *.log
-.git/
-.mypy_cache/
-.pytest_cache/
-.hypothesis/
 
-# Node.js
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-node_modules/
-dist/
-build/
-.next/
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+*.env
+*.env.*
+
+# Coverage
 coverage/
-.nyc_output/
-.npm/
-.yarn/
-.pnp.*
-.pnp.js
-lib-cov/
-remap-istanbul/
-*.tsbuildinfo
-*.tsx
-*.jsx
+htmlcov/
+.coverage
+*.coverage
 
-# Next.js
-.next/
-out/
-.next/**
-!next-env.d.ts
+# Temporary files
+*.tmp
+*.temp
+*~
+```
 
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
+Wait, I need to reconsider. The only modified file is `src/app/daftar/page.tsx` which is a TypeScript React component. There are no build artifacts, dependency directories, or temporary files in the changes. The current .gitignore appears to be empty.
+
+Since only a source code file was modified and there are no artifacts or dependencies in the change list, I should output nothing.
+
+```gitignore
+
 ```

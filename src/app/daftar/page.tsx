@@ -173,54 +173,58 @@ export default function RegisterPage() {
 
   if (settingsLoaded && !registrationEnabled) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950 px-4 py-8">
-        <div className="w-full max-w-md text-center">
-          <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl animate-bounce-in">
-            <ShieldCheck className="size-10 text-cyan-400" aria-hidden="true" />
+      <div className="relative min-h-dvh overflow-hidden bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950">
+        <main className="flex min-h-dvh items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md text-center">
+            <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl animate-bounce-in">
+              <ShieldCheck className="size-10 text-cyan-400" aria-hidden="true" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-white">
+              {t('public.daftar.registrationClosed')}
+            </h1>
+            <p className="mt-3 text-white/70">
+              {t('public.daftar.registrationClosedDesc')}
+            </p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/masuk">
+                <Button variant="gradient" size="lg" className="shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40">{t('public.daftar.haveAccountLogin')}</Button>
+              </Link>
+            </div>
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-white">
-            {t('public.daftar.registrationClosed')}
-          </h1>
-          <p className="mt-3 text-white/70">
-            {t('public.daftar.registrationClosedDesc')}
-          </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/masuk">
-              <Button variant="gradient" size="lg" className="shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40">{t('public.daftar.haveAccountLogin')}</Button>
-            </Link>
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     )
   }
 
   if (success) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950 px-4 py-8">
-        <div className="w-full max-w-md text-center">
-          <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-emerald-500/20 backdrop-blur-xl animate-bounce-in">
-            <CheckCircle2 className="size-10 text-emerald-400" aria-hidden="true" />
+      <div className="relative min-h-dvh overflow-hidden bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950">
+        <main className="flex min-h-dvh items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md text-center">
+            <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-emerald-500/20 backdrop-blur-xl animate-bounce-in">
+              <CheckCircle2 className="size-10 text-emerald-400" aria-hidden="true" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-white">
+              {form.role === 'teacher' ? t('public.daftar.teacherCheckEmail') : t('public.daftar.checkEmail')}
+            </h1>
+            <p className="mt-3 text-white/70">
+              {t('public.daftar.verificationSent')}{' '}
+              <strong className="text-white">{form.email}</strong>
+            </p>
+            <p className="mt-1 text-sm text-white/60">
+              {form.role === 'teacher' ? t('public.daftar.teacherVerificationHint') : t('public.daftar.verificationHint')}
+            </p>
+            <p className="mt-4 text-xs text-white/40">
+              {t('public.daftar.noEmail')}
+            </p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/masuk">
+                <Button variant="gradient" size="lg" className="shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40">{t('public.daftar.verifiedLogin')}</Button>
+              </Link>
+            </div>
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-white">
-            {form.role === 'teacher' ? t('public.daftar.teacherCheckEmail') : t('public.daftar.checkEmail')}
-          </h1>
-          <p className="mt-3 text-white/70">
-            {t('public.daftar.verificationSent')}{' '}
-            <strong className="text-white">{form.email}</strong>
-          </p>
-          <p className="mt-1 text-sm text-white/60">
-            {form.role === 'teacher' ? t('public.daftar.teacherVerificationHint') : t('public.daftar.verificationHint')}
-          </p>
-          <p className="mt-4 text-xs text-white/40">
-            {t('public.daftar.noEmail')}
-          </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/masuk">
-              <Button variant="gradient" size="lg" className="shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40">{t('public.daftar.verifiedLogin')}</Button>
-            </Link>
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     )
   }
 
