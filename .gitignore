@@ -8,6 +8,11 @@ build/
 .next/
 out/
 
+# Environment variables
+.env
+.env.local
+.env.*
+
 # Python
 __pycache__/
 *.pyc
@@ -17,63 +22,25 @@ __pycache__/
 env/
 venv/
 .venv/
-.ENV
-.env
-.env.local
-.env.*
-.env.local.*
-.env.vault
-.python-version
 pip-log.txt
-pipenv.lock
-poetry.lock
-*.pot
-*.mo
-MANIFEST
-
-# Logs
-logs/
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
 *.log
-
-# OS generated files
+.git/modules/
 .DS_Store
+*.swp
+*.swo
+*~
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
 Thumbs.db
-Thumbs.db:encryptable
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Environment
-.env
-.env.local
-*.env
-*.env.*
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-*.coverage
-
-# Temporary files
-*.tmp
-*.temp
-*~
-```
-
-Wait, I need to reconsider. The only modified file is `src/app/daftar/page.tsx` which is a TypeScript React component. There are no build artifacts, dependency directories, or temporary files in the changes. The current .gitignore appears to be empty.
-
-Since only a source code file was modified and there are no artifacts or dependencies in the change list, I should output nothing.
-
-```gitignore
-
 ```
