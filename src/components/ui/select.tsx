@@ -14,27 +14,27 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const genId = useId()
     const id = props.id ?? `select-${genId}`
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {label && (
-          <label htmlFor={id} className="text-sm font-medium text-on-surface">
+          <label htmlFor={id} className="text-sm font-bold text-on-surface tracking-wide">
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className="relative group">
           <select
             ref={ref}
             id={id}
             disabled={disabled}
             aria-invalid={hasError || undefined}
             className={cn(
-              'flex h-11 w-full appearance-none rounded-lg border bg-surface-container-lowest pl-3.5 pr-10 py-2 text-sm text-on-surface',
-              'transition-all duration-[var(--dur-fast)] ease-[var(--ease-out)]',
-              'hover:border-border-strong',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary',
+              'flex h-14 w-full appearance-none rounded-2xl border bg-surface-container-lowest/50 pl-4 pr-12 py-3 text-sm text-on-surface backdrop-blur-sm',
+              'transition-all duration-300 ease-out',
+              'hover:border-border-strong hover:bg-surface-container-lowest/80',
+              'focus:outline-none focus:ring-4 focus:border-primary focus:shadow-lg focus:shadow-primary/10',
               'disabled:cursor-not-allowed disabled:opacity-50',
               hasError
-                ? 'border-destructive/60 focus:ring-destructive/40 focus:border-destructive'
-                : 'border-border',
+                ? 'border-destructive/60 focus:ring-destructive/30 focus:border-destructive bg-destructive-soft/30'
+                : 'border-border/70 focus:ring-primary/20',
               className
             )}
             {...props}
@@ -43,11 +43,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </select>
           <ChevronDown
             aria-hidden="true"
-            className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+            className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-muted transition-colors group-focus-within:text-primary"
           />
         </div>
         {(hint || error) && (
-          <p className={cn('text-xs', hasError ? 'text-destructive' : 'text-on-surface-variant')}>
+          <p className={cn('text-xs font-medium', hasError ? 'text-destructive' : 'text-on-surface-variant')}>
             {error || hint}
           </p>
         )}

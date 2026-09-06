@@ -72,7 +72,7 @@ export function TabsList({ children, className }: TabsListProps) {
       role="tablist"
       onKeyDown={handleKeyDown}
       className={cn(
-        'inline-flex flex-wrap items-center gap-1 rounded-xl border border-border bg-surface-container-low p-1',
+        'inline-flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/50 bg-surface-container-low/50 backdrop-blur-sm p-1.5',
         className
       )}
     >
@@ -117,11 +117,12 @@ export function TabsTrigger({ value, children, className, icon, count, ref }: Ta
       tabIndex={isActive ? 0 : -1}
       onClick={() => ctx.onValueChange(value)}
       className={cn(
-        'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-[var(--dur-fast)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all duration-300 ease-out',
+        'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20',
+        'hover:-translate-y-0.5',
         isActive
-          ? 'bg-primary-soft text-primary shadow-sm'
-          : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high',
+          ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 scale-105'
+          : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50',
         className
       )}
     >
@@ -130,8 +131,8 @@ export function TabsTrigger({ value, children, className, icon, count, ref }: Ta
       {count !== undefined && (
         <span
           className={cn(
-            'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold',
-            isActive ? 'bg-primary text-primary-foreground' : 'bg-surface-container-high text-on-surface-variant'
+            'inline-flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-[10px] font-bold',
+            isActive ? 'bg-white/20 text-primary-foreground' : 'bg-surface-container-high text-on-surface-variant'
           )}
         >
           {count}
@@ -156,7 +157,7 @@ export function TabsContent({ value, children, className }: TabsContentProps) {
       role="tabpanel"
       aria-labelledby={`tab-${ctx.uid}-${value}`}
       tabIndex={0}
-      className={cn('animate-fade-in rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', className)}
+      className={cn('animate-fade-in rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20', className)}
     >
       {children}
     </div>

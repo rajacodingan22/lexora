@@ -1,50 +1,85 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+```
+# Dependencies
+node_modules/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Build outputs
+.next/
+dist/
+build/
+out/
 
-# testing
-/coverage
+# Environment variables
+.env
+.env.local
+.env.*
 
-# next.js
-/.next/
-/out/
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# production
-/build
+# Logs
+*.log
 
-# misc
+# Temp files
+*.tmp
+
+# OS generated files
 .DS_Store
-*.pem
+Thumbs.db
 
-# debug
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+
+# Node.js
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+node_modules/
+dist/
+build/
+.next/
+coverage/
+.nyc_output/
+.npm/
+.yarn/
+.pnp.*
+.pnp.js
+lib-cov/
+remap-istanbul/
+*.tsbuildinfo
+*.tsx
+*.jsx
 
-# env files (can opt-in for committing if needed)
-.env*
+# Next.js
+.next/
+out/
+.next/**
+!next-env.d.ts
 
-# vercel
-.vercel
-vercel-files.json
-
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
-
-.vercel
-.env*
-
-# audit artefacts
-eslint-now.json
-eslint-now.err
-.eslint-temp.json
+```

@@ -10,6 +10,7 @@ import { TeachersSection } from '@/components/landing/teachers'
 import { NewsEventsSection } from '@/components/landing/news-events'
 import { TestimonialsSection } from '@/components/landing/testimonials'
 import { HowItWorksSection } from '@/components/landing/how-it-works'
+import { SpecialOfferPopup } from '@/components/landing/special-offer-popup'
 import { useI18n } from '@/lib/i18n/client'
 import { Search, UserPlus, BookOpen, Award } from 'lucide-react'
 
@@ -38,24 +39,23 @@ export default function HomeClient() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen">
-        <div className="pt-4">
-          <HeroSection testimonials={testimonials} heroData={{ title: t('public.home.heroTitle'), subtitle: t('public.home.heroSubtitle'), ctaText: t('public.home.heroCta'), ctaLink: '/daftar', featurePills: [] }} />
-        </div>
+      <main className="min-h-screen bg-gradient-to-b from-background via-surface-container-lowest to-background">
+        <HeroSection testimonials={testimonials} heroData={{ title: t('public.home.heroTitle'), subtitle: t('public.home.heroSubtitle'), ctaText: t('public.home.heroCta'), ctaLink: '/daftar', featurePills: [] }} />
         <LanguagesSection languages={languages} />
         <FeaturesSection />
         <CoursesSection />
         <TeachersSection />
-        <NewsEventsSection />
-        <TestimonialsSection testimonials={testimonials} />
         <HowItWorksSection steps={[
           { num: '01', title: t('landing.howItWorks.step1Title'), desc: t('landing.howItWorks.step1Desc'), icon: Search },
           { num: '02', title: t('landing.howItWorks.step2Title'), desc: t('landing.howItWorks.step2Desc'), icon: UserPlus },
           { num: '03', title: t('landing.howItWorks.step3Title'), desc: t('landing.howItWorks.step3Desc'), icon: BookOpen },
           { num: '04', title: t('landing.howItWorks.step4Title'), desc: t('landing.howItWorks.step4Desc'), icon: Award },
         ]} />
+        <TestimonialsSection testimonials={testimonials} />
+        <NewsEventsSection />
       </main>
       <Footer />
+      <SpecialOfferPopup />
     </>
   )
 }

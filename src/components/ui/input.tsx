@@ -17,11 +17,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const id = props.id ?? `input-${genId}`
     const describedBy = hint || error ? `${id}-hint` : undefined
     const input = (
-      <div className="relative">
+      <div className="relative group">
         {icon && (
           <div
             className={cn(
-              'pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted transition-colors',
+              'pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted transition-all duration-300 group-focus-within:text-primary',
               hasError && 'text-destructive',
               !hasError && success && 'text-success'
             )}
@@ -36,25 +36,26 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={hasError || undefined}
           aria-describedby={describedBy}
           className={cn(
-            'flex h-11 w-full rounded-lg border bg-surface-container-lowest px-3.5 py-2 text-sm text-on-surface',
+            'flex h-14 w-full rounded-2xl border bg-surface-container-lowest/50 px-4 py-3 text-sm text-on-surface backdrop-blur-sm',
             'placeholder:text-muted',
-            'transition-all duration-[var(--dur-fast)] ease-[var(--ease-out)]',
-            'hover:border-border-strong',
-            'focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary',
+            'transition-all duration-300 ease-out',
+            'hover:border-border-strong hover:bg-surface-container-lowest/80',
+            'focus:outline-none focus:ring-4 focus:border-primary',
             'disabled:cursor-not-allowed disabled:opacity-50',
+            'group-focus-within:shadow-lg group-focus-within:shadow-primary/10',
             hasError
-              ? 'border-destructive/60 focus:ring-destructive/40 focus:border-destructive'
+              ? 'border-destructive/60 focus:ring-destructive/30 focus:border-destructive bg-destructive-soft/30'
               : success
-                ? 'border-success/60 focus:ring-success/40 focus:border-success'
-                : 'border-border',
-            icon && 'pl-11',
-            suffix && 'pr-11',
+                ? 'border-success/60 focus:ring-success/30 focus:border-success bg-success-soft/30'
+                : 'border-border/70 focus:ring-primary/20',
+            icon && 'pl-12',
+            suffix && 'pr-12',
             className
           )}
           {...props}
         />
         {suffix && (
-          <div className="absolute right-1 top-1/2 -translate-y-1/2">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
             {suffix}
           </div>
         )}
@@ -64,9 +65,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     if (!label && !hint && !error) return input
 
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {label && (
-          <label htmlFor={id} className="text-sm font-medium text-on-surface">
+          <label htmlFor={id} className="text-sm font-bold text-on-surface tracking-wide">
             {label}
           </label>
         )}
@@ -75,7 +76,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <p
             id={`${id}-hint`}
             className={cn(
-              'text-xs',
+              'text-xs font-medium',
               hasError ? 'text-destructive' : 'text-on-surface-variant'
             )}
           >

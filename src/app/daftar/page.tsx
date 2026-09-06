@@ -173,20 +173,20 @@ export default function RegisterPage() {
 
   if (settingsLoaded && !registrationEnabled) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-8">
+      <main className="flex min-h-dvh items-center justify-center bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950 px-4 py-8">
         <div className="w-full max-w-md text-center">
-          <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-surface-container-low animate-bounce-in">
-            <ShieldCheck className="size-10 text-muted" aria-hidden="true" />
+          <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl animate-bounce-in">
+            <ShieldCheck className="size-10 text-cyan-400" aria-hidden="true" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-on-surface">
+          <h1 className="text-3xl font-black tracking-tight text-white">
             {t('public.daftar.registrationClosed')}
           </h1>
-          <p className="mt-3 text-on-surface-variant">
+          <p className="mt-3 text-white/70">
             {t('public.daftar.registrationClosedDesc')}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link href="/masuk">
-              <Button variant="gradient" size="lg">{t('public.daftar.haveAccountLogin')}</Button>
+              <Button variant="gradient" size="lg" className="shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40">{t('public.daftar.haveAccountLogin')}</Button>
             </Link>
           </div>
         </div>
@@ -196,27 +196,27 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-8">
+      <main className="flex min-h-dvh items-center justify-center bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950 px-4 py-8">
         <div className="w-full max-w-md text-center">
-          <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-success-soft animate-bounce-in">
-            <CheckCircle2 className="size-10 text-success" aria-hidden="true" />
+          <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-emerald-500/20 backdrop-blur-xl animate-bounce-in">
+            <CheckCircle2 className="size-10 text-emerald-400" aria-hidden="true" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-on-surface">
+          <h1 className="text-3xl font-black tracking-tight text-white">
             {form.role === 'teacher' ? t('public.daftar.teacherCheckEmail') : t('public.daftar.checkEmail')}
           </h1>
-          <p className="mt-3 text-on-surface-variant">
+          <p className="mt-3 text-white/70">
             {t('public.daftar.verificationSent')}{' '}
-            <strong className="text-on-surface">{form.email}</strong>
+            <strong className="text-white">{form.email}</strong>
           </p>
-          <p className="mt-1 text-sm text-on-surface-variant">
+          <p className="mt-1 text-sm text-white/60">
             {form.role === 'teacher' ? t('public.daftar.teacherVerificationHint') : t('public.daftar.verificationHint')}
           </p>
-          <p className="mt-4 text-xs text-on-surface-variant">
+          <p className="mt-4 text-xs text-white/40">
             {t('public.daftar.noEmail')}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link href="/masuk">
-              <Button variant="gradient" size="lg">{t('public.daftar.verifiedLogin')}</Button>
+              <Button variant="gradient" size="lg" className="shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40">{t('public.daftar.verifiedLogin')}</Button>
             </Link>
           </div>
         </div>
@@ -225,82 +225,104 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-2">
-      <aside
-        className="relative hidden overflow-hidden border-r border-border bg-gradient-to-br from-accent via-primary to-secondary p-12 lg:flex lg:flex-col lg:min-h-dvh"
-        aria-label="Brand introduction"
-      >
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 30% 30%, oklch(0.99 0.005 270 / 0.4), transparent 55%), radial-gradient(circle at 70% 80%, oklch(0.99 0.005 270 / 0.3), transparent 50%)',
-          }}
-        />
-        <Link href="/" className="relative z-10 flex items-center gap-2.5">
-          <img src="/logo.png" alt="" className="size-10 rounded-xl object-contain shadow-sm" />
-          <span className="text-xl font-extrabold tracking-tight text-primary-foreground">
-            Lexora Academy
-          </span>
-        </Link>
+    <div className="relative min-h-dvh overflow-hidden bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -left-1/4 h-[1000px] w-[1000px] rounded-full bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 blur-3xl animate-pulse" />
+        <div className="absolute -bottom-1/2 -right-1/4 h-[1000px] w-[1000px] rounded-full bg-gradient-to-r from-cyan-600/20 to-blue-600/20 blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/4 right-1/4 h-[600px] w-[600px] rounded-full bg-gradient-to-r from-pink-600/15 to-purple-600/15 blur-3xl animate-pulse delay-500" />
+      </div>
 
-        <div className="relative z-10 mt-auto">
-          <div className="flex items-center gap-2 text-primary-foreground/90">
-            <Sparkles className="size-5" aria-hidden="true" />
-            <span className="text-sm font-bold uppercase tracking-widest">{t('public.daftar.joinNow')}</span>
-          </div>
-          <h2 className="mt-4 text-balance text-3xl font-extrabold leading-tight text-primary-foreground sm:text-4xl">
-            {t('public.daftar.heroTitleA')}<br />
-            {t('public.daftar.heroTitleB')}
-          </h2>
-          <p className="mt-3 max-w-sm text-primary-foreground/85">
-            {t('public.daftar.heroDesc')}
-          </p>
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
 
-          <div className="mt-8 space-y-3">
-            {[
-              t('public.daftar.perk1'),
-              t('public.daftar.perk2'),
-              t('public.daftar.perk3'),
-              t('public.daftar.perk4'),
-            ].map((perk) => (
-              <div key={perk} className="flex items-center gap-2.5 text-sm text-primary-foreground">
-                <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-background/30 backdrop-blur">
-                  <CheckCircle2 className="size-4" aria-hidden="true" />
-                </div>
-                {perk}
-              </div>
-            ))}
-          </div>
-        </div>
-      </aside>
-
-      <main className="relative flex min-h-dvh items-center justify-center bg-background px-4 py-8 sm:px-6 lg:px-12">
-        <div className="absolute right-4 top-4 z-20">
-          <AccessibilityToggle />
-        </div>
-        <div className="w-full max-w-md">
-          <Link href="/" className="mb-8 inline-flex items-center gap-2 lg:hidden" aria-label="Lexora Academy home">
-            <img src="/logo.png" alt="" className="size-9 rounded-lg object-contain shadow-sm" />
-            <span className="text-lg font-extrabold tracking-tight text-on-surface">
-              Lex<span className="gradient-text">ora</span> Academy
+      <div className="relative grid lg:grid-cols-2 min-h-dvh">
+        {/* Left Panel - Brand */}
+        <aside className="hidden lg:flex lg:flex-col lg:justify-between lg:p-12 lg:border-r border-white/10 backdrop-blur-xl bg-white/5">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-cyan-500 rounded-xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
+              <img src="/logo.png" alt="" className="relative size-12 rounded-xl object-contain shadow-2xl" />
+            </div>
+            <span className="text-2xl font-black tracking-tight text-white">
+              Lexora<span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">Academy</span>
             </span>
           </Link>
 
-          <div className="mb-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-on-surface">{t('public.daftar.createAccount')}</h1>
-            <p className="mt-2 text-on-surface-variant">{t('public.daftar.createSubtitle')}</p>
+          <div className="space-y-6 mt-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/20 to-cyan-500/20 border border-white/10 backdrop-blur-sm">
+              <Sparkles className="size-4 text-cyan-400" />
+              <span className="text-xs font-bold uppercase tracking-widest text-white/90">{t('public.daftar.joinNow')}</span>
+            </div>
+            
+            <h2 className="text-4xl font-black leading-tight text-white">
+              {t('public.daftar.heroTitleA')}<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400">
+                {t('public.daftar.heroTitleB')}
+              </span>
+            </h2>
+            
+            <p className="text-lg text-white/70 max-w-md">
+              {t('public.daftar.heroDesc')}
+            </p>
+
+            <div className="mt-8 space-y-3">
+              {[
+                t('public.daftar.perk1'),
+                t('public.daftar.perk2'),
+                t('public.daftar.perk3'),
+                t('public.daftar.perk4'),
+              ].map((perk) => (
+                <div key={perk} className="flex items-center gap-2.5 text-sm text-white/90">
+                  <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-white/10 backdrop-blur">
+                    <CheckCircle2 className="size-4 text-cyan-400" />
+                  </div>
+                  {perk}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {error && (
-            <div role="alert" className="mb-5 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive-soft px-4 py-3 text-sm text-destructive animate-fade-in">
-              <ShieldCheck className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
-              <span>{error}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-white/60 text-sm">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <span>Join 10,000+ students today</span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          </div>
+        </aside>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Right Panel - Register Form */}
+        <main className="flex items-center justify-center px-6 py-12 relative">
+          <div className="absolute right-6 top-6 z-20">
+            <AccessibilityToggle />
+          </div>
+          
+          <div className="w-full max-w-md">
+            {/* Mobile Logo */}
+            <Link href="/" className="inline-flex items-center gap-2 lg:hidden group mb-8">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-cyan-500 rounded-lg blur-md opacity-50" />
+                <img src="/logo.png" alt="" className="relative size-10 rounded-lg object-contain" />
+              </div>
+              <span className="text-xl font-black text-white">
+                Lexora<span className="text-cyan-400">Academy</span>
+              </span>
+            </Link>
+
+            {/* Header */}
+            <div className="text-center lg:text-left mb-8">
+              <h1 className="text-3xl font-black tracking-tight text-white">{t('public.daftar.createAccount')}</h1>
+              <p className="mt-2 text-white/60">{t('public.daftar.createSubtitle')}</p>
+            </div>
+
+            {/* Error Alert */}
+            {error && (
+              <div role="alert" className="mb-5 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 backdrop-blur-xl px-4 py-3 text-sm text-red-400 animate-fade-in">
+                <ShieldCheck className="size-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               id="name"
               label={t('public.daftar.nameLabel')}
@@ -315,6 +337,7 @@ export default function RegisterPage() {
                 if (form.role === 'teacher') setTeacherData((current) => ({ ...current, fullName: name }))
               }}
               autoComplete="name"
+              className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-violet-500 focus:ring-violet-500/20"
             />
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -323,13 +346,13 @@ export default function RegisterPage() {
                 onClick={() => setForm({ ...form, role: 'student' })}
                 className={cn(
                   'flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all',
-                  form.role === 'student' ? 'border-primary bg-primary-soft ring-2 ring-primary/20' : 'border-border bg-surface-container-low hover:border-primary/50'
+                  form.role === 'student' ? 'border-violet-500 bg-violet-500/20 ring-2 ring-violet-500/20' : 'border-white/10 bg-white/5 hover:border-violet-500/50'
                 )}
               >
-                <GraduationCap className="size-5 text-primary" aria-hidden="true" />
+                <GraduationCap className="size-5 text-cyan-400" aria-hidden="true" />
                 <span>
-                  <span className="block text-sm font-semibold text-on-surface">{t('public.daftar.roleLearn')}</span>
-                  <span className="block text-xs text-on-surface-variant">{t('public.daftar.roleLearnDesc')}</span>
+                  <span className="block text-sm font-semibold text-white">{t('public.daftar.roleLearn')}</span>
+                  <span className="block text-xs text-white/60">{t('public.daftar.roleLearnDesc')}</span>
                 </span>
               </button>
               <button
@@ -337,20 +360,20 @@ export default function RegisterPage() {
                 onClick={() => setForm({ ...form, role: 'teacher' })}
                 className={cn(
                   'flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all',
-                  form.role === 'teacher' ? 'border-secondary bg-secondary/10 ring-2 ring-secondary/20' : 'border-border bg-surface-container-low hover:border-secondary/50'
+                  form.role === 'teacher' ? 'border-cyan-500 bg-cyan-500/20 ring-2 ring-cyan-500/20' : 'border-white/10 bg-white/5 hover:border-cyan-500/50'
                 )}
               >
-                <User className="size-5 text-secondary" aria-hidden="true" />
+                <User className="size-5 text-fuchsia-400" aria-hidden="true" />
                 <span>
-                  <span className="block text-sm font-semibold text-on-surface">{t('public.daftar.roleTeach')}</span>
-                  <span className="block text-xs text-on-surface-variant">{t('public.daftar.roleTeachDesc')}</span>
+                  <span className="block text-sm font-semibold text-white">{t('public.daftar.roleTeach')}</span>
+                  <span className="block text-xs text-white/60">{t('public.daftar.roleTeachDesc')}</span>
                 </span>
               </button>
             </div>
             {form.role === 'teacher' && teacherData.fullName.trim() && teacherData.languages.length > 0 && (
-              <div className="flex items-center justify-between rounded-lg bg-secondary/10 px-3 py-2 text-xs text-on-surface-variant">
+              <div className="flex items-center justify-between rounded-lg bg-cyan-500/10 px-3 py-2 text-xs text-white/70">
                 <span>{t('public.daftar.teacherDetailsReady')}</span>
-                <button type="button" onClick={openTeacherWizard} className="font-semibold text-secondary hover:underline">
+                <button type="button" onClick={openTeacherWizard} className="font-semibold text-cyan-400 hover:underline">
                   {t('public.daftar.editTeacherDetails')}
                 </button>
               </div>
@@ -370,6 +393,7 @@ export default function RegisterPage() {
                 if (form.role === 'teacher') setTeacherData((current) => ({ ...current, email }))
               }}
               autoComplete="email"
+              className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-violet-500 focus:ring-violet-500/20"
             />
 
             <Input
@@ -387,12 +411,13 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-on-surface"
+                  className="rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
                   aria-label={showPass ? t('public.daftar.hidePassword') : t('public.daftar.showPassword')}
                 >
                   {showPass ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
                 </button>
               }
+              className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-violet-500 focus:ring-violet-500/20"
             />
             {form.password.length > 0 && (
               <ul className="flex flex-wrap gap-1.5 text-[11px]">
@@ -402,8 +427,8 @@ export default function RegisterPage() {
                     className={cn(
                       'flex items-center gap-1 rounded-md px-2 py-1 font-medium',
                       r.test(form.password)
-                        ? 'bg-success-soft text-success'
-                        : 'bg-surface-container-low text-on-surface-variant'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-white/5 text-white/60'
                     )}
                   >
                     <CheckCircle2 className={cn('size-3', r.test(form.password) ? 'opacity-100' : 'opacity-40')} aria-hidden="true" />
@@ -413,32 +438,32 @@ export default function RegisterPage() {
               </ul>
             )}
 
-            <label className="flex items-start gap-2.5 text-sm text-on-surface-variant">
+            <label className="flex items-start gap-2.5 text-sm text-white/70">
               <input
                 type="checkbox"
                 checked={accepted}
                 onChange={(e) => setAccepted(e.target.checked)}
-                className="mt-0.5 size-4 cursor-pointer rounded border-border bg-surface-container-lowest accent-primary"
+                className="mt-0.5 size-4 cursor-pointer rounded border-white/20 bg-white/5 accent-violet-500"
               />
               <span>
                 {t('public.daftar.agreeTerms')}{' '}
-                <Link href="/legal/syarat-ketentuan" className="font-semibold text-primary hover:underline">
+                <Link href="/legal/syarat-ketentuan" className="font-semibold text-cyan-400 hover:underline">
                   {t('public.daftar.terms')}
                 </Link>{' '}
                 {t('public.daftar.and')}{' '}
-                <Link href="/legal/kebijakan-privasi" className="font-semibold text-primary hover:underline">
+                <Link href="/legal/kebijakan-privasi" className="font-semibold text-cyan-400 hover:underline">
                   {t('public.daftar.privacy')}
                 </Link>
               </span>
             </label>
 
-            <Button type="submit" variant="gradient" size="lg" loading={loading} className="w-full">
+            <Button type="submit" variant="gradient" size="lg" loading={loading} className="w-full shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.02] transition-all">
               {t('public.daftar.createFreeAccount')}
             </Button>
 
             <div className="relative my-4">
-              <div className="divider-soft" />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+              <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-violet-950 via-slate-950 to-cyan-950 px-3 text-xs font-black uppercase tracking-widest text-white/40">
                 {t('public.daftar.or')}
               </span>
             </div>
@@ -448,7 +473,7 @@ export default function RegisterPage() {
                 type="button"
                 variant="secondary"
                 size="lg"
-                className="w-full"
+                className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 transition-all"
                 onClick={handleGoogle}
                 disabled={loading}
               >
@@ -466,9 +491,9 @@ export default function RegisterPage() {
               </Button>
             )}
 
-            <p className="pt-2 text-center text-sm text-on-surface-variant">
+            <p className="pt-2 text-center text-sm text-white/60">
               {t('public.daftar.haveAccount')}{' '}
-              <Link href="/masuk" className="font-semibold text-primary hover:underline">
+              <Link href="/masuk" className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400 hover:from-violet-300 hover:to-cyan-300 transition-all">
                 {t('public.daftar.login')}
               </Link>
             </p>

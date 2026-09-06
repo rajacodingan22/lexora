@@ -7,17 +7,17 @@ type ParaProps = HTMLAttributes<HTMLParagraphElement>
 
 const cardVariants = {
   default:
-    'rounded-2xl border border-border bg-surface text-on-surface shadow-sm',
+    'rounded-3xl border border-border/50 bg-surface/80 backdrop-blur-xl text-on-surface shadow-xl shadow-black/5',
   glass:
-    'glass-card rounded-2xl',
+    'glass-card-enhanced rounded-3xl border border-white/10',
   elevated:
-    'rounded-2xl border border-border bg-surface-container-low text-on-surface shadow-md hover:shadow-lg hover:border-border-strong transition-all duration-[var(--dur)] ease-[var(--ease-out)]',
+    'rounded-3xl border border-border/50 bg-surface-container-low shadow-xl shadow-black/10 hover:shadow-2xl hover:shadow-black/15 hover:-translate-y-1 transition-all duration-300 ease-out',
   outline:
-    'rounded-2xl border-2 border-dashed border-border bg-surface-container-lowest text-on-surface',
+    'rounded-3xl border-2 border-dashed border-border/50 bg-surface-container-lowest/50 text-on-surface',
   ghost:
-    'rounded-2xl bg-surface-container-low text-on-surface',
+    'rounded-3xl bg-surface-container-low/50 backdrop-blur-sm text-on-surface',
   gradient:
-    'rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-surface to-accent/10 text-on-surface',
+    'rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-surface/50 to-accent/20 backdrop-blur-xl text-on-surface shadow-2xl shadow-primary/10',
 } as const
 
 type CardVariant = keyof typeof cardVariants
@@ -33,10 +33,10 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       ref={ref}
       className={cn(
         cardVariants[variant],
-        'relative',
+        'relative overflow-hidden',
         interactive &&
-          'cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:border-border-strong',
-        'transition-all duration-[var(--dur)] ease-[var(--ease-out)]',
+          'cursor-pointer hover:-translate-y-2 hover:shadow-2xl hover:border-primary/30 group',
+        'transition-all duration-300 ease-out',
         className
       )}
       {...props}
@@ -47,7 +47,7 @@ Card.displayName = 'Card'
 
 const CardHeader = forwardRef<HTMLDivElement, DivProps>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('flex flex-col gap-1.5 p-6', className)} {...props} />
+    <div ref={ref} className={cn('flex flex-col gap-2 p-6', className)} {...props} />
   )
 )
 CardHeader.displayName = 'CardHeader'
@@ -56,7 +56,7 @@ const CardTitle = forwardRef<HTMLHeadingElement, HeadingProps>(
   ({ className, ...props }, ref) => (
     <h3
       ref={ref}
-      className={cn('text-lg font-bold text-on-surface leading-tight tracking-tight', className)}
+      className={cn('text-xl font-bold text-on-surface leading-tight tracking-tight', className)}
       {...props}
     />
   )
@@ -81,7 +81,7 @@ const CardFooter = forwardRef<HTMLDivElement, DivProps>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('flex items-center justify-between gap-3 border-t border-border p-6', className)}
+      className={cn('flex items-center justify-between gap-3 border-t border-border/30 p-6', className)}
       {...props}
     />
   )

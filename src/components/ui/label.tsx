@@ -6,17 +6,16 @@ const Label = forwardRef<HTMLLabelElement, LabelHTMLAttributes<HTMLLabelElement>
     <label
       ref={ref}
       className={cn(
-        'text-sm font-medium text-on-surface leading-none',
+        'text-sm font-bold text-on-surface tracking-wide leading-none',
         'peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+        'transition-colors duration-200',
         className
       )}
       {...props}
     >
       {children}
       {required && (
-        <span aria-hidden="true" className="ml-0.5 text-destructive">
-          *
-        </span>
+        <span aria-hidden="true" className="ml-1 text-destructive text-base">*</span>
       )}
     </label>
   )
