@@ -1,8 +1,6 @@
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
-const DEFAULT_ZEN_URL = 'https://opencode.ai/zen/v1/chat/completions'
-const DEFAULT_MODEL = 'mimo-v2.5-free'
+import { normalizeZenModel, zenText } from '@/lib/zen'
 
 export async function POST(req: Request) {
   try {
@@ -60,9 +58,8 @@ export async function POST(req: Request) {
     const safeTranscript = sanitizePromptInput(transcript)
     const safeStudentResponse = sanitizePromptInput(studentResponse)
 
-    const apiEndpoint = settingsMap.ai_api_endpoint || DEFAULT_ZEN_URL
     const apiKey = settingsMap.ai_api_key || ''
-    const model = (settingsMap.ai_model || DEFAULT_MODEL).replace(/^opencode\//, '')
+    const model = normalizeZenModel(settingsMap.ai_model)
 
     if (!apiKey) {
       return NextResponse.json({ error: 'AI API key not configured' }, { status: 503 })
@@ -116,37 +113,20 @@ Score formula: grammar*0.25 + comprehension*0.4 + accuracy*0.35.`
       userMessage = 'Grade this listening response now. JSON only.'
     }
 
-    const llmResponse = await fetch(apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage },
-        ],
-        max_tokens: 800,
-        temperature: 0.3,
-      }),
+    const rawContent = await zenText({
+      apiKey,
+      model,
+      endpointOverride: settingsMap.ai_api_endpoint,
+      system: systemPrompt,
+      user: userMessage,
+      maxTokens: 800,
+      temperature: 0.3,
+      timeoutMs: 30000,
+      logTag: 'ai-grade',
     })
 
-    if (!llmResponse.ok) {
-      const errText = await llmResponse.text()
-      console.error('[ai-grade] LLM API error:', llmResponse.status, errText.slice(0, 200))
-      return NextResponse.json(
-        { error: 'AI grading failed. Please try again later.' },
-        { status: 502 }
-      )
-    }
-
-    const llmData = await llmResponse.json()
-    const rawContent: string = llmData.choices?.[0]?.message?.content ?? ''
-
     if (!rawContent) {
-      console.error('[ai-grade] Empty LLM response:', JSON.stringify(llmData))
+      console.error('[ai-grade] Empty LLM response')
       return NextResponse.json({ error: 'AI returned empty response' }, { status: 502 })
     }
 

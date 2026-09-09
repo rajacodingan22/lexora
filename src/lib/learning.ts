@@ -24,21 +24,28 @@ export const ACTIVITY_TYPE_LABELS: Record<string, { en: string; id: string; zh: 
   listening: { en: 'Listening', id: 'Mendengarkan', zh: '听力' },
   image_speak: { en: 'Image Speak', id: 'Gambar & Ucap', zh: '看图说话' },
   speaking_review: { en: 'Speaking Review', id: 'Ulasan Berbicara', zh: '口语评审' },
-  learn: { en: 'Learn', id: 'Pelajari', zh: '学习' },
-  flashcard: { en: 'Flashcard', id: 'Kartu', zh: '卡片' },
-  vocabulary: { en: 'Vocabulary', id: 'Kosakata', zh: '词汇' },
-  speaking: { en: 'Speaking', id: 'Berbicara', zh: '口语' },
-  grammar_fix: { en: 'Grammar Fix', id: 'Perbaikan Grammar', zh: '语法纠错' },
-  fill_blank: { en: 'Fill Blank', id: 'Isi Kosong', zh: '填空' },
-  arrange_sentence: { en: 'Arrange Sentence', id: 'Susun Kalimat', zh: '组句' },
-  image_selection: { en: 'Image Selection', id: 'Pilih Gambar', zh: '图片选择' },
-  matching: { en: 'Matching', id: 'Mencocokkan', zh: '配对' },
-  writing: { en: 'Writing', id: 'Menulis', zh: '写作' },
-  quick_review: { en: 'Quick Review', id: 'Review Cepat', zh: '快速复习' },
+}
+
+export const LEGACY_ACTIVITY_TYPE_LABELS: Record<string, { en: string; id: string; zh: string }> = {
+  learn: { en: 'Learn (legacy)', id: 'Pelajari (legacy)', zh: '学习' },
+  flashcard: { en: 'Flashcard (legacy)', id: 'Kartu (legacy)', zh: '卡片' },
+  vocabulary: { en: 'Vocabulary (legacy)', id: 'Kosakata (legacy)', zh: '词汇' },
+  speaking: { en: 'Speaking (legacy)', id: 'Berbicara (legacy)', zh: '口语' },
+  grammar_fix: { en: 'Grammar Fix (legacy)', id: 'Perbaikan Grammar (legacy)', zh: '语法纠错' },
+  fill_blank: { en: 'Fill Blank (legacy)', id: 'Isi Kosong (legacy)', zh: '填空' },
+  arrange_sentence: { en: 'Arrange Sentence (legacy)', id: 'Susun Kalimat (legacy)', zh: '组句' },
+  image_selection: { en: 'Image Selection (legacy)', id: 'Pilih Gambar (legacy)', zh: '图片选择' },
+  matching: { en: 'Matching (legacy)', id: 'Mencocokkan (legacy)', zh: '配对' },
+  writing: { en: 'Writing (legacy)', id: 'Menulis (legacy)', zh: '写作' },
+  quick_review: { en: 'Quick Review (legacy)', id: 'Review Cepat (legacy)', zh: '快速复习' },
 }
 
 export function getActivityTypeLabel(type: string): { en: string; id: string; zh: string } {
-  return ACTIVITY_TYPE_LABELS[type] ?? { en: type, id: type, zh: type }
+  return ACTIVITY_TYPE_LABELS[type] ?? LEGACY_ACTIVITY_TYPE_LABELS[type] ?? { en: type, id: type, zh: type }
+}
+
+export function isSupportedActivityType(type: string): type is ActivityType {
+  return (ACTIVITY_TYPES as string[]).includes(type)
 }
 
 export function defaultActivityContent(type: ActivityType): ActivityContentData {
@@ -48,9 +55,9 @@ export function defaultActivityContent(type: ActivityType): ActivityContentData 
     case 'listening':
       return { audio_url: null, audio_text: '', voice: null, speed: 1, instructions: '' }
     case 'image_speak':
-      return { prompt: '', images: ['', '', '', ''], correctIndex: 0, expectedText: '', threshold: 0.9, instructions: '' } as any
+      return { prompt: '', images: ['', '', '', ''], correctIndex: 0, expectedText: '', threshold: 0.9, instructions: '' } as unknown as ActivityContentData
     case 'speaking_review':
-      return { text: '', instructions: '', voice: null, rate: 0.9 } as any
+      return { text: '', instructions: '', voice: null, rate: 0.9 } as unknown as ActivityContentData
   }
 }
 

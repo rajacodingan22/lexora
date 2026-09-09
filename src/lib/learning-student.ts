@@ -73,7 +73,7 @@ export async function fetchTaskTree(
     }
   }
 
-  return { task: taskRes.data as CourseTask, lessons, activities, contents }
+  return { task: taskRes.data as CourseTask, lessons: publishedLessons, activities, contents }
 }
 
 export async function fetchStudentProgress(

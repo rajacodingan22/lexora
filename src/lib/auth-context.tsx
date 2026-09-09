@@ -28,9 +28,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', authUser.id)
         .single()
 
-      setUser(data as User)
-    } catch (_err) {
-      setUser(null)
+      // Jaga identitas referensi: jangan ganti object user kalau isinya sama,
+      // supaya useEffect([user]) di halaman tidak refetch + reset UI tiap token refresh.
+      setUser((prev) => {
+        if (prev && prev.id === (data as User)?.id && JSON.stringify(prev) === JSON.stringify(data)) {
+          return prev
+        }
+        return data as User
+      })
+    } catch {
+      // JANGAN null-in user saat error transient (jaringan kedip pas pindah tab):
+      // user lama dipertahankan supaya halaman tidak ketendang ke login.
     } finally {
       setLoading(false)
     }
@@ -40,7 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh()
 
     const { data: { subscription } } = supabaseRef.current.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+      // Hanya SIGNED_OUT eksplisit yang boleh null-in user.
+      // TOKEN_REFRESHED / SIGNED_IN / INITIAL_SESSION cukup sinkron profil.
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         refresh()
       }
     })

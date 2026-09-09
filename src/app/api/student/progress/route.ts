@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
     const { data: task, error: taskError } = await supabase
       .from('course_tasks')
-      .select('id, course_id, status, min_completion_score')
+      .select('id, course_id, status, min_completion_score, activity_unlock_rule, lesson_unlock_rule, required_lesson_score, dialog_enabled')
       .eq('id', taskId)
       .single()
 
@@ -113,12 +113,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Task availability has ended' }, { status: 403 })
     }
 
+    // Check lesson unlock status (server-side)
+    const lessonRule = (task as { lesson_unlock_rule?: string }).lesson_unlock_rule ?? 'all_available'
+    if (lessonRule !== 'all_available') {
+      const { data: taskLessons } = await supabase
+        .from('task_lessons')
+        .select('id')
+        .eq('task_id', taskId)
+        .eq('status', 'published')
+        .order('sort_order', { ascending: true })
+      const lessonIdx = (taskLessons || []).findIndex(l => l.id === lessonId)
+      if (lessonIdx > 0) {
+        const prevLessonId = (taskLessons || [])[lessonIdx - 1].id
+        const { data: prevLessonProgress } = await supabase
+          .from('student_lesson_progress')
+          .select('status, score')
+          .eq('user_id', user.id)
+          .eq('batch_id', batchId)
+          .eq('lesson_id', prevLessonId)
+          .maybeSingle()
+        if (lessonRule === 'sequential') {
+          if (!prevLessonProgress || prevLessonProgress.status !== 'completed') {
+            return NextResponse.json({ error: 'Lesson is locked — complete previous lesson first' }, { status: 403 })
+          }
+        } else if (lessonRule === 'minimum_score') {
+          const required = (task as { required_lesson_score?: number }).required_lesson_score ?? 70
+          if ((prevLessonProgress?.score ?? 0) < required) {
+            return NextResponse.json({ error: `Lesson locked — previous lesson score must reach ${required}` }, { status: 403 })
+          }
+        }
+      }
+    }
+
     // Check activity unlock status (server-side)
     const unlockRule = (task as { activity_unlock_rule?: string }).activity_unlock_rule ?? 'sequential'
     if (unlockRule !== 'all_available') {
       const { data: lessonActivities } = await supabase
         .from('lesson_activities')
-        .select('id')
+        .select('id, activity_type')
         .eq('lesson_id', lessonId)
         .eq('status', 'published')
         .order('sort_order', { ascending: true })
@@ -126,17 +158,33 @@ export async function POST(req: Request) {
       if (lessonActivities && lessonActivities.length > 0) {
         const actIdx = lessonActivities.findIndex(a => a.id === activityId)
         if (actIdx > 0) {
-          const prevActId = lessonActivities[actIdx - 1].id
+          const prev = (lessonActivities as { id: string; activity_type: string }[])[actIdx - 1]
           const { data: prevProgress } = await supabase
             .from('student_activity_progress')
             .select('status')
             .eq('user_id', user.id)
             .eq('batch_id', batchId)
-            .eq('activity_id', prevActId)
+            .eq('activity_id', prev.id)
             .maybeSingle()
 
-          if (!prevProgress || prevProgress.status !== 'completed') {
-            return NextResponse.json({ error: 'Activity is locked — complete previous activity first' }, { status: 403 })
+          const prevDone = prevProgress?.status === 'completed'
+          if (!prevDone) {
+            // Speaking review tidak boleh memblokir: submission pending dianggap cukup untuk unlock
+            let speakingPending = false
+            if (prev.activity_type === 'speaking_review') {
+              const { data: sub } = await supabase
+                .from('speaking_review_submissions')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('batch_id', batchId)
+                .eq('activity_id', prev.id)
+                .limit(1)
+                .maybeSingle()
+              speakingPending = !!sub
+            }
+            if (!speakingPending) {
+              return NextResponse.json({ error: 'Activity is locked — complete previous activity first' }, { status: 403 })
+            }
           }
         }
       }
@@ -150,6 +198,7 @@ export async function POST(req: Request) {
       .eq('activity_id', activityId)
       .maybeSingle()
 
+    // TODO: picks race on concurrent double-submit; replace with atomic RPC increment when available
     const attempts = (existingProgress?.attempts ?? 0) + 1
     const minScore = (task as { min_completion_score?: number }).min_completion_score ?? 70
     const status = score >= minScore ? 'completed' : 'in_progress'
@@ -226,7 +275,20 @@ export async function POST(req: Request) {
         completedActivities = (allActs || []).filter(a => actStatusMap.get(a.id) === 'completed').length
         completedLessons = (allLessonProgress || []).filter(p => p.status === 'completed').length
       }
-      const taskCompleted = totalActivities > 0 && completedActivities === totalActivities
+      let dialogCompleted = true
+      if ((task as { dialog_enabled?: boolean }).dialog_enabled) {
+        const { data: dialog } = await supabase
+          .from('dialog_sessions')
+          .select('status')
+          .eq('user_id', user.id)
+          .eq('batch_id', batchId)
+          .eq('task_id', taskId)
+          .eq('status', 'completed')
+          .limit(1)
+          .maybeSingle()
+        dialogCompleted = !!dialog
+      }
+      const taskCompleted = totalActivities > 0 && completedActivities === totalActivities && dialogCompleted
       await supabase.from('student_task_progress').upsert({
         user_id: user.id,
         batch_id: batchId,

@@ -8,7 +8,35 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 
 const DEFAULT_ZEN_URL = "https://opencode.ai/zen/v1/chat/completions"
-const DEFAULT_MODEL = "mimo-v2.5-free"
+const ZEN_RESPONSES_URL = "https://opencode.ai/zen/v1/responses"
+const DEFAULT_MODEL = "muse-spark-1.3-contributor-free"
+
+const ZEN_CHAT_MODELS = new Set([
+  "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp",
+  "minimax-m3", "minimax-m2.7", "minimax-m2.5",
+  "glm-5.3-flash", "glm-5.3", "glm-5.2", "glm-5.1", "glm-5",
+  "kimi-k2.5", "kimi-k2.6", "kimi-k2.7-code", "kimi-k3",
+  "big-pickle", "mimo-v2.5-free",
+  "ling-3.0-flash-fin-free", "nemotron-3-ultra-free", "nemotron-3.5-lightning-free",
+])
+
+function extractResponsesText(data: Record<string, unknown>): string {
+  if (typeof data.output_text === "string" && (data.output_text as string).trim()) return data.output_text as string
+  if (Array.isArray(data.output)) {
+    let text = ""
+    for (const item of data.output as Record<string, unknown>[]) {
+      if (Array.isArray(item.content)) {
+        for (const c of item.content as Record<string, unknown>[]) {
+          if (c && typeof c.text === "string") text += c.text as string
+        }
+      } else if (typeof item.text === "string") {
+        text += item.text as string
+      }
+    }
+    if (text.trim()) return text
+  }
+  return ""
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -69,9 +97,11 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "AI grading is disabled" }), { status: 403, headers: { "Content-Type": "application/json" } })
     }
 
-    const apiEndpoint = settingsMap.ai_api_endpoint || DEFAULT_ZEN_URL
-    const apiKey = settingsMap.ai_api_key || ""
     const model = (settingsMap.ai_model || DEFAULT_MODEL).replace(/^opencode\//, "")
+    const customEndpoint = settingsMap.ai_api_endpoint || ""
+    const apiEndpoint = customEndpoint || (ZEN_CHAT_MODELS.has(model) ? DEFAULT_ZEN_URL : ZEN_RESPONSES_URL)
+    const apiKey = settingsMap.ai_api_key || ""
+    const useResponses = !customEndpoint && apiEndpoint === ZEN_RESPONSES_URL
 
     let systemPrompt = ""
     if (activityType === "reading") {
@@ -118,7 +148,15 @@ The overall score should be: (grammar * 0.25 + comprehension * 0.4 + accuracy * 
         "Content-Type": "application/json",
         ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       },
-      body: JSON.stringify({
+      body: JSON.stringify(useResponses ? {
+        model,
+        input: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: "Grade this student response. Return JSON only." },
+        ],
+        max_output_tokens: 800,
+        temperature: 0.3,
+      } : {
         model,
         messages: [
           { role: "system", content: systemPrompt },
@@ -136,7 +174,7 @@ The overall score should be: (grammar * 0.25 + comprehension * 0.4 + accuracy * 
     }
 
     const llmData = await llmResponse.json()
-    const content = llmData.choices?.[0]?.message?.content ?? ""
+    const content = useResponses ? extractResponsesText(llmData) : llmData.choices?.[0]?.message?.content ?? ""
 
     let parsed
     try {

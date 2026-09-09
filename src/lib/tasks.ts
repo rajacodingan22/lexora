@@ -11,6 +11,7 @@ export interface TaskWithMeta extends CourseTask {
   percent: number
 }
 
+/** @deprecated Legacy TaskMaterial path — grade DB baru mengabaikan path ini, gunakan LMS task_lessons. */
 export function computeTaskStatus(
   materials: TaskMaterial[],
   progress: Record<string, MaterialProgressStatus>,

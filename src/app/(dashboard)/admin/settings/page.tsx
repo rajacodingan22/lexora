@@ -86,6 +86,41 @@ function SectionStatusBadge({ status }: { status: SectionStatus }) {
   )
 }
 
+function AiTestButton() {
+  const [state, setState] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle')
+  const [message, setMessage] = useState('')
+
+  async function run() {
+    setState('testing')
+    setMessage('')
+    try {
+      const res = await fetch('/api/ai/test', { method: 'POST' })
+      const data = await res.json()
+      if (data.ok) {
+        setState('ok')
+        setMessage(`OK • ${data.model} • "${data.reply}"`)
+      } else {
+        setState('fail')
+        setMessage(data.error || 'Gagal')
+      }
+    } catch {
+      setState('fail')
+      setMessage('Koneksi gagal')
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Button size="sm" variant="outline" disabled={state === 'testing'} onClick={run}>
+        {state === 'testing' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+        Tes Koneksi AI
+      </Button>
+      {state === 'ok' && <p className="flex items-center gap-1 text-xs text-success"><CheckCircle2 className="h-3.5 w-3.5" />{message}</p>}
+      {state === 'fail' && <p className="flex items-center gap-1 text-xs text-destructive"><AlertCircle className="h-3.5 w-3.5" />{message}</p>}
+    </div>
+  )
+}
+
 function SectionSkeleton() {
   const { t } = useI18n()
   return (
@@ -367,14 +402,17 @@ export default function AdminSettingsPage() {
               checked={!!get(K.AI_ENABLED, false)}
               onChange={(v) => set(K.AI_ENABLED, v)}
             />
-            <Button
-              size="sm"
-              loading={saving === 'ai'}
-              disabled={saving !== null}
-              onClick={() => saveSection('ai', [K.AI_ENDPOINT, K.AI_KEY, K.AI_MODEL, K.AI_ENABLED])}
-            >
-              {t('admin2.settings.saveAi')}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                loading={saving === 'ai'}
+                disabled={saving !== null}
+                onClick={() => saveSection('ai', [K.AI_ENDPOINT, K.AI_KEY, K.AI_MODEL, K.AI_ENABLED])}
+              >
+                {t('admin2.settings.saveAi')}
+              </Button>
+              <AiTestButton />
+            </div>
             <SectionStatusBadge status={statuses.ai} />
           </CardContent>
         </Card>

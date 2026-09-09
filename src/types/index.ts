@@ -589,13 +589,6 @@ export type ActivityType =
   | 'image_speak'
   | 'speaking_review'
 
-export type MissionType =
-  | 'quiz_challenge'
-  | 'speaking_challenge'
-  | 'writing_challenge'
-  | 'interactive_dialogue'
-  | 'ai_conversation'
-
 export interface TaskLesson {
   id: string
   task_id: string
@@ -630,22 +623,6 @@ export interface ActivityContent {
   content_type: ActivityType
   schema_version: number
   content_version: number
-  content: Record<string, unknown>
-  created_at: string
-  updated_at: string
-}
-
-export interface TaskMission {
-  id: string
-  task_id: string
-  title: string
-  mission_type: MissionType
-  scenario: string | null
-  objectives: string[]
-  passing_score: number
-  max_attempts: number | null
-  unlock_next: boolean
-  status: TaskStatus
   content: Record<string, unknown>
   created_at: string
   updated_at: string
@@ -711,19 +688,6 @@ export interface StudentActivityProgress {
   completed_at: string | null
   created_at: string
   updated_at: string
-}
-
-export interface StudentMissionResult {
-  id: string
-  user_id: string
-  batch_id: string
-  task_id: string
-  mission_id: string
-  score: number
-  passed: boolean
-  attempts: number
-  payload: Record<string, unknown> | null
-  created_at: string
 }
 
 export interface ActivityLibraryItem {

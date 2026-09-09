@@ -71,12 +71,11 @@ export default function StudentDashboard() {
     if (authLoading || !user) return
     fetchData()
     fetch('/api/notifications/generate', { method: 'POST' }).catch(() => {})
-    const interval = setInterval(() => fetchData(true), 30000)
-    const onFocus = () => fetchData(true)
-    window.addEventListener('focus', onFocus)
+    // Refresh diam tiap 60 detik. Sengaja TANPA listener focus/visibility:
+    // refetch saat pindah tab bikin halaman terasa ke-reload sendiri.
+    const interval = setInterval(() => fetchData(true), 60000)
     return () => {
       clearInterval(interval)
-      window.removeEventListener('focus', onFocus)
     }
   }, [authLoading, user])
 

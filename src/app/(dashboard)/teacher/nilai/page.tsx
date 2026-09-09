@@ -229,7 +229,7 @@ export default function TeacherNilaiPage() {
             <div className="space-y-4">
               {[
                 { label: t('teacher1.nilai.tasks'), value: s.taskScore, weight: '50%' },
-                { label: t('teacher1.nilai.project'), value: s.projectScore, weight: '20%' },
+                { label: t('teacher1.nilai.project'), value: s.projectScore, weight: '15%' },
                 { label: t('teacher1.nilai.quiz'), value: s.quizAvg, weight: '5%' },
                 { label: t('teacher1.nilai.finalExam'), value: s.examScore, weight: '25%' },
               ].map(row => (

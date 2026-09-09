@@ -1,8 +1,6 @@
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
-const DEFAULT_ZEN_URL = 'https://opencode.ai/zen/v1/chat/completions'
-const DEFAULT_MODEL = 'mimo-v2.5-free'
+import { normalizeZenModel, zenText } from '@/lib/zen'
 
 function sanitize(str: string) {
   return str.slice(0, 5000).replace(/```/g, "'''").replace(/\u0000/g, '')
@@ -15,21 +13,20 @@ async function generateGreeting(topic: string, characterName: string | null, cha
     const map: Record<string, string> = {}
     for (const r of settings ?? []) map[r.key] = String(r.value)
     if (map.ai_enabled === 'false' || !map.ai_api_key) throw new Error('no key')
-    const endpoint = map.ai_api_endpoint || DEFAULT_ZEN_URL
-    const key = map.ai_api_key
-    const model = (map.ai_model || DEFAULT_MODEL).replace(/^opencode\//, '')
     const persona = instructions ? `Persona: ${sanitize(instructions).slice(0, 500)}. ` : ''
     const sys = `You are ${characterName || 'a native speaker'} (${characterRole || 'friendly tutor'}). ${persona}Topic lock: ONLY discuss "${sanitize(topic)}". If user goes off-topic, gently redirect back to ${sanitize(topic)}. Language: ${languageCode}. Generate a short warm greeting (1-2 sentences) to start a 7-minute phone conversation. Be natural. No JSON.`
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: 'Generate greeting now.' }], max_tokens: 200, temperature: 0.7 }),
-      signal: AbortSignal.timeout(20000),
+    const txt = await zenText({
+      apiKey: map.ai_api_key,
+      model: normalizeZenModel(map.ai_model),
+      endpointOverride: map.ai_api_endpoint,
+      system: sys,
+      user: 'Generate greeting now.',
+      maxTokens: 200,
+      temperature: 0.7,
+      timeoutMs: 20000,
+      logTag: 'dialog/start',
     })
-    if (!res.ok) throw new Error('zen fail')
-    const data = await res.json()
-    const txt: string = data.choices?.[0]?.message?.content ?? ''
-    if (txt.trim()) return txt.trim().slice(0, 500)
+    if (txt) return txt.slice(0, 500)
   } catch {}
   // fallback
   if (languageCode === 'id') return `Hai! Saya ${characterName || 'teman dialog'} — mari ngobrol tentang ${topic} selama beberapa menit. Kamu siap?`

@@ -14,8 +14,36 @@ import {
 } from "./helpers.ts"
 
 const DEFAULT_ZEN_URL = "https://opencode.ai/zen/v1/chat/completions"
-const DEFAULT_MODEL = "mimo-v2.5-free"
+const ZEN_RESPONSES_URL = "https://opencode.ai/zen/v1/responses"
+const DEFAULT_MODEL = "muse-spark-1.3-contributor-free"
 const MAX_HISTORY_FOR_LLM = 12
+
+const ZEN_CHAT_MODELS = new Set([
+  "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp",
+  "minimax-m3", "minimax-m2.7", "minimax-m2.5",
+  "glm-5.3-flash", "glm-5.3", "glm-5.2", "glm-5.1", "glm-5",
+  "kimi-k2.5", "kimi-k2.6", "kimi-k2.7-code", "kimi-k3",
+  "big-pickle", "mimo-v2.5-free",
+  "ling-3.0-flash-fin-free", "nemotron-3-ultra-free", "nemotron-3.5-lightning-free",
+])
+
+function extractResponsesText(data: Record<string, unknown>): string {
+  if (typeof data.output_text === "string" && (data.output_text as string).trim()) return data.output_text as string
+  if (Array.isArray(data.output)) {
+    let text = ""
+    for (const item of data.output as Record<string, unknown>[]) {
+      if (Array.isArray(item.content)) {
+        for (const c of item.content as Record<string, unknown>[]) {
+          if (c && typeof c.text === "string") text += c.text as string
+        }
+      } else if (typeof item.text === "string") {
+        text += item.text as string
+      }
+    }
+    if (text.trim()) return text
+  }
+  return ""
+}
 
 Deno.serve(async (req: Request) => {
   try {
@@ -69,9 +97,11 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "AI chatbot is disabled" }), { status: 403, headers: { "Content-Type": "application/json" } })
     }
 
-    const zenUrl = map.ai_api_endpoint || Deno.env.get("OPENCODE_ZEN_API_URL") || DEFAULT_ZEN_URL
-    const zenKey = map.ai_api_key || Deno.env.get("OPENCODE_ZEN_API_KEY") || ""
     const model = (map.ai_model || DEFAULT_MODEL).replace(/^opencode\//, "")
+    const customEndpoint = map.ai_api_endpoint || Deno.env.get("OPENCODE_ZEN_API_URL") || ""
+    const zenUrl = customEndpoint || (ZEN_CHAT_MODELS.has(model) ? DEFAULT_ZEN_URL : ZEN_RESPONSES_URL)
+    const zenKey = map.ai_api_key || Deno.env.get("OPENCODE_ZEN_API_KEY") || ""
+    const useResponses = !customEndpoint && zenUrl === ZEN_RESPONSES_URL
 
     const ctx = await buildUserContext(supabase, user.id)
     const userName = ctx.profile.display_name || (ctx.role === "teacher" ? "Bapak/Ibu" : "Siswa")
@@ -180,7 +210,16 @@ RESPOND ONLY WITH THE AI MESSAGE CONTENT. NO EXPLANATIONS.`
       const zenRes = await fetch(zenUrl, {
         method: "POST",
         headers: { "Authorization": `Bearer ${zenKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(useResponses ? {
+          model,
+          input: [
+            { role: "system", content: systemPrompt },
+            ...llmHistory,
+            { role: "user", content: message },
+          ],
+          max_output_tokens: 600,
+          temperature: 0.7,
+        } : {
           model,
           messages: [
             { role: "system", content: systemPrompt },
@@ -197,7 +236,8 @@ RESPOND ONLY WITH THE AI MESSAGE CONTENT. NO EXPLANATIONS.`
         throw new Error(`Zen API error: ${zenRes.status} ${errText}`)
       }
       const zenData = await zenRes.json()
-      reply = zenData.choices[0].message.content
+      reply = useResponses ? extractResponsesText(zenData) : zenData.choices[0].message.content
+      if (!reply) throw new Error("Zen API empty response")
     } else {
       reply = "Maaf, AI asisten belum aktif. Admin sedang mengatur API key."
     }

@@ -410,6 +410,13 @@ export default function TaskDetailPage() {
     const nextStatus: MaterialProgressStatus = st === 'completed' ? 'not_started' : 'completed'
     setUpdating(true)
     try {
+      const { data: enrollCheck } = await supabase
+        .from('enrollments')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (!enrollCheck) throw new Error('Not enrolled in this course')
       const { error } = await supabase
         .from('student_material_progress')
         .upsert(

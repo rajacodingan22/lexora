@@ -1,8 +1,6 @@
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-
-const DEFAULT_ZEN_URL = 'https://opencode.ai/zen/v1/chat/completions'
-const DEFAULT_MODEL = 'mimo-v2.5-free'
+import { normalizeZenModel, zenText } from '@/lib/zen'
 
 async function generateFeedback(turns: Array<{ role: string; text: string }>, languageCode: string, topic: string) {
   const history = turns.map(t => `${t.role}: ${t.text}`).join('\n').slice(0, 8000)
@@ -12,19 +10,19 @@ async function generateFeedback(turns: Array<{ role: string; text: string }>, la
     const map: Record<string, string> = {}
     for (const r of settings ?? []) map[r.key] = String(r.value)
     if (map.ai_enabled === 'false' || !map.ai_api_key) throw new Error('no key')
-    const endpoint = map.ai_api_endpoint || DEFAULT_ZEN_URL
-    const key = map.ai_api_key
-    const model = (map.ai_model || DEFAULT_MODEL).replace(/^opencode\//, '')
     const sys = `You are a language coach. Topic: "${topic}". Language: ${languageCode}. Analyze the conversation history and give diagnostic feedback WITHOUT numeric scores. Return JSON ONLY: {"grammar":{"clarity":"good|fair|needs_work","issues":[{"original":"...","corrected":"...","explanation":"..."}]},"pronunciation":{"weakWords":[],"tips":"..."},"fluency":"...","confidence":"...","summary":"...","practiceSuggestions":["..."]}. Keep issues max 3, suggestions max 3, concise.`
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: `History:\n${history}\n\nGenerate feedback JSON only.` }], max_tokens: 600, temperature: 0.3 }),
-      signal: AbortSignal.timeout(30000),
+    const raw = await zenText({
+      apiKey: map.ai_api_key,
+      model: normalizeZenModel(map.ai_model),
+      endpointOverride: map.ai_api_endpoint,
+      system: sys,
+      user: `History:\n${history}\n\nGenerate feedback JSON only.`,
+      maxTokens: 600,
+      temperature: 0.3,
+      timeoutMs: 30000,
+      logTag: 'dialog/complete',
     })
-    if (!res.ok) throw new Error('zen')
-    const data = await res.json()
-    const raw: string = data.choices?.[0]?.message?.content ?? ''
+    if (!raw) throw new Error('zen empty')
     const s = raw.indexOf('{')
     const e = raw.lastIndexOf('}')
     if (s !== -1 && e > s) {

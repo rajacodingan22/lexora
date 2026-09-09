@@ -54,6 +54,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   const recognitionRef = useRef<any>(null)
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
   const transcriptRef = useRef('')
   const isRecordingRef = useRef(false)
   const sendingRef = useRef(false)
@@ -80,6 +81,13 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
   useEffect(() => {
     if (open) fetchSession()
   }, [open, fetchSession])
+
+  // Auto-scroll ke pesan terbaru tiap ada turn baru
+  const turnCount = (session?.turns as Array<unknown> | undefined)?.length ?? 0
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [turnCount, open])
 
   // countdown from server ends_at
   useEffect(() => {
@@ -352,7 +360,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {!session ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
             <div className="h-24 w-24 rounded-full bg-white/5 flex items-center justify-center mb-4">
@@ -366,7 +374,7 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
             <p className="text-xs text-white/40 mt-3">Pastikan mikrofon diizinkan. Jika tidak didukung, kamu bisa ketik.</p>
           </div>
         ) : isCompleted || isExpired ? (
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="mx-auto max-w-[640px] space-y-4">
               <Card className="bg-white/5 border-white/10 p-4">
                 <h4 className="font-semibold text-white">Sesi Selesai {isExpired ? '(Waktu Habis)' : ''}</h4>
@@ -420,13 +428,24 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
                         {((completedFeedback as Record<string, unknown>).practiceSuggestions as string[] | undefined)?.map((s: string, i: number) => <li key={i}>{s}</li>)}
                       </ul>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button onClick={onClose} variant="secondary" className="rounded-full">Tutup</Button>
                       {session?.status !== 'completed' && <Button onClick={() => handleComplete(true)} className="rounded-full">Simpan Feedback</Button>}
+                      <Button onClick={startSession} disabled={loading} className="rounded-full bg-white text-black hover:bg-white/90">
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Ulangi Dialog
+                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-white/70 mt-2">Feedback sedang dibuat...</p>
+                  <div className="mt-2 space-y-3">
+                    <p className="text-sm text-white/70">Feedback sedang dibuat...</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={onClose} variant="secondary" className="rounded-full">Tutup</Button>
+                      <Button onClick={startSession} disabled={loading} className="rounded-full bg-white text-black hover:bg-white/90">
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Ulangi Dialog
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </Card>
 
@@ -457,9 +476,9 @@ export default function DialogPhoneView({ taskId, open, onClose, onCompleted }: 
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 min-h-0 flex flex-col">
             {/* Bubble area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3" style={{ WebkitOverflowScrolling: 'touch' }}>
               <div className="mx-auto max-w-[640px] space-y-3">
                 {turns.map((t, i) => (
                   <div key={i} className={`flex ${t.role === 'user' ? 'justify-end' : 'justify-start'}`}>

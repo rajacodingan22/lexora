@@ -61,6 +61,9 @@ export async function POST(req: Request) {
 
     const { activityId, taskId, batchId, activityProgressId, transcript, wordScores, autoScore, audioBase64, mimeType: clientMimeType } = await req.json()
     if (!activityId) return NextResponse.json({ error: 'activityId required' }, { status: 400 })
+    if (typeof audioBase64 === 'string' && audioBase64.length > 7_000_000) {
+      return NextResponse.json({ error: 'Audio too large (max ~5MB)' }, { status: 413 })
+    }
 
     // Upload audio to Drive if provided
     let audio_drive_file_id: string | null = null
@@ -122,6 +125,36 @@ export async function POST(req: Request) {
       console.error('[speaking-review] insert error', insertErr)
       return NextResponse.json({ error: 'Failed to save submission' }, { status: 500 })
     }
+
+    // Tandai activity in_progress agar sequential unlock tidak deadlock saat menunggu review guru
+    try {
+      const { data: taskRow } = taskId
+        ? await supabase.from('course_tasks').select('id').eq('id', taskId).maybeSingle()
+        : { data: null }
+      const { data: actRow } = await supabase
+        .from('lesson_activities')
+        .select('lesson_id')
+        .eq('id', activityId)
+        .maybeSingle()
+      if (batchId && actRow) {
+        await supabase.from('student_activity_progress').upsert(
+          {
+            user_id: user.id,
+            batch_id: batchId,
+            task_id: taskId || taskRow?.id || null,
+            lesson_id: (actRow as { lesson_id: string }).lesson_id,
+            activity_id: activityId,
+            status: 'in_progress',
+            score: typeof autoScore === 'number' ? autoScore : null,
+            answers: { submissionId: submission.id, pendingReview: true },
+          },
+          { onConflict: 'user_id,batch_id,activity_id' },
+        )
+        if (progressId) {
+          await supabase.from('speaking_review_submissions').update({ activity_progress_id: progressId }).eq('id', submission.id)
+        }
+      }
+    } catch (e) { console.error('[speaking-review] progress mark error', e) }
 
     // Notify teachers of this course
     try {

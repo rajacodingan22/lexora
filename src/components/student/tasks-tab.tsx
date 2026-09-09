@@ -50,7 +50,9 @@ function TaskCover({ task, className }: { task: CourseTask; className?: string }
 
 function LmsStateBadge({ row }: { row: LmsTaskRow }) {
   const { t } = useI18n()
-  const completed = row.progress?.status === 'completed' || (row.totalActivities > 0 && row.completedActivities === row.totalActivities)
+  const completed = row.progress
+    ? row.progress.status === 'completed'
+    : row.totalActivities > 0 && row.completedActivities === row.totalActivities
   if (completed) {
     return <Badge variant="success"><CheckCircle2 className="mr-1 h-3 w-3" />{t('student1.tasks.completed')}</Badge>
   }
@@ -190,9 +192,8 @@ export default function TasksTab({ courseId }: TasksTabProps) {
         }
 
         // Batch progress fetch (skip if no batch - user not yet assigned)
-        let taskProgressMap = new Map<string, StudentTaskProgress>()
-        let completedByActivity = new Map<string, number>()
-        let countByTask = new Map<string, { total: number; completed: number }>()
+        const taskProgressMap = new Map<string, StudentTaskProgress>()
+        const countByTask = new Map<string, { total: number; completed: number }>()
         if (batchId) {
           const [{ data: allTaskProgress }, { data: allActProgress }] = await Promise.all([
             supabase.from('student_task_progress').select('*').eq('user_id', user.id).eq('batch_id', batchId).in('task_id', publishedTaskIds),
@@ -301,7 +302,7 @@ export default function TasksTab({ courseId }: TasksTabProps) {
 
   // Find next not-completed unit for Start button highlight (like screenshot UNIT 2)
   const nextIdx = allUnits.findIndex(u => {
-    if (u.row) return !(u.row.progress?.status === 'completed' || (u.row.totalActivities>0 && u.row.completedActivities===u.row.totalActivities))
+    if (u.row) return u.row.progress ? u.row.progress.status !== 'completed' : !(u.row.totalActivities>0 && u.row.completedActivities===u.row.totalActivities)
     if (u.legacy) return u.legacy.taskState !== 'completed'
     return true
   })
@@ -339,7 +340,7 @@ export default function TasksTab({ courseId }: TasksTabProps) {
         {allUnits.map((u, idx) => {
           const bg = PASTEL[idx % PASTEL.length]
           const isActive = idx === activeIdx
-          const isCompleted = u.row ? (u.row.progress?.status === 'completed' || (u.row.totalActivities>0 && u.row.completedActivities===u.row.totalActivities)) : u.legacy ? u.legacy.taskState==='completed' : false
+          const isCompleted = u.row ? (u.row.progress ? u.row.progress.status==='completed' : (u.row.totalActivities>0 && u.row.completedActivities===u.row.totalActivities)) : u.legacy ? u.legacy.taskState==='completed' : false
           return (
             <Link key={u.id} href={`/student/kursus/${courseId}/tasks/${u.id}`} className="group block">
               <div className="relative flex h-[320px] flex-col overflow-hidden rounded-2xl border-2 border-black/5 p-3 transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-xl" style={{ background: bg }}>
