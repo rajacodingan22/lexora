@@ -13,7 +13,7 @@ interface TestimonialsSectionProps {
 }
 
 export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) {
-  const { t: tr, lang } = useI18n()
+  const { t: tr } = useI18n()
 
   if (!testimonials || testimonials.length === 0) {
     return null
@@ -22,8 +22,8 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
   return (
     <section id="testimoni" className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8 lg:pb-24" aria-label={tr('landing.testimonials.ariaLabel')}>
       <div className="mb-12 text-center">
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container-low px-3 py-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-          <Star className="size-3" aria-hidden="true" /> {tr('landing.testimonials.badge')}
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning-soft px-3 py-1 text-xs font-bold uppercase tracking-widest text-warning">
+          <Star className="size-3 fill-current" aria-hidden="true" /> {tr('landing.testimonials.badge')}
         </span>
         <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
           {tr('landing.testimonials.titlePart1')} <span className="gradient-text">{tr('landing.testimonials.titleHighlight')}</span>{tr('landing.testimonials.titleSuffix')}
@@ -35,7 +35,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
           /* Support both CMS format and hardcoded fallback format */
           const name = (t as any).student_name ?? (t as any).name ?? t.name ?? ''
           const raw = (t as any).content ?? (t as any).text ?? ''
-          const text = typeof raw === 'object' ? (lang === 'en' ? (raw.en || raw.id) : (raw.id || raw.en)) : raw
+          const text = typeof raw === 'object' ? raw.id : raw
           const role = (t as any).role ?? t.role ?? ''
           const photo = (t as any).student_photo ?? t.avatar_url ?? ''
           const initials = (t as any).initials ?? name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
