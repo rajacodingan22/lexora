@@ -46,20 +46,19 @@ export function HeroSection({
   ]
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-6 lg:px-8 lg:pb-24" aria-label={t('landing.hero.ariaLabel')}>
+    <section className="mx-auto max-w-7xl scroll-mt-24 px-4 pb-12 pt-2 sm:px-6 lg:px-8 lg:pb-16" aria-label={t('landing.hero.ariaLabel')}>
       <div className="mx-auto max-w-3xl text-center">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface-container-lowest/60 px-4 py-1.5 backdrop-blur">
-          <span className="relative flex size-2">
+          <span className="relative flex size-2" aria-hidden="true">
             <span className="absolute inline-flex size-full rounded-full bg-accent opacity-75 animate-ping-soft" />
             <span className="relative inline-flex size-2 rounded-full bg-accent" />
           </span>
           <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
             {t('landing.hero.badge')}
           </span>
-          
         </div>
 
-        <h1 className="text-balance text-2xl font-black leading-[1.05] tracking-tight text-on-surface sm:text-4xl md:text-5xl lg:text-6xl">
+        <h1 className="text-balance text-3xl font-black leading-[1.05] tracking-tight text-on-surface sm:text-5xl lg:text-6xl" style={{ overflowWrap: 'anywhere' }}>
           {heroData?.title ?? t('landing.hero.titleFallback')}{' '}
           <span className="gradient-text">{heroData ? t('landing.hero.titleHighlight') : t('landing.hero.titleHighlightFallback')}</span>
         </h1>
@@ -71,13 +70,13 @@ export function HeroSection({
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href={claimHref}
-            className="btn-gradient w-full rounded-xl px-8 py-3.5 text-center text-base font-bold text-primary-foreground shadow-md sm:w-auto"
+            className="btn-gradient w-full rounded-xl px-8 py-3.5 text-center text-base font-bold text-primary-foreground shadow-md transition-transform duration-[var(--dur)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto"
           >
             {heroData?.ctaText ?? t('landing.hero.ctaFallback')}
           </Link>
           <Link
             href="/project"
-            className="glass-card flex w-full items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-bold text-on-surface transition-all duration-[var(--dur)] hover:bg-surface-hover sm:w-auto"
+            className="glass-card flex w-full items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-base font-bold text-on-surface transition-all duration-[var(--dur)] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto"
           >
             <PlayCircle className="size-5 text-primary" aria-hidden="true" />
             {t('landing.hero.tryFree')}
@@ -100,24 +99,24 @@ export function HeroSection({
       </div>
 
       {/* Hero stats banner */}
-      <div className="mt-16 grid gap-4 sm:grid-cols-3">
+      <dl className="mt-12 grid gap-4 sm:grid-cols-3">
         {stats.map(({ value, label, icon: Icon }) => (
           <div
             key={label}
-            className="glass-card flex items-center gap-3 rounded-2xl px-5 py-4"
+            className="glass-card flex items-center gap-4 rounded-2xl px-5 py-4"
           >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
               <Icon className="size-5" aria-hidden="true" />
             </span>
-            <div>
-              <div className="text-2xl font-extrabold tracking-tight text-on-surface">
+            <div className="min-w-0">
+              <dd className="text-2xl font-extrabold tabular-nums tracking-tight text-on-surface">
                 {value}
-              </div>
-              <div className="text-xs font-medium text-on-surface-variant">{label}</div>
+              </dd>
+              <dt className="truncate text-xs font-medium text-on-surface-variant">{label}</dt>
             </div>
           </div>
         ))}
-      </div>
+      </dl>
     </section>
   )
 }

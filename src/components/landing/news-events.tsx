@@ -58,7 +58,7 @@ function FeedCard({ item }: { item: FeedItem }) {
   return (
     <Link
       href={href}
-      className="glass-card group flex h-full flex-col rounded-2xl p-5 hover-lift"
+      className="glass-card group flex h-full min-w-0 flex-col rounded-2xl p-5 transition-all duration-[var(--dur)] hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {image && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -163,10 +163,10 @@ export function NewsEventsSection() {
   return (
     <section
       id="berita-event"
-      className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8 lg:pb-24"
+      className="mx-auto max-w-7xl scroll-mt-24 px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
       aria-label={t('landing.newsEvents.ariaLabel')}
     >
-      <div className="mb-12 text-center">
+      <div className="mb-10 text-center">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container-low px-3 py-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
           <Newspaper className="size-3" aria-hidden="true" /> {t('landing.newsEvents.badge')}
         </span>

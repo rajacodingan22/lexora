@@ -15,7 +15,7 @@ import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, Flag, Loader2, Lock,
   PlayCircle, Unlock, Phone,
 } from 'lucide-react'
-import DialogPhoneView from '@/components/student/dialog-phone-view'
+import RoleplayView from '@/components/student/roleplay-view'
 
 const NODE_X = [66, 34]
 const NODE_GAP = 190
@@ -77,18 +77,18 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
       })
       setView(computed)
 
-      // dialog status
+      // roleplay status (pengganti dialog bot free-form)
       const t = tree.task as unknown as Record<string, unknown>
       const enabled = !!t.dialog_enabled
       setDialogEnabled(enabled)
+      setDialogRemaining(null)
       if (enabled) {
         try {
-          const r = await fetch(`/api/dialog/session?taskId=${taskId}`)
+          const r = await fetch(`/api/dialog/attempt?taskId=${taskId}`)
           if (r.ok) {
             const d = await r.json()
-            if (d.session) {
-              setDialogStatus(d.session.status)
-              setDialogRemaining(d.remainingSec)
+            if (d.latest) {
+              setDialogStatus(d.latest.status === 'reviewed' ? 'completed' : 'active')
             } else {
               setDialogStatus('none')
             }
@@ -147,10 +147,10 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
         href: `/student/kursus/${courseId}/tasks/${taskId}/lessons/${lv.lesson.id}`,
       })
     })
-    // Dialog bot — selalu di akhir learning path (di atasnya semua lessons baru)
+    // Roleplay naskah — selalu di akhir learning path (di atasnya semua lessons baru)
     if (dialogEnabled) {
       const taskTitle = (view.tree.task as unknown as Record<string, unknown>).dialog_topic as string | undefined
-      const topicShort = taskTitle ? taskTitle.slice(0, 24) : 'Bot Dialog'
+      const topicShort = taskTitle ? taskTitle.slice(0, 24) : 'Roleplay'
       const y = NODE_START_Y + out.length * NODE_GAP
       const done = dialogStatus === 'completed'
       // locked until semua lesson benar-benar completed (bukan sticky taskProgress)
@@ -426,7 +426,7 @@ export default function LmsTaskDetail({ courseId, taskId }: { courseId: string; 
         </div>
       )}
 
-      <DialogPhoneView taskId={taskId} open={dialogOpen} onClose={() => { setDialogOpen(false); fetchView() }} onCompleted={() => { setDialogStatus('completed'); fetchView() }} />
+      <RoleplayView taskId={taskId} open={dialogOpen} onClose={() => { setDialogOpen(false); fetchView() }} onCompleted={() => { fetchView() }} />
     </div>
   )
 }

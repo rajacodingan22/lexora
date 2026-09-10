@@ -781,3 +781,71 @@ export interface SpeakingReviewContent {
 
 export type ActivityContentData = ReadingContent | ListeningContent | ImageSpeakContent | SpeakingReviewContent
 
+// ============================================================
+// SCRIPTED DIALOG ROLEPLAY (pengganti dialog bot free-form)
+// ============================================================
+
+export interface DialogScriptCharacter {
+  id: string
+  name: string
+  role: string | null
+  voice: string | null
+}
+
+export type DialogScriptStatus = 'draft' | 'published'
+
+export interface DialogScript {
+  id: string
+  task_id: string
+  title: string
+  scene_image_url: string | null
+  setting_desc: string | null
+  characters: DialogScriptCharacter[]
+  student_character_id: string | null
+  status: DialogScriptStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface DialogScriptTurn {
+  id: string
+  script_id: string
+  turn_number: number
+  reader: string
+  text: string
+  image_url: string | null
+  keywords: string[]
+  created_at: string
+}
+
+export type DialogSubmissionStatus = 'pending' | 'reviewed'
+
+export interface DialogSubmissionTurn {
+  turn_id: string
+  transcript: string
+  similarity: number
+  drive_file_id: string | null
+  drive_link: string | null
+}
+
+export interface DialogScriptSubmission {
+  id: string
+  user_id: string
+  batch_id: string
+  task_id: string
+  script_id: string
+  turns: DialogSubmissionTurn[]
+  auto_score: number | null
+  status: DialogSubmissionStatus
+  reviewed_by: string | null
+  reviewed_at: string | null
+  score_pronunciation: number | null
+  score_fluency: number | null
+  score_confidence: number | null
+  score_comprehension: number | null
+  overall_score: number | null
+  teacher_feedback: string | null
+  created_at: string
+  updated_at: string
+}
+

@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { SaveIndicator, useAutosave } from '@/components/learning/admin/autosave'
+import { RoleplayEditor } from '@/components/learning/admin/roleplay-editor'
 import { checkTaskPublishable } from '@/lib/learning'
 import type {
   BatchTask, CourseTask, LessonActivity, TaskLesson, TaskStatus,
@@ -649,45 +650,20 @@ export default function AdminTaskBuilderPage() {
         </Card>
       )}
 
-      {/* DIALOG */}
+      {/* DIALOG — scripted roleplay (pengganti dialog bot free-form) */}
       {tab === 'dialog' && draft && (
         <Card>
           <CardContent className="space-y-4 p-5">
-            <h3 className="font-semibold text-on-surface">Dialog Bot 7-Menit (Wajib di Akhir Unit)</h3>
-            <p className="text-xs text-on-surface-variant">Jika aktif, student wajib menyelesaikan dialog di akhir unit untuk menyelesaikan unit. Bot hanya membahas topik unit — di luar topik akan diarahkan kembali. Timer server-authoritative, refresh tidak reset. Audio disimpan ke GDrive student.</p>
+            <h3 className="font-semibold text-on-surface">Roleplay Naskah (Wajib di Akhir Unit)</h3>
+            <p className="text-xs text-on-surface-variant">Jika aktif, student wajib memainkan naskah roleplay di akhir unit. Admin menulis naskah + casting tokoh; murid membaca barisnya; audio disetor dan dinilai guru.</p>
 
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={draft.dialog_enabled} onChange={e => setDraft({ ...draft, dialog_enabled: e.target.checked })} className="h-4 w-4" />
-              <span className="text-sm font-medium">Aktifkan Dialog Bot untuk unit ini</span>
+              <span className="text-sm font-medium">Aktifkan Roleplay untuk unit ini</span>
             </label>
 
-            {draft.dialog_enabled && (
-              <div className="space-y-3 border-t border-border pt-4">
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Topik (wajib, bot hanya bahas ini) *</Label>
-                  <Input value={draft.dialog_topic} onChange={e => setDraft({ ...draft, dialog_topic: e.target.value })} placeholder="misal: Shopping at supermarket" />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Nama Karakter</Label>
-                    <Input value={draft.dialog_character_name} onChange={e => setDraft({ ...draft, dialog_character_name: e.target.value })} placeholder="Ms. Sarah" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Peran Karakter</Label>
-                    <Input value={draft.dialog_character_role} onChange={e => setDraft({ ...draft, dialog_character_role: e.target.value })} placeholder="Kasir ramah di London" />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Instruksi Persona (opsional, max 500)</Label>
-                  <Textarea rows={2} value={draft.dialog_instructions} onChange={e => setDraft({ ...draft, dialog_instructions: e.target.value })} placeholder="Ramah, banyak tanya balik, koreksi halus..." />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Durasi (detik, 0 = tanpa batas, 60-900, default 420)</Label>
-                  <Input type="number" min={0} max={900} value={draft.dialog_duration_sec} onChange={e => setDraft({ ...draft, dialog_duration_sec: Number(e.target.value) })} />
-                  <span className="text-xs text-on-surface-variant">0 = tanpa batas (manual akhiri), 420 = 7 menit</span>
-                </div>
-                {!draft.dialog_topic.trim() && <p className="text-xs text-destructive">Topik wajib diisi jika dialog aktif — bot akan lock ke topik ini.</p>}
-              </div>
+            {draft.dialog_enabled && task?.course_id && (
+              <RoleplayEditor taskId={taskId as string} courseId={task.course_id} />
             )}
           </CardContent>
         </Card>

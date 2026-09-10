@@ -135,8 +135,8 @@ export function CoursesSection() {
   }
 
   return (
-    <section id="kelas" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24" aria-label={t('landing.courses.ariaLabel')}>
-      <div className="mb-12 text-center">
+    <section id="kelas" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-12 sm:px-6 lg:px-8 lg:py-16" aria-label={t('landing.courses.ariaLabel')}>
+      <div className="mb-10 text-center">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container-low px-3 py-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
           <BookOpen className="size-3" aria-hidden="true" /> {t('landing.courses.badge')}
         </span>
@@ -165,7 +165,7 @@ export function CoursesSection() {
               <Link
                 key={course.id}
                 href="/project"
-                className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
+                className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <div className="relative h-36 shrink-0 overflow-hidden">
                   {course.image_url ? (
@@ -278,10 +278,10 @@ export function CoursesSection() {
         </div>
       )}
 
-      <div className="mt-12 text-center">
+      <div className="mt-10 text-center">
         <Link href="/project">
-          <Button size="lg" variant="outline" className="px-8">
-            {t('landing.courses.viewAll')} <ArrowRight className="ml-2 h-4 w-4" />
+          <Button size="lg" variant="outline" className="min-w-0 px-8">
+            {t('landing.courses.viewAll')} <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden="true" />
           </Button>
         </Link>
       </div>

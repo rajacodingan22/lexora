@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Search, Download, Loader2, ChevronLeft, GraduationCap } from 'lucide-react'
 import { SpeakingReviewQueue } from '@/components/teacher/speaking-review-queue'
+import { RoleplayReviewQueue } from '@/components/teacher/roleplay-review-queue'
 import { DialogFeedbackTab } from '@/components/teacher/dialog-feedback-tab'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
@@ -402,6 +403,7 @@ export default function TeacherNilaiPage() {
       </Card>
 
       <SpeakingReviewQueue />
+      <RoleplayReviewQueue />
         </>
       )}
     </div>

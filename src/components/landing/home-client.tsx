@@ -40,7 +40,7 @@ export default function HomeClient() {
     <>
       <Navbar />
       <main className="min-h-screen">
-        <div className="pt-4">
+        <div className="pt-24 sm:pt-28">
           <HeroSection testimonials={testimonials} heroData={{ title: t('public.home.heroTitle'), subtitle: t('public.home.heroSubtitle'), ctaText: t('public.home.heroCta'), ctaLink: '/daftar', featurePills: [] }} />
         </div>
         <LanguagesSection languages={languages} />

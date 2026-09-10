@@ -277,16 +277,17 @@ export async function POST(req: Request) {
       }
       let dialogCompleted = true
       if ((task as { dialog_enabled?: boolean }).dialog_enabled) {
-        const { data: dialog } = await supabase
-          .from('dialog_sessions')
+        // Roleplay naskah: wajib ada attempt yang sudah direview guru
+        const { data: attempt } = await supabase
+          .from('dialog_script_submissions')
           .select('status')
           .eq('user_id', user.id)
           .eq('batch_id', batchId)
           .eq('task_id', taskId)
-          .eq('status', 'completed')
+          .eq('status', 'reviewed')
           .limit(1)
           .maybeSingle()
-        dialogCompleted = !!dialog
+        dialogCompleted = !!attempt
       }
       const taskCompleted = totalActivities > 0 && completedActivities === totalActivities && dialogCompleted
       await supabase.from('student_task_progress').upsert({

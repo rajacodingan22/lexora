@@ -39,34 +39,34 @@ export function LanguagesSection({ languages }: LanguagesSectionProps) {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24" aria-label={t('landing.languages.ariaLabel')}>
+    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16" aria-label={t('landing.languages.ariaLabel')}>
       <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
+        <div className="min-w-0">
+          <h2 className="text-balance text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
             {t('landing.languages.titlePrefix')} <span className="gradient-text">{t('landing.languages.titleHighlight')}</span>{t('landing.languages.titleSuffix')}
           </h2>
-          <p className="mt-2 text-on-surface-variant">{t('landing.languages.subtitle')}</p>
+          <p className="mt-2 max-w-2xl text-on-surface-variant">{t('landing.languages.subtitle')}</p>
         </div>
         <Link
           href="/project"
-          className="inline-flex items-center gap-1 self-start text-sm font-semibold text-primary hover:underline sm:self-auto"
+          className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:self-auto"
         >
-          {t('landing.languages.viewAll')} &rarr;
+          {t('landing.languages.viewAll')} <span aria-hidden="true">&rarr;</span>
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6">
         {languages.map((lang) => (
           <Link
             key={lang.code}
             href={`/project?lang=${encodeURIComponent(lang.code)}`}
-            className="glass-card group flex flex-col items-center gap-2 rounded-2xl p-5 hover-lift"
+            className="glass-card group flex min-w-0 flex-col items-center gap-2.5 rounded-2xl p-5 transition-all duration-[var(--dur)] hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <div className="flex size-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary-soft to-accent-soft">
+            <div className="flex size-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary-soft to-accent-soft transition-transform duration-[var(--dur)] group-hover:scale-105">
               <span className={`fi fi-${FLAG_MAP[lang.code] || 'xx'} text-3xl`} role="img" aria-label={t('landing.languages.flagAria', { name: lang.name })} />
             </div>
-            <div className="text-center">
-              <div className="font-bold text-on-surface">{lang.name}</div>
+            <div className="min-w-0 text-center">
+              <div className="truncate font-bold text-on-surface">{lang.name}</div>
             </div>
           </Link>
         ))}
