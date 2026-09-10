@@ -286,6 +286,168 @@ function ImageSpeakEditor({ content, onChange, t }: { content: any; onChange: (c
   )
 }
 
+function ImageQuizEditor({ content, onChange }: { content: any; onChange: (c: any) => void }) {
+  const supabase = createClient()
+  const [uploading, setUploading] = useState<string | null>(null)
+  const items: { image?: string; options?: string[]; correctIndex?: number }[] = Array.isArray(content.items) ? content.items : []
+
+  function patchItems(next: { image?: string; options?: string[]; correctIndex?: number }[]) {
+    onChange({ ...content, items: next })
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>, idx: number) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      window.alert('Hanya file gambar yang diperbolehkan')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      window.alert('Ukuran gambar maksimal 5MB')
+      return
+    }
+    const key = `img-${idx}`
+    setUploading(key)
+    try {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `tasks/image_quiz/${crypto.randomUUID()}.${ext}`
+      const { error } = await supabase.storage.from('task-covers').upload(path, file, { contentType: file.type })
+      if (error) throw error
+      const { data } = supabase.storage.from('task-covers').getPublicUrl(path)
+      const next = [...items]
+      next[idx] = { ...next[idx], image: data.publicUrl }
+      patchItems(next)
+    } catch (err: any) {
+      window.alert(err?.message || 'Upload failed')
+    }
+    setUploading(null)
+    e.target.value = ''
+  }
+
+  function addItem() {
+    patchItems([...items, { image: '', options: ['', ''], correctIndex: 0 }])
+  }
+
+  function removeItem(idx: number) {
+    patchItems(items.filter((_, j) => j !== idx))
+  }
+
+  return (
+    <div className="space-y-4">
+      {items.map((it, idx) => {
+        const options = Array.isArray(it.options) ? it.options : []
+        return (
+          <div key={idx} className="space-y-3 rounded-xl border border-border bg-surface-container-low p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-on-surface">Soal {idx + 1}</span>
+              <Button type="button" size="sm" variant="ghost" className="text-destructive" onClick={() => removeItem(idx)}>
+                Hapus soal
+              </Button>
+            </div>
+            {it.image ? (
+              <div className="space-y-2">
+                <img src={it.image} alt={`Soal ${idx + 1}`} className="h-40 w-full rounded-lg border border-border object-cover" />
+                <Button type="button" size="sm" variant="ghost" className="w-full text-destructive" onClick={() => {
+                  const next = [...items]
+                  next[idx] = { ...next[idx], image: '' }
+                  patchItems(next)
+                }}>
+                  Hapus & Ganti Gambar
+                </Button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border p-6 text-sm text-muted transition-colors hover:border-primary hover:bg-surface-container-low">
+                {uploading === `img-${idx}` ? <Loader2 className="mb-1 h-5 w-5 animate-spin text-primary" /> : <Plus className="mb-1 h-5 w-5 text-muted" />}
+                <span className="text-xs text-on-surface">Klik untuk Upload Gambar</span>
+                <span className="mt-1 text-[10px] text-muted">PNG, JPG, WebP (maks 5MB)</span>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, idx)} />
+              </label>
+            )}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-on-surface">Opsi caption (radio = jawaban benar)</span>
+              {options.map((opt, oi) => (
+                <div key={oi} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={`quiz-correct-${idx}`}
+                    checked={Number(it.correctIndex ?? 0) === oi}
+                    onChange={() => {
+                      const next = [...items]
+                      next[idx] = { ...next[idx], correctIndex: oi }
+                      patchItems(next)
+                    }}
+                    aria-label={`Opsi ${oi + 1} benar`}
+                    className="h-4 w-4"
+                  />
+                  <Input
+                    value={opt}
+                    onChange={(e) => {
+                      const next = [...items]
+                      const opts = [...options]
+                      opts[oi] = e.target.value
+                      next[idx] = { ...next[idx], options: opts }
+                      patchItems(next)
+                    }}
+                    placeholder={`Opsi ${oi + 1} — misal: a woman and her dog`}
+                    className="flex-1"
+                  />
+                  {options.length > 2 && (
+                    <Button
+                      type="button" size="sm" variant="ghost"
+                      onClick={() => {
+                        const next = [...items]
+                        const opts = options.filter((_, j) => j !== oi)
+                        next[idx] = { ...next[idx], options: opts, correctIndex: Math.min(Number(it.correctIndex ?? 0), opts.length - 1) }
+                        patchItems(next)
+                      }}
+                      aria-label="Hapus opsi"
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button" size="sm" variant="outline"
+                onClick={() => {
+                  const next = [...items]
+                  next[idx] = { ...next[idx], options: [...options, ''] }
+                  patchItems(next)
+                }}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" /> Opsi
+              </Button>
+            </div>
+          </div>
+        )
+      })}
+      <Button type="button" size="sm" variant="outline" onClick={addItem}>
+        <Plus className="mr-1 h-3.5 w-3.5" /> Tambah Soal
+      </Button>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Threshold karaoke (0.5-1.0, default 0.8)">
+          <Input
+            type="number"
+            min={0.5}
+            max={1}
+            step={0.05}
+            value={content.threshold ?? 0.8}
+            onChange={(e) => onChange({ ...content, threshold: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label="Instructions (opsional)">
+          <Input
+            value={content.instructions ?? ''}
+            onChange={(e) => onChange({ ...content, instructions: e.target.value })}
+            placeholder="Pilih caption yang cocok, lalu ucapkan"
+          />
+        </Field>
+      </div>
+      <p className="text-xs text-muted">Siswa: pilih caption sesuai gambar → dengarkan TTS → ucapkan → kata terucap hijau → lanjut soal berikut.</p>
+    </div>
+  )
+}
+
 function SpeakingReviewEditor({ content, onChange }: { content: any; onChange: (c: any) => void }) {
   return (
     <div className="space-y-4">
@@ -391,6 +553,7 @@ export function ActivityEditorModal({
       case 'reading': return <ReadingEditor {...props} />
       case 'listening': return <ListeningEditor {...props} />
       case 'image_speak': return <ImageSpeakEditor {...props} />
+      case 'image_quiz': return <ImageQuizEditor {...props} />
       case 'speaking_review': return <SpeakingReviewEditor {...props} />
     }
   }

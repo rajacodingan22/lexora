@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeText, similarity, scoreTurn, validateScriptTurns } from '@/lib/text-similarity'
+import { normalizeText, similarity, scoreTurn, matchedWords, validateScriptTurns } from '@/lib/text-similarity'
+import { activityContentReady } from '@/lib/learning'
 
 describe('text-similarity', () => {
   it('normalizes case, punctuation, spacing', () => {
@@ -53,6 +54,32 @@ describe('validateScriptTurns', () => {
   it('requires images per beat (strip needs visuals)', () => {
     const errs = validateScriptTurns([{ reader: 'tutor', text: 'Hi!' }], null)
     expect(errs.some((e) => e.includes('gambar'))).toBe(true)
+  })
+
+  it('marks spoken words for karaoke coloring', () => {
+    const hits = matchedWords('a woman and her dog', 'a woman dog')
+    expect(hits.has(0)).toBe(true)
+    expect(hits.has(1)).toBe(true)
+    expect(hits.has(2)).toBe(false)
+    expect(hits.has(3)).toBe(false)
+    expect(hits.has(4)).toBe(true)
+    expect(matchedWords('hello', '').size).toBe(0)
+  })
+
+  it('validates image_quiz content', () => {
+    expect(activityContentReady('image_quiz', { items: [] })).toBe(false)
+    expect(activityContentReady('image_quiz', {
+      items: [{ image: 'http://x/y.jpg', options: ['a', 'b'], correctIndex: 0 }],
+    })).toBe(true)
+    expect(activityContentReady('image_quiz', {
+      items: [{ image: '', options: ['a', 'b'], correctIndex: 0 }],
+    })).toBe(false)
+    expect(activityContentReady('image_quiz', {
+      items: [{ image: 'http://x/y.jpg', options: ['only'], correctIndex: 0 }],
+    })).toBe(false)
+    expect(activityContentReady('image_quiz', {
+      items: [{ image: 'http://x/y.jpg', options: ['a', 'b'], correctIndex: 5 }],
+    })).toBe(false)
   })
 
   it('validates locked quiz beats', () => {

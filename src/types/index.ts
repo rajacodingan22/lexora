@@ -587,6 +587,7 @@ export type ActivityType =
   | 'reading'
   | 'listening'
   | 'image_speak'
+  | 'image_quiz'
   | 'speaking_review'
 
 export interface TaskLesson {
@@ -779,7 +780,19 @@ export interface SpeakingReviewContent {
   passageText?: string
 }
 
-export type ActivityContentData = ReadingContent | ListeningContent | ImageSpeakContent | SpeakingReviewContent
+export interface ImageQuizItem {
+  image: string
+  options: string[]
+  correctIndex: number
+}
+
+export interface ImageQuizContent {
+  items: ImageQuizItem[]
+  threshold?: number
+  instructions?: string
+}
+
+export type ActivityContentData = ReadingContent | ListeningContent | ImageSpeakContent | ImageQuizContent | SpeakingReviewContent
 
 // ============================================================
 // SCRIPTED DIALOG ROLEPLAY (pengganti dialog bot free-form)

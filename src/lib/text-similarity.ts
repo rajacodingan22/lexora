@@ -23,6 +23,20 @@ export function similarity(a: string, b: string): number {
   return 1 - levenshtein(a, b) / maxLen
 }
 
+/** Index kata expected yang terdengar di transkrip (fuzzy > 0.7, tanpa peduli urutan). */
+export function matchedWords(expected: string, transcript: string): Set<number> {
+  const expWords = normalizeText(expected).split(' ').filter(Boolean)
+  const spokWords = new Set(normalizeText(transcript).split(' ').filter(Boolean))
+  const hit = new Set<number>()
+  expWords.forEach((w, i) => {
+    if (spokWords.has(w)) { hit.add(i); return }
+    for (const s of spokWords) {
+      if (similarity(w, s) > 0.7) { hit.add(i); break }
+    }
+  })
+  return hit
+}
+
 export interface TurnScore {
   similarity: number
   keywordHits: number

@@ -1,11 +1,12 @@
 ﻿'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { computeActivityResult, type ActivityResult } from '@/lib/learning'
+import { matchedWords, scoreTurn } from '@/lib/text-similarity'
 import type { ActivityType, LessonActivity } from '@/types'
-import { CheckCircle2, Loader2, Pause, Play, Volume2, Mic } from 'lucide-react'
+import { CheckCircle2, Check, Loader2, Pause, Play, Volume2, VolumeX, Mic } from 'lucide-react'
 import { SpeakingReviewRenderer } from './speaking-review-renderer'
 import { useI18n } from '@/lib/i18n/client'
 
@@ -548,6 +549,262 @@ function ImageSpeakRenderer({ content, onComplete }: RendererProps) {
   )
 }
 
+function speakText(text: string) {
+  try {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'en-US'
+    u.rate = 0.9
+    window.speechSynthesis.speak(u)
+  } catch { /* diam */ }
+}
+
+interface QuizItemState {
+  picked: boolean
+  score: number | null
+  transcript: string
+}
+
+function ImageQuizRenderer({ content, onComplete }: RendererProps) {
+  const items = useMemo(() => {
+    const raw = Array.isArray(content.items) ? content.items : []
+    return raw
+      .filter((it) => it && typeof it === 'object' && String((it as { image?: unknown }).image ?? '').trim())
+      .map((it) => {
+        const o = it as { image?: unknown; options?: unknown; correctIndex?: unknown }
+        const options = (Array.isArray(o.options) ? o.options : []).map((x) => String(x ?? '')).filter((s) => s.trim())
+        return {
+          image: String(o.image ?? ''),
+          options,
+          correctIndex: Math.min(Math.max(Number(o.correctIndex ?? 0), 0), Math.max(options.length - 1, 0)),
+        }
+      })
+      .filter((it) => it.options.length >= 2)
+  }, [content.items])
+  const threshold = Math.min(Math.max(Number(content.threshold ?? 0.8), 0.5), 1)
+
+  const [qIdx, setQIdx] = useState(0)
+  const [pickedIdx, setPickedIdx] = useState<number | null>(null)
+  const [wrongIdx, setWrongIdx] = useState<number | null>(null)
+  const [speakingOpt, setSpeakingOpt] = useState<number | null>(null)
+  const [states, setStates] = useState<Record<number, QuizItemState>>({})
+  const [isRecording, setIsRecording] = useState(false)
+  const [interimText, setInterimText] = useState('')
+  const [transcript, setTranscript] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const item = items[qIdx]
+  const done = states[qIdx]?.score != null && (states[qIdx]?.score ?? 0) >= Math.round(threshold * 100)
+  const liveText = `${transcript} ${interimText}`.trim()
+  const hits = useMemo(
+    () => (item && pickedIdx === item.correctIndex ? matchedWords(item.options[item.correctIndex], liveText) : new Set<number>()),
+    [item, pickedIdx, liveText],
+  )
+
+  function pick(i: number) {
+    if (!item || done) return
+    if (i === item.correctIndex) {
+      setPickedIdx(i)
+      setWrongIdx(null)
+      speakText(item.options[i])
+    } else {
+      setWrongIdx(i)
+      setTimeout(() => setWrongIdx((cur) => (cur === i ? null : cur)), 600)
+    }
+  }
+
+  async function handleRecord() {
+    if (isRecording || !item || pickedIdx !== item.correctIndex) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach((tr) => tr.stop())
+    } catch {
+      setError('Izin mikrofon ditolak. Izinkan mikrofon di pengaturan browser, lalu coba lagi.')
+      return
+    }
+    const SR = (window as unknown as Record<string, unknown>).SpeechRecognition || (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+    if (!SR) {
+      setError('Browser ini tidak mendukung pengenalan suara. Gunakan Google Chrome.')
+      return
+    }
+    setIsRecording(true)
+    setError(null)
+    setInterimText('')
+    setTranscript('')
+    try {
+      const Rec = SR as new () => {
+        lang: string; interimResults: boolean; continuous: boolean; maxAlternatives: number
+        onresult: ((e: { resultIndex: number; results: Array<Array<{ transcript: string }> & { isFinal: boolean }> }) => void) | null
+        onerror: ((e: { error?: string }) => void) | null
+        onend: (() => void) | null
+        start: () => void; stop: () => void
+      }
+      const rec = new Rec()
+      rec.lang = 'en-US'
+      rec.interimResults = true
+      rec.continuous = false
+      rec.maxAlternatives = 1
+      rec.onresult = (e) => {
+        let interim = ''
+        let final = ''
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const t = e.results[i][0].transcript
+          if ((e.results[i] as { isFinal: boolean }).isFinal) final += t
+          else interim += t
+        }
+        if (interim) setInterimText(interim)
+        if (final) {
+          setInterimText('')
+          setTranscript(final.trim())
+          setIsRecording(false)
+          try { rec.stop() } catch { /* noop */ }
+          const s = scoreTurn(item.options[item.correctIndex], final.trim(), []).score
+          setStates((prev) => ({ ...prev, [qIdx]: { picked: true, score: s, transcript: final.trim() } }))
+        }
+      }
+      rec.onerror = (e) => {
+        setError(e?.error || 'Recognition failed')
+        setIsRecording(false)
+      }
+      rec.onend = () => setIsRecording(false)
+      rec.start()
+    } catch {
+      setError('Gagal memulai rekaman')
+      setIsRecording(false)
+    }
+  }
+
+  function next() {
+    if (qIdx + 1 >= items.length) {
+      const scores = items.map((_, i) => states[i]?.score ?? (i === qIdx ? states[qIdx]?.score ?? 0 : 0))
+      const avg = Math.round(scores.reduce((a, b) => a + b, 0) / Math.max(scores.length, 1))
+      const passed = scores.filter((s) => s >= Math.round(threshold * 100)).length
+      onComplete({
+        answers: { perItem: states, average: avg },
+        result: { score: avg, correct: passed, total: items.length, completed: passed === items.length },
+      })
+      return
+    }
+    setQIdx((i) => i + 1)
+    setPickedIdx(null)
+    setWrongIdx(null)
+    setTranscript('')
+    setInterimText('')
+    setError(null)
+  }
+
+  if (items.length === 0) {
+    return <p className="py-8 text-center text-sm text-white/50">Soal belum tersedia.</p>
+  }
+  if (!item) return null
+
+  const expectedWords = item.options[item.correctIndex].split(/(\s+)/)
+  let wi = -1
+
+  return (
+    <div className="mx-auto w-full max-w-xl">
+      {/* Strip soal */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {items.map((it, i) => {
+          const st = states[i]
+          const passed = st?.score != null && st.score >= Math.round(threshold * 100)
+          const active = i === qIdx
+          return (
+            <div key={i} className="w-24 shrink-0 sm:w-28">
+              <div className={`relative overflow-hidden rounded-lg border-2 ${active ? 'border-sky-400' : passed ? 'border-emerald-400/70' : 'border-white/10'}`}>
+                <img src={it.image} alt="" className="h-16 w-full object-cover sm:h-20" />
+                {passed && (
+                  <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sky-500">
+                    <Check className="h-3 w-3 text-white" />
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 truncate text-[11px] text-white/70">{it.options[it.correctIndex]}</p>
+              {active && <p className="text-center text-[10px] leading-none text-white/60">^</p>}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Gambar besar */}
+      <div className="relative mt-1 overflow-hidden rounded-2xl border border-white/10">
+        <img src={item.image} alt={`Soal ${qIdx + 1}`} className="max-h-[42vh] w-full object-cover" />
+        {pickedIdx === item.correctIndex && (
+          <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-900/85 px-3 py-2 backdrop-blur">
+            <p className="text-sm font-medium text-white">
+              {expectedWords.map((w, i) => {
+                if (!w.trim()) return <span key={i}>{w}</span>
+                wi += 1
+                return (
+                  <span key={i} className={hits.has(wi) ? 'text-emerald-300' : undefined}>{w}</span>
+                )
+              })}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Fase pilih */}
+      {pickedIdx !== item.correctIndex && (
+        <div className="mt-3 space-y-2">
+          {item.options.map((opt, i) => (
+            <div
+              key={i}
+              className={`flex w-full items-center justify-between gap-2 rounded-full border px-4 py-3 text-left text-sm text-white transition ${
+                wrongIdx === i ? 'border-destructive bg-destructive/10' : 'border-white/15 bg-white/5 hover:border-sky-400/60'
+              }`}
+            >
+              <button onClick={() => pick(i)} className="min-w-0 flex-1 truncate text-left">
+                {opt}
+              </button>
+              <button
+                onClick={() => { setSpeakingOpt(i); speakText(opt); setTimeout(() => setSpeakingOpt((c) => (c === i ? null : c)), 3000) }}
+                aria-label={`Dengarkan opsi ${i + 1}`}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
+              >
+                {speakingOpt === i ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+            </div>
+          ))}
+          {wrongIdx !== null && <p className="text-center text-xs font-medium text-destructive">Belum tepat — coba lagi!</p>}
+        </div>
+      )}
+
+      {/* Fase ucapkan */}
+      {pickedIdx === item.correctIndex && !done && (
+        <div className="mt-3 flex flex-col items-center gap-2">
+          {(interimText || transcript) && (
+            <p className="text-sm text-white/60">
+              {transcript ? <>Kamu: &quot;{transcript}&quot;</> : <span className="italic text-white/40">{interimText}...</span>}
+            </p>
+          )}
+          <button
+            onClick={handleRecord}
+            disabled={isRecording}
+            aria-label="mic"
+            className={`flex h-14 w-14 items-center justify-center rounded-full transition ${isRecording ? 'animate-pulse bg-red-500 text-white' : 'bg-amber-200/90 text-black hover:bg-amber-100'}`}
+          >
+            <Mic className="h-6 w-6" />
+          </button>
+          <p className="text-xs text-white/40">{isRecording ? 'Merekam… ucapkan kalimatnya' : 'Tekan mic lalu ucapkan captionnya'}</p>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
+      )}
+
+      {/* Hasil per soal */}
+      {done && (
+        <div className="mt-3 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-center">
+          <p className="text-sm font-bold text-emerald-300">Bagus! Kecocokan {states[qIdx]?.score}%</p>
+          <Button size="sm" className="mt-2 rounded-full bg-white px-6 text-black hover:bg-white/90" onClick={next}>
+            {qIdx + 1 >= items.length ? 'Selesai' : 'Soal Berikutnya'}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function ActivityRenderer(props: RendererProps) {
   const { t } = useI18n()
   const { activity } = props
@@ -564,6 +821,8 @@ export function ActivityRenderer(props: RendererProps) {
       return wrap(<ListeningRenderer {...props} />)
     case 'image_speak':
       return wrap(<ImageSpeakRenderer {...props} />)
+    case 'image_quiz':
+      return wrap(<ImageQuizRenderer {...props} />)
     case 'speaking_review':
       return wrap(<SpeakingReviewRenderer {...props} />)
     default:

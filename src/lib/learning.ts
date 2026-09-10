@@ -9,13 +9,14 @@ import type {
 } from '@/types'
 
 /**
- * ACTIVE activity types - 4 types: reading, listening, image_speak, speaking_review
+ * ACTIVE activity types - 5 types: reading, listening, image_speak, image_quiz, speaking_review
  * Admin-only creation. Student speaking uses Drive per user (Opsi A) + Supabase text+link.
  */
 export const ACTIVITY_TYPES: ActivityType[] = [
   'reading',
   'listening',
   'image_speak',
+  'image_quiz',
   'speaking_review',
 ]
 
@@ -23,6 +24,7 @@ export const ACTIVITY_TYPE_LABELS: Record<string, { en: string; id: string; zh: 
   reading: { en: 'Reading', id: 'Membaca', zh: '阅读' },
   listening: { en: 'Listening', id: 'Mendengarkan', zh: '听力' },
   image_speak: { en: 'Image Speak', id: 'Gambar & Ucap', zh: '看图说话' },
+  image_quiz: { en: 'Image Quiz', id: 'Kuis Gambar', zh: '看图测验' },
   speaking_review: { en: 'Speaking Review', id: 'Ulasan Berbicara', zh: '口语评审' },
 }
 
@@ -56,6 +58,8 @@ export function defaultActivityContent(type: ActivityType): ActivityContentData 
       return { audio_url: null, audio_text: '', voice: null, speed: 1, instructions: '' }
     case 'image_speak':
       return { prompt: '', images: ['', '', '', ''], correctIndex: 0, expectedText: '', threshold: 0.9, instructions: '' } as unknown as ActivityContentData
+    case 'image_quiz':
+      return { items: [{ image: '', options: ['', ''], correctIndex: 0 }], threshold: 0.8, instructions: '' } as unknown as ActivityContentData
     case 'speaking_review':
       return { text: '', instructions: '', voice: null, rate: 0.9 } as unknown as ActivityContentData
   }
@@ -84,6 +88,17 @@ export function activityContentReady(type: ActivityType, content: unknown): bool
       if (images.some(i => !String(i).trim())) return false
       if (typeof correctIndex !== 'number' || correctIndex < 0 || correctIndex > 3) return false
       return true
+    }
+    case 'image_quiz': {
+      const items = (c.items as { image?: unknown; options?: unknown; correctIndex?: unknown }[]) ?? []
+      if (items.length === 0) return false
+      return items.every((it) => {
+        if (!it || typeof it !== 'object') return false
+        if (!String(it.image ?? '').trim()) return false
+        if (!Array.isArray(it.options) || it.options.length < 2) return false
+        if (it.options.some((o) => !String(o ?? '').trim())) return false
+        return typeof it.correctIndex === 'number' && it.correctIndex >= 0 && it.correctIndex < it.options.length
+      })
     }
     case 'speaking_review':
       return ((c.text as string) ?? '').trim().length > 0

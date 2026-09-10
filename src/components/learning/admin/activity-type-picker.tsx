@@ -5,13 +5,14 @@ import { ACTIVITY_TYPES, getActivityTypeLabel } from '@/lib/learning'
 import type { ActivityType } from '@/types'
 import {
   BookMarked, Headphones, BookOpen, Brain, Layers, Mic, Wrench,
-  Type, AlignLeft, Image, Link2, PenTool, Zap, CircleDot, X, MessageSquare,
+  Type, AlignLeft, Image, Images, Link2, PenTool, Zap, CircleDot, X, MessageSquare,
 } from 'lucide-react'
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   reading: BookMarked,
   listening: Headphones,
   image_speak: Image,
+  image_quiz: Images,
   speaking_review: MessageSquare,
   learn: BookOpen,
   flashcard: Brain,
