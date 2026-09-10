@@ -807,6 +807,17 @@ export interface DialogScript {
   updated_at: string
 }
 
+export interface DialogQuizImage {
+  url: string
+  caption: string
+}
+
+export interface DialogQuiz {
+  images: DialogQuizImage[]
+  options: string[]
+  correctIndex: number
+}
+
 export interface DialogScriptTurn {
   id: string
   script_id: string
@@ -815,6 +826,7 @@ export interface DialogScriptTurn {
   text: string
   image_url: string | null
   keywords: string[]
+  quiz: DialogQuiz | null
   created_at: string
 }
 

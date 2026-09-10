@@ -53,12 +53,27 @@ export function scoreTurn(expected: string, transcript: string, keywords: string
   return { similarity: Math.round(sim * 100) / 100, keywordHits: hits, keywordTotal: keys.length, score }
 }
 
-export function validateScriptTurns(turns: { reader: string; text: string }[], studentCharacterId: string | null): string[] {
+export interface ScriptTurnInput {
+  reader: string
+  text: string
+  image_url?: string | null
+  quiz?: { images: { url: string; caption: string }[]; options: string[]; correctIndex: number } | null
+}
+
+export function validateScriptTurns(turns: ScriptTurnInput[], studentCharacterId: string | null): string[] {
   const errors: string[] = []
   if (turns.length === 0) errors.push('Naskah masih kosong (minimal 1 baris)')
   turns.forEach((t, i) => {
     if (!t.text.trim()) errors.push(`Baris ${i + 1}: teks masih kosong`)
     if (!t.reader.trim()) errors.push(`Baris ${i + 1}: belum ditentukan siapa yang baca`)
+    if (!t.image_url?.trim()) errors.push(`Baris ${i + 1}: belum ada gambar (strip butuh visual tiap beat)`)
+    const q = t.quiz
+    if (q) {
+      if (q.options.length < 2) errors.push(`Baris ${i + 1}: kunci pilihan butuh minimal 2 opsi`)
+      if (q.options.some((o) => !o.trim())) errors.push(`Baris ${i + 1}: ada opsi yang masih kosong`)
+      if (q.correctIndex < 0 || q.correctIndex >= q.options.length) errors.push(`Baris ${i + 1}: jawaban benar belum ditentukan`)
+      if (q.images.length === 0) errors.push(`Baris ${i + 1}: kunci pilihan butuh minimal 1 gambar`)
+    }
   })
   if (studentCharacterId && !turns.some((t) => t.reader === studentCharacterId)) {
     errors.push('Tidak ada baris untuk tokoh murid — murid tidak kebagian baca')

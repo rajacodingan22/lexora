@@ -42,11 +42,32 @@ describe('validateScriptTurns', () => {
     expect(
       validateScriptTurns(
         [
-          { reader: 'tutor', text: 'Welcome!' },
-          { reader: 'student', text: 'Thank you.' },
+          { reader: 'tutor', text: 'Welcome!', image_url: 'http://x/y.jpg' },
+          { reader: 'student', text: 'Thank you.', image_url: 'http://x/z.jpg' },
         ],
         'student',
       ),
     ).toEqual([])
+  })
+
+  it('requires images per beat (strip needs visuals)', () => {
+    const errs = validateScriptTurns([{ reader: 'tutor', text: 'Hi!' }], null)
+    expect(errs.some((e) => e.includes('gambar'))).toBe(true)
+  })
+
+  it('validates locked quiz beats', () => {
+    const bad = validateScriptTurns(
+      [{ reader: 'tutor', text: 'Pick!', image_url: 'http://x/y.jpg', quiz: { images: [], options: ['a'], correctIndex: 5 } }],
+      null,
+    )
+    expect(bad.length).toBeGreaterThanOrEqual(2)
+    const good = validateScriptTurns(
+      [{
+        reader: 'tutor', text: 'Pick!', image_url: 'http://x/y.jpg',
+        quiz: { images: [{ url: 'http://x/a.jpg', caption: 'a' }], options: ['a', 'b'], correctIndex: 1 },
+      }],
+      null,
+    )
+    expect(good).toEqual([])
   })
 })
