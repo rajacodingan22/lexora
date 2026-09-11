@@ -34,9 +34,8 @@ drop table if exists public.course_tasks cascade;
 drop table if exists public.activity_library_items cascade;
 
 -- 3. calculate_grade tanpa tasks:
---    attendance 30% + assignment 20% + quiz 10% + final 40% = 1.00
---    attendance = present / held live sessions (batal tidak dihitung); tanpa sesi = netral 100.
---    task_score dipertahankan 0 (kolom tetap ada agar select lama tidak pecah).
+--    assignment (tugas) 30% + quiz 20% + final exam 50% = 1.00
+--    task_score & attendance_score ditulis 0 (kolom tetap ada agar select lama tidak pecah).
 create or replace function public.calculate_grade(p_enrollment_id uuid)
 returns void
 language plpgsql
@@ -47,7 +46,6 @@ declare
   v_assignment_avg numeric := 0;
   v_quiz_avg numeric := 0;
   v_final_exam_score numeric := 0;
-  v_attendance_score numeric := 100;
   v_teacher_id uuid;
   v_batch_id uuid;
   v_weighted_total numeric := 0;
@@ -63,56 +61,32 @@ begin
 
   if v_course_id is null then return; end if;
 
-  -- 1. Assignment / project average (20%)
+  -- 1. Tugas / assignment average (30%)
   select coalesce(round(avg(s.grade), 2), 0)
   into v_assignment_avg
   from assignments a
   join submissions s on s.assignment_id = a.id and s.user_id = v_user_id
   where a.course_id = v_course_id and s.grade is not null;
 
-  -- 2. Quiz average (10%)
+  -- 2. Quiz average (20%)
   select coalesce(round(avg(qa.score), 2), 0)
   into v_quiz_avg
   from quizzes q
   join quiz_attempts qa on qa.quiz_id = q.id and qa.user_id = v_user_id
   where q.course_id = v_course_id;
 
-  -- 3. Final exam (40%)
+  -- 3. Final exam (50%)
   select coalesce(round(avg(er.score), 2), 0)
   into v_final_exam_score
   from final_exams fe
   join exam_results er on er.exam_id = fe.id and er.user_id = v_user_id
   where fe.course_id = v_course_id;
 
-  -- 4. Attendance (30%): present / held (cancelled dikecualikan); tanpa sesi = netral 100
-  with held as (
-    select count(*) as total
-    from live_sessions ls
-    where ls.course_id = v_course_id
-      and coalesce(ls.status, '') <> 'cancelled'
-      and ls.starts_at <= now()
-  ),
-  present as (
-    select count(*) as total
-    from attendance a
-    join live_sessions ls on ls.id = a.session_id
-    where a.user_id = v_user_id
-      and ls.course_id = v_course_id
-      and coalesce(ls.status, '') <> 'cancelled'
-      and ls.starts_at <= now()
-      and a.status in ('present', 'hadir')
-  )
-  select case when (select total from held) > 0
-    then round((select total from present)::numeric / (select total from held) * 100, 2)
-    else 100 end
-  into v_attendance_score;
-
-  -- Weighted total: 0.30 + 0.20 + 0.10 + 0.40 = 1.00
+  -- Weighted total: 0.30 + 0.20 + 0.50 = 1.00
   v_weighted_total := round(
-    (v_attendance_score * 0.30) +
-    (v_assignment_avg * 0.20) +
-    (v_quiz_avg * 0.10) +
-    (v_final_exam_score * 0.40),
+    (v_assignment_avg * 0.30) +
+    (v_quiz_avg * 0.20) +
+    (v_final_exam_score * 0.50),
     2
   );
 
@@ -135,11 +109,11 @@ begin
     task_score, weighted_total, grade_letter, grade_points, is_passing, last_updated
   )
   values (
-    p_enrollment_id, v_attendance_score, v_assignment_avg, v_quiz_avg, v_final_exam_score,
+    p_enrollment_id, 0, v_assignment_avg, v_quiz_avg, v_final_exam_score,
     0, v_weighted_total, v_grade_letter, v_grade_points, v_is_passing, now()
   )
   on conflict (enrollment_id) do update set
-    attendance_score = excluded.attendance_score,
+    attendance_score = 0,
     assignment_average = excluded.assignment_average,
     quiz_average = excluded.quiz_average,
     final_exam_score = excluded.final_exam_score,

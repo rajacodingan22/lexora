@@ -15,7 +15,6 @@ interface CourseGrade {
   course: Course
   enrollment: Enrollment
   grade: GradeAggregate | null
-  attendanceScore: number
   projectScore: number
   quizAvg: number
   examScore: number
@@ -134,7 +133,6 @@ export default function StudentNilaiPage() {
           course: enr.course,
           enrollment: enr,
           grade: g,
-          attendanceScore: Math.round(g?.attendance_score ?? 0),
           projectScore: Math.round(g?.assignment_average ?? 0),
           quizAvg: Math.round(g?.quiz_average ?? 0),
           examScore: Math.round(g?.final_exam_score ?? 0),
@@ -314,10 +312,9 @@ export default function StudentNilaiPage() {
                             <div className="border-t border-border mx-4 sm:mx-5" />
                             <div className="p-4 sm:p-5 space-y-3">
                               {[
-                                { label: t('student1.nilai.attendance'), weight: '30%', value: g.attendanceScore, icon: Activity },
-                                { label: t('student1.nilai.project'), weight: '20%', value: g.projectScore, icon: Target },
-                                { label: t('student1.nilai.quizzes'), weight: '10%', value: g.quizAvg, icon: Activity },
-                                { label: t('student1.nilai.finalExam'), weight: '40%', value: g.examScore, icon: Award },
+                                { label: t('student1.nilai.project'), weight: '30%', value: g.projectScore, icon: Target },
+                                { label: t('student1.nilai.quizzes'), weight: '20%', value: g.quizAvg, icon: Activity },
+                                { label: t('student1.nilai.finalExam'), weight: '50%', value: g.examScore, icon: Award },
                               ].map(row => (
                                 <div key={row.label} className="flex items-center gap-4">
                                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-container-highest">

@@ -17,7 +17,6 @@ interface StudentGrade {
   projectScore: number
   quizAvg: number
   examScore: number
-  attendanceScore: number
   overall: number
 }
 
@@ -152,7 +151,6 @@ export default function TeacherNilaiPage() {
           projectScore: g?.assignment_average ?? 0,
           quizAvg: g?.quiz_average ?? 0,
           examScore: g?.final_exam_score ?? 0,
-          attendanceScore: g?.attendance_score ?? 0,
           overall: g?.weighted_total ?? 0,
         }
       })
@@ -225,10 +223,9 @@ export default function TeacherNilaiPage() {
           <CardContent>
             <div className="space-y-4">
               {[
-                { label: t('teacher1.nilai.attendance'), value: s.attendanceScore, weight: '30%' },
-                { label: t('teacher1.nilai.project'), value: s.projectScore, weight: '20%' },
-                { label: t('teacher1.nilai.quiz'), value: s.quizAvg, weight: '10%' },
-                { label: t('teacher1.nilai.finalExam'), value: s.examScore, weight: '40%' },
+                { label: t('teacher1.nilai.project'), value: s.projectScore, weight: '30%' },
+                { label: t('teacher1.nilai.quiz'), value: s.quizAvg, weight: '20%' },
+                { label: t('teacher1.nilai.finalExam'), value: s.examScore, weight: '50%' },
               ].map(row => (
                 <div key={row.label}>
                   <div className="flex items-center justify-between text-sm mb-1">
@@ -347,7 +344,6 @@ export default function TeacherNilaiPage() {
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted uppercase">
                     <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colStudent')}</th>
-                    <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colAttendance')}</th>
                     <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colProject')}</th>
                     <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colQuiz')}</th>
                     <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colExam')}</th>
@@ -372,7 +368,6 @@ export default function TeacherNilaiPage() {
                           </div>
                         </div>
                       </td>
-                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.attendanceScore)}`}>{Math.round(s.attendanceScore)}%</td>
                       <td className={`py-3 pr-4 font-medium ${gradeColor(s.projectScore)}`}>{Math.round(s.projectScore)}%</td>
                       <td className={`py-3 pr-4 font-medium ${gradeColor(s.quizAvg)}`}>{Math.round(s.quizAvg)}%</td>
                       <td className={`py-3 pr-4 font-medium ${gradeColor(s.examScore)}`}>{Math.round(s.examScore)}%</td>
