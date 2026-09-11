@@ -35,7 +35,7 @@ export async function POST(req: Request) {
         params: { course: courseTitle, courseId },
         title: 'Trial Waitlist — You are on the waiting list',
         body: `You are on the waiting list for "${courseTitle}". We will notify you when a slot opens.`,
-        link: `/student/kursus/${courseId}`,
+        link: `/student/dashboard`,
         is_read: false,
       })
 
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
         },
         title: 'Enrolled Successfully — Welcome!',
         body: `You are enrolled in "${courseTitle}"${batchName ? ` — ${batchName}` : ''}. Start learning now.`,
-        link: `/student/kursus/${courseId}`,
+        link: `/student/dashboard`,
         is_read: false,
       })
     }

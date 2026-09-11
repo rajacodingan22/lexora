@@ -160,7 +160,7 @@ export async function POST(req: Request) {
         },
         title: 'Class Slot Available — Welcome!',
         body: `Great news! You got a slot in "${courseTitle}" — ${nextBatch.name || ''}. Start learning now.`,
-        link: `/student/kursus/${waiting.course_id}`,
+        link: `/student/dashboard`,
         is_read: false,
       })
     }

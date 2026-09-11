@@ -100,7 +100,7 @@ export async function POST() {
               params: { assignmentId: first.id, courseId: first.course_id },
               title: 'Assignment Waiting — Action Required',
               body: `You have an assignment waiting: "${targetTask}". Open the task to submit before the deadline.`,
-              link: `/student/kursus/${first.course_id}`,
+              link: `/student/tugas/${first.id}`,
             })
             newCount++
           }
@@ -133,7 +133,7 @@ export async function POST() {
               params: { sessionId: firstS.id, courseId: firstS.course_id },
               title: 'Upcoming Zoom Session',
               body: `Your Zoom session is starting soon. Join from the course meeting page.`,
-              link: `/student/kursus/${firstS.course_id}/pertemuan`,
+              link: `/student/kalender`,
             })
             newCount++
           }

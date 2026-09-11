@@ -1195,7 +1195,7 @@ function ResultView({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Link
-          href={`/student/kursus?tab=jelajahi&language_code=${languageCode}&level_code=${tier}`}
+          href={`/project?lang=${languageCode}`}
         >
           <Button className="w-full" size="lg">
             <GraduationCap className="mr-2 h-4 w-4" /> {t('student2.test.continueProgramTeacher')}

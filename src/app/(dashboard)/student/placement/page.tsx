@@ -133,7 +133,7 @@ export default function PlacementTestPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-on-surface-variant">{t('student2.placement.recommendation')}</p>
-                <Link href="/student/kursus">
+                <Link href="/project">
                   <Button className="w-full">{t('student2.placement.findCourseLevel', { level: t(`common.tier.${normalizeTier(result.provisional_level) || 'unknown'}`) })}</Button>
                 </Link>
                 <Link href="/project">

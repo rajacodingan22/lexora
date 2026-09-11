@@ -232,23 +232,23 @@ function ProjectPageContent() {
       router.push('/daftar?next=/project')
       return
     }
-    // Beli/daftar kelas dilakukan di dalam dashboard, bukan di halaman publik
-    router.push(`/student/kursus/${course.id}`)
-  }
+  // Beli/daftar kelas dilakukan di dalam dashboard, bukan di halaman publik
+  router.push('/student/dashboard')
+}
 
-  async function handleClaimTrial(course: ClassCard) {
-    if (!user) {
-      router.push('/daftar?next=/project')
-      return
-    }
-    router.push(`/student/kursus/${course.id}`)
+async function handleClaimTrial(course: ClassCard) {
+  if (!user) {
+    router.push('/daftar?next=/project')
+    return
   }
+  router.push('/student/dashboard')
+}
 
   function renderAction(course: ClassCard) {
     const state = myState[course.id]
     if (state?.type === 'active') {
       return (
-        <Link href="/student/kursus">
+        <Link href="/student/dashboard">
           <Button variant="outline" className="w-full">
             <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> {t('public.project.active')}
           </Button>

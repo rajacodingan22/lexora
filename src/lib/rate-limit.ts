@@ -20,8 +20,6 @@ const ROUTE_CONFIGS: Record<string, RateLimitConfig> = {
   '/api/auth/callback': { maxRequests: 10, windowMs: 60_000 },
   '/api/enrollments': { maxRequests: 10, windowMs: 60_000 },     // 10 enroll/menit
   '/api/ai/chat': { maxRequests: 20, windowMs: 60_000 },         // 20 chat/menit
-  '/api/ai/grade': { maxRequests: 10, windowMs: 60_000 },        // 10 grade/menit (LLM cost)
-  '/api/student/progress': { maxRequests: 30, windowMs: 60_000 }, // 30 progress/menit
   '/api/email/send': { maxRequests: 5, windowMs: 60_000 },       // 5 email/menit
   '/api/email/teacher-notification': { maxRequests: 3, windowMs: 10 * 60_000 }, // 3 signup notifications / 10 menit
   '/api/claim-trial': { maxRequests: 5, windowMs: 60_000 },      // 5 trial/menit
@@ -34,10 +32,6 @@ const ROUTE_CONFIGS: Record<string, RateLimitConfig> = {
   '/api/waiting-list/assign': { maxRequests: 10, windowMs: 60_000 },
   '/api/courses': { maxRequests: 30, windowMs: 60_000 },
   '/api/kontak': { maxRequests: 5, windowMs: 60_000 },
-  '/api/dialog/start': { maxRequests: 5, windowMs: 60_000 },
-  '/api/dialog/turn': { maxRequests: 30, windowMs: 60_000 },
-  '/api/dialog/complete': { maxRequests: 10, windowMs: 60_000 },
-  '/api/dialog/session': { maxRequests: 30, windowMs: 60_000 },
 }
 
 export function rateLimit(request: NextRequest): NextResponse | null {

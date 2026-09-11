@@ -415,7 +415,7 @@ export default function TeacherDashboard() {
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <ClipboardList className="h-4 w-4 text-primary" /> {t('teacher1.dashboard.needGrading')}
                   </CardTitle>
-                  <Link href="/teacher/penugasan" className="text-xs text-primary">{t('teacher1.dashboard.viewAll')}</Link>
+                  <Link href="/teacher/nilai" className="text-xs text-primary">{t('teacher1.dashboard.viewAll')}</Link>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {pendingSubmissions.length === 0 ? (
@@ -451,7 +451,7 @@ export default function TeacherDashboard() {
                     })
                   )}
                   {pendingSubmissions.length > 4 && (
-                    <Link href="/teacher/penugasan" className="block text-center text-xs text-primary mt-2">
+                    <Link href="/teacher/nilai" className="block text-center text-xs text-primary mt-2">
                       {t('teacher1.dashboard.moreToGrade', { count: pendingSubmissions.length - 4 })} <ChevronRight className="inline h-3 w-3" />
                     </Link>
                   )}

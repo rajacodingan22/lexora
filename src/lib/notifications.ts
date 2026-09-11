@@ -146,7 +146,7 @@ export async function notifyPaymentApproved(userId: string, invoiceNumber: strin
     type: NOTIFICATION_TYPES.INFO,
     title: 'Pembayaran Disetujui',
     body: `Pembayaran untuk invoice ${invoiceNumber} (${courseTitle}) telah disetujui.`,
-    link: '/student/kursus',
+    link: '/student/pembayaran',
   })
 }
 
@@ -158,6 +158,6 @@ export async function notifyPaymentRejected(userId: string, invoiceNumber: strin
     body: reason
       ? `Pembayaran untuk invoice ${invoiceNumber} (${courseTitle}) ditolak: ${reason}`
       : `Pembayaran untuk invoice ${invoiceNumber} (${courseTitle}) ditolak. Silakan unggah ulang bukti pembayaran.`,
-    link: '/student/kursus',
+    link: '/student/pembayaran',
   })
 }

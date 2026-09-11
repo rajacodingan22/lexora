@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BookOpen, GraduationCap, Award, User,
   Calendar, CalendarDays, MessageCircle, Settings, LogOut, Menu, X,
   FileText, ClipboardList, Users, Globe, BarChart3,
-  Megaphone, Shield, ChevronLeft, ChevronRight, Hourglass, ListChecks, CalendarClock,
+  Megaphone, Shield, ChevronLeft, ChevronRight, Hourglass, CalendarClock,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { signOut } from '@/lib/auth'
@@ -29,8 +29,7 @@ const COLLAPSED_KEY = 'sidebar-collapsed'
 const navConfig = {
   student: [
     { key: 'sidebar.dashboard', href: '/student/dashboard', icon: LayoutDashboard },
-    { key: 'sidebar.myCourses', href: '/student/kursus', icon: BookOpen },
-    { key: 'sidebar.grades', href: '/student/nilai', icon: ClipboardList },
+        { key: 'sidebar.grades', href: '/student/nilai', icon: ClipboardList },
     { key: 'sidebar.certificates', href: '/student/sertifikat', icon: Award },
     { key: 'sidebar.payment', href: '/student/pembayaran', icon: FileText },
     { key: 'sidebar.placementTest', href: '/student/placement-test', icon: FileText },
@@ -57,7 +56,6 @@ const navConfig = {
     { key: 'sidebar.teachers', href: '/admin/teacher-management', icon: GraduationCap },
     { key: 'sidebar.programs', href: '/admin/program', icon: BookOpen },
     { key: 'sidebar.courses', href: '/admin/kursus', icon: GraduationCap },
-    { key: 'sidebar.tasks', href: '/admin/learning/courses', icon: ListChecks },
     { key: 'sidebar.assignments', href: '/admin/penugasan', icon: ClipboardList },
     { key: 'sidebar.finalExam', href: '/admin/ujian-akhir', icon: CalendarClock },
     { key: 'sidebar.batches', href: '/admin/batch', icon: Calendar },

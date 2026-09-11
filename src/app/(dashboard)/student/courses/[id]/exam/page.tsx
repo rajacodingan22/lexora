@@ -924,7 +924,7 @@ export default function ExamPage() {
           </Card>
 
           <div className="flex justify-between">
-            <Button variant="ghost" onClick={() => router.push('/student/kursus')}>
+            <Button variant="ghost" onClick={() => router.push('/student/dashboard')}>
               <ChevronLeft className="mr-1 h-4 w-4" /> {t('student2.exam.backToCourses')}
             </Button>
             {examResult.passed && (

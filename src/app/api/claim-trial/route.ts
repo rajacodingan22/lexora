@@ -47,7 +47,7 @@ export async function POST() {
       params: { course: courseTitle, courseId: course.id, batchSuffix: batchName ? ` — ${batchName}` : '', batchId: batch?.id || '' },
       title: 'Trial Class Active — Welcome!',
       body: `You joined "${courseTitle}"${batchName ? ` — ${batchName}` : ''}. Start learning now.`,
-      link: `/student/kursus/${course.id}`,
+      link: `/student/dashboard`,
       is_read: false,
     })
     if (notificationError) console.error('Trial notification error:', notificationError)

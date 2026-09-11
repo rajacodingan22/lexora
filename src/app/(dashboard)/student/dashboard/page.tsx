@@ -9,7 +9,7 @@ import {
   Bell, ChevronRight, Sparkles, Award,
   GraduationCap, Loader2, Inbox, Video, Monitor,
   CheckCircle, ArrowRight,
-  Target, Users, BookMarked,
+  Target, Users, BookMarked, ClipboardList,
   MessageSquare, Megaphone
 } from 'lucide-react'
 import Link from 'next/link'
@@ -65,7 +65,6 @@ export default function StudentDashboard() {
   const [placementLoading, setPlacementLoading] = useState(true)
   const [trialState, setTrialState] = useState<'none' | 'active' | 'waiting' | 'checking'>('checking')
   const [claiming, setClaiming] = useState(false)
-  const [streak, setStreak] = useState(0)
 
   useEffect(() => {
     if (authLoading || !user) return
@@ -82,14 +81,13 @@ export default function StudentDashboard() {
   async function fetchData(silent = false) {
     if (!silent) setLoading(true)
     try {
-      const [enrollRes, notifRes, quizRes, certRes, placementRes, waitRes, activityRes] = await Promise.all([
+      const [enrollRes, notifRes, quizRes, certRes, placementRes, waitRes] = await Promise.all([
         supabase.from('enrollments').select('*, course:courses(*)').eq('user_id', user!.id).eq('status', 'active'),
         supabase.from('notifications').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(5),
         supabase.from('quiz_attempts').select('*, quiz:quizzes(*)').eq('user_id', user!.id).order('submitted_at', { ascending: false }),
         supabase.from('certificates').select('*', { count: 'exact', head: true }).eq('user_id', user!.id).in('status', ['issued', 'generated']),
         supabase.from('placement_results').select('provisional_level, test:test_id(language_code)').eq('user_id', user!.id).order('completed_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('waiting_list').select('*, course:courses(is_try_class)').eq('user_id', user!.id).eq('status', 'waiting'),
-        supabase.from('student_activity_progress').select('completed_at').eq('user_id', user!.id).not('completed_at', 'is', null),
       ])
 
       const trialActive = (enrollRes.data || []).some((e: any) => e.course?.is_try_class)
@@ -127,36 +125,6 @@ export default function StudentDashboard() {
       setNotifications((notifRes.data || []) as Notification[])
       setQuizAttempts((quizRes.data || []) as QuizAttempt[])
       setCertCount(certRes.count ?? 0)
-
-      const activityDates = (activityRes.data || [])
-        .map((a: { completed_at: string }) => a.completed_at.split('T')[0])
-        .filter(Boolean)
-      const uniqueDays = [...new Set(activityDates)].sort().reverse()
-      let currentStreak = 0
-      if (uniqueDays.length > 0) {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const yesterday = new Date(today)
-        yesterday.setDate(yesterday.getDate() - 1)
-        const lastDay = new Date(uniqueDays[0])
-        lastDay.setHours(0, 0, 0, 0)
-        if (lastDay.getTime() === today.getTime() || lastDay.getTime() === yesterday.getTime()) {
-          currentStreak = 1
-          for (let i = 1; i < uniqueDays.length; i++) {
-            const curr = new Date(uniqueDays[i - 1])
-            const prev = new Date(uniqueDays[i])
-            curr.setHours(0, 0, 0, 0)
-            prev.setHours(0, 0, 0, 0)
-            const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86400000)
-            if (diffDays === 1) {
-              currentStreak++
-            } else {
-              break
-            }
-          }
-        }
-      }
-      setStreak(currentStreak)
 
       const courseIds = enrollmentsData.map(e => e.course_id)
       if (courseIds.length > 0) {
@@ -268,13 +236,12 @@ export default function StudentDashboard() {
                 </Button>
               </Link>
             </div>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 { label: t('student1.dashboard.statActiveCourses'), value: String(enrollments.length), icon: statIcons[0], color: statColors[0], iconColor: statIconColors[0] },
                 { label: t('student1.dashboard.statAvgProgress'), value: `${avgProgress}%`, icon: statIcons[1], color: statColors[1], iconColor: statIconColors[1] },
                 { label: t('student1.dashboard.statAvgGrade'), value: String(avgGrade), icon: statIcons[2], color: statColors[2], iconColor: statIconColors[2] },
                 { label: t('student1.dashboard.statCertificates'), value: String(certCount), icon: statIcons[3], color: statColors[3], iconColor: statIconColors[3] },
-                { label: t('student1.dashboard.statStreak'), value: `${streak} ${t('student1.dashboard.statStreakDays')}`, icon: Trophy, color: streak > 0 ? 'from-orange-500/20 to-red-500/10' : statColors[0], iconColor: streak > 0 ? 'text-orange-400' : statIconColors[0] },
               ].map((stat) => (
                 <div key={stat.label} className={cn('rounded-xl p-3 border border-white/10 backdrop-blur-sm', stat.color)}>
                   <div className="flex items-center gap-2 text-white/60 text-xs">
@@ -349,7 +316,7 @@ export default function StudentDashboard() {
                     <p className="text-xs text-on-surface-variant">{t('student1.dashboard.trialActiveDesc')}</p>
                   </div>
                 </div>
-                <Link href="/student/kursus">
+                <Link href="/project">
                   <Button size="sm" className="shrink-0">
                     {t('student1.dashboard.goToMyClass')} <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
@@ -433,9 +400,9 @@ export default function StudentDashboard() {
       {/* Quick Actions */}
       <motion.div variants={itemVariants}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: t('student1.dashboard.quickMyCourses'), icon: BookOpen, href: '/student/kursus', color: 'from-indigo-500/20 to-purple-500/10', textColor: 'text-indigo-400' },
-            { label: t('student1.dashboard.placementTest'), icon: Target, href: '/student/placement-test', color: 'from-amber-500/20 to-orange-500/10', textColor: 'text-amber-400' },
+            {[
+              { label: t('student1.dashboard.quickGrades'), icon: ClipboardList, href: '/student/nilai', color: 'from-indigo-500/20 to-purple-500/10', textColor: 'text-indigo-400' },
+              { label: t('student1.dashboard.placementTest'), icon: Target, href: '/student/placement-test', color: 'from-amber-500/20 to-orange-500/10', textColor: 'text-amber-400' },
             { label: t('student1.dashboard.statCertificates'), icon: Award, href: '/student/sertifikat', color: 'from-emerald-500/20 to-teal-500/10', textColor: 'text-emerald-400' },
             { label: t('student1.dashboard.quickDiscussion'), icon: MessageSquare, href: '/student/diskusi', color: 'from-sky-500/20 to-blue-500/10', textColor: 'text-sky-400' },
           ].map((action) => (
@@ -462,7 +429,7 @@ export default function StudentDashboard() {
               <h2 className="text-lg font-semibold text-on-surface flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" /> {t('student1.dashboard.statActiveCourses')}
               </h2>
-              <Link href="/student/kursus" className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
+              <Link href="/project" className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
                 {t('student1.dashboard.viewAll')} <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -475,7 +442,7 @@ export default function StudentDashboard() {
                   </div>
                   <p className="text-sm font-medium text-on-surface mb-1">{t('student1.dashboard.noActiveCourses')}</p>
                   <p className="text-xs text-on-surface-variant mb-4">{t('student1.dashboard.noActiveCoursesDesc')}</p>
-                  <Link href="/student/kursus">
+                  <Link href="/project">
                     <Button size="sm"><BookOpen className="mr-1.5 h-4 w-4" /> {t('student1.dashboard.findCourses')}</Button>
                   </Link>
                 </CardContent>
@@ -496,7 +463,7 @@ export default function StudentDashboard() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.08, duration: 0.3 }}
                     >
-                      <Link href={`/student/kursus/${course?.id}`}>
+                      <Link href="/student/nilai">
                         <Card className="group cursor-pointer transition-all hover:border-primary/30 hover:shadow-md border-border/60 overflow-hidden">
                           <CardContent className="p-4 sm:p-5">
                             <div className="flex items-start justify-between gap-4">
@@ -705,7 +672,10 @@ export default function StudentDashboard() {
                   notifications.map((n) => (
                     <button key={n.id} onClick={async () => {
                       try { if (!n.is_read) await fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) }) } catch {}
-                      if (n.link) window.location.href = n.link
+                      if (n.link) {
+                        const dead = n.link.startsWith('/student/kursus') || n.link.startsWith('/student/progress') || n.link.startsWith('/admin/learning') || n.link.startsWith('/admin/tasks')
+                        window.location.href = dead ? '/student/dashboard' : n.link
+                      }
                     }} className="flex w-full items-start gap-3 group cursor-pointer hover:bg-surface-container-low rounded-lg p-2 -mx-2 transition-colors text-left">
                       <div className={cn(
                         'mt-1 h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-background',

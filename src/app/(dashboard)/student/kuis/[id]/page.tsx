@@ -313,9 +313,9 @@ export default function QuizDetailPage({
   if (submitted && result) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
-        <Link href="/student/kursus" className="text-sm text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-1">
-          <ArrowLeft className="h-4 w-4" /> Back to Courses
-        </Link>
+<Link href="/student/dashboard" className="text-sm text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-1">
+<ArrowLeft className="h-4 w-4" /> Back to Dashboard
+</Link>
 
         <Card>
           <CardContent className="p-8 text-center">
@@ -430,7 +430,7 @@ export default function QuizDetailPage({
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-2 text-sm text-muted">
-          <Link href="/student/kursus" className="hover:text-indigo-400">Courses</Link>
+          <Link href="/student/dashboard" className="hover:text-indigo-400">Dashboard</Link>
           <span>/</span>
           <span className="text-on-surface">{quiz.title}</span>
         </div>

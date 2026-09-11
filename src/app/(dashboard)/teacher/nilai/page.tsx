@@ -5,9 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Search, Download, Loader2, ChevronLeft, GraduationCap } from 'lucide-react'
-import { SpeakingReviewQueue } from '@/components/teacher/speaking-review-queue'
-import { RoleplayReviewQueue } from '@/components/teacher/roleplay-review-queue'
-import { DialogFeedbackTab } from '@/components/teacher/dialog-feedback-tab'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n/client'
@@ -17,10 +14,10 @@ interface StudentGrade {
   user: User
   enrollment: Enrollment
   grade: GradeAggregate | null
-  taskScore: number
   projectScore: number
   quizAvg: number
   examScore: number
+  attendanceScore: number
   overall: number
 }
 
@@ -39,7 +36,6 @@ export default function TeacherNilaiPage() {
   const [loading, setLoading] = useState(true)
   const [loadingGrades, setLoadingGrades] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<StudentGrade | null>(null)
-  const [nilaiTab, setNilaiTab] = useState<'grades'|'dialog'>('grades')
 
   useEffect(() => {
     if (authLoading || !user) return
@@ -153,10 +149,10 @@ export default function TeacherNilaiPage() {
           user: enr.user,
           enrollment: enr,
           grade: g,
-          taskScore: g?.task_score ?? 0,
           projectScore: g?.assignment_average ?? 0,
           quizAvg: g?.quiz_average ?? 0,
           examScore: g?.final_exam_score ?? 0,
+          attendanceScore: g?.attendance_score ?? 0,
           overall: g?.weighted_total ?? 0,
         }
       })
@@ -229,10 +225,10 @@ export default function TeacherNilaiPage() {
           <CardContent>
             <div className="space-y-4">
               {[
-                { label: t('teacher1.nilai.tasks'), value: s.taskScore, weight: '50%' },
-                { label: t('teacher1.nilai.project'), value: s.projectScore, weight: '15%' },
-                { label: t('teacher1.nilai.quiz'), value: s.quizAvg, weight: '5%' },
-                { label: t('teacher1.nilai.finalExam'), value: s.examScore, weight: '25%' },
+                { label: t('teacher1.nilai.attendance'), value: s.attendanceScore, weight: '30%' },
+                { label: t('teacher1.nilai.project'), value: s.projectScore, weight: '20%' },
+                { label: t('teacher1.nilai.quiz'), value: s.quizAvg, weight: '10%' },
+                { label: t('teacher1.nilai.finalExam'), value: s.examScore, weight: '40%' },
               ].map(row => (
                 <div key={row.label}>
                   <div className="flex items-center justify-between text-sm mb-1">
@@ -282,18 +278,6 @@ export default function TeacherNilaiPage() {
         </div>
       </div>
 
-      <div className="flex gap-1 border-b border-border">
-        <button onClick={() => setNilaiTab('grades')} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${nilaiTab==='grades' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-on-surface'}`}>Nilai</button>
-        <button onClick={() => setNilaiTab('dialog')} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${nilaiTab==='dialog' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-on-surface'}`}>Dialog Feedback</button>
-      </div>
-
-      {nilaiTab === 'dialog' && selectedCourseId && selectedBatchId && (
-        <DialogFeedbackTab courseId={selectedCourseId} batchId={selectedBatchId} />
-      )}
-      {nilaiTab === 'dialog' && !selectedBatchId && <p className="text-sm text-muted">Pilih course & batch untuk melihat feedback dialog.</p>}
-
-      {nilaiTab === 'grades' && (
-        <>
       <Card>
         <CardHeader>
           <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
@@ -363,7 +347,7 @@ export default function TeacherNilaiPage() {
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted uppercase">
                     <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colStudent')}</th>
-                    <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colTask')}</th>
+                    <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colAttendance')}</th>
                     <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colProject')}</th>
                     <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colQuiz')}</th>
                     <th className="pb-3 pr-4 font-medium">{t('teacher1.nilai.colExam')}</th>
@@ -388,7 +372,7 @@ export default function TeacherNilaiPage() {
                           </div>
                         </div>
                       </td>
-                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.taskScore)}`}>{Math.round(s.taskScore)}%</td>
+                      <td className={`py-3 pr-4 font-medium ${gradeColor(s.attendanceScore)}`}>{Math.round(s.attendanceScore)}%</td>
                       <td className={`py-3 pr-4 font-medium ${gradeColor(s.projectScore)}`}>{Math.round(s.projectScore)}%</td>
                       <td className={`py-3 pr-4 font-medium ${gradeColor(s.quizAvg)}`}>{Math.round(s.quizAvg)}%</td>
                       <td className={`py-3 pr-4 font-medium ${gradeColor(s.examScore)}`}>{Math.round(s.examScore)}%</td>
@@ -401,11 +385,6 @@ export default function TeacherNilaiPage() {
           )}
         </CardContent>
       </Card>
-
-      <SpeakingReviewQueue />
-      <RoleplayReviewQueue />
-        </>
-      )}
     </div>
   )
 }

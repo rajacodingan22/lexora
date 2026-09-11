@@ -200,7 +200,7 @@ export default function AssignmentDetailPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm text-muted">
-        <Link href="/student/kursus" className="hover:text-indigo-400">Courses</Link>
+        <Link href="/student/dashboard" className="hover:text-indigo-400">Dashboard</Link>
         <span>/</span>
         <span className="text-on-surface">{assignment.title}</span>
       </div>

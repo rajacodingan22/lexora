@@ -3,23 +3,19 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { BookOpen, GraduationCap, Loader2, ChevronDown, ChevronUp, Activity, TrendingUp, Target, Award, ListChecks } from 'lucide-react'
+import { BookOpen, GraduationCap, Loader2, ChevronDown, ChevronUp, Activity, TrendingUp, Target, Award } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n/client'
 import { cn } from '@/lib/utils'
-import type { Course, Enrollment, Assignment, Submission, Quiz, QuizAttempt, FinalExam, FinalExamAttempt } from '@/types'
-
-const W_TASK = 0.5
-const W_PROJECT = 0.2
-const W_QUIZ = 0.05
-const W_EXAM = 0.25
+import type { Course, Enrollment, GradeAggregate } from '@/types'
 
 interface CourseGrade {
   course: Course
   enrollment: Enrollment
-  taskScore: number
+  grade: GradeAggregate | null
+  attendanceScore: number
   projectScore: number
   quizAvg: number
   examScore: number
@@ -121,108 +117,28 @@ export default function StudentNilaiPage() {
       }
 
       const enrList = enrollments as (Enrollment & { course: Course })[]
-      const courseIds = enrList.map(e => e.course_id)
 
-      const [{ data: allQuizzes }, { data: allExams }, { data: allAssignments }, { data: allTasks }] = await Promise.all([
-        supabase.from('quizzes').select('*').in('course_id', courseIds),
-        supabase.from('final_exams').select('*').in('course_id', courseIds),
-        supabase.from('assignments').select('*').in('course_id', courseIds),
-        supabase.from('course_tasks').select('*, task_materials(id)').in('course_id', courseIds).eq('status', 'published'),
-      ])
+      const { data: gradeRows } = await supabase
+        .from('grade_aggregates')
+        .select('*')
+        .in('enrollment_id', enrList.map(e => e.id))
 
-      const quizByCourse = new Map<string, Quiz[]>()
-      for (const q of (allQuizzes || []) as Quiz[]) {
-        const arr = quizByCourse.get(q.course_id) || []
-        arr.push(q)
-        quizByCourse.set(q.course_id, arr)
-      }
-
-      const examByCourse = new Map<string, FinalExam[]>()
-      for (const e of (allExams || []) as FinalExam[]) {
-        const arr = examByCourse.get(e.course_id) || []
-        arr.push(e)
-        examByCourse.set(e.course_id, arr)
-      }
-
-      const assignmentByCourse = new Map<string, Assignment[]>()
-      for (const a of (allAssignments || []) as Assignment[]) {
-        const arr = assignmentByCourse.get(a.course_id) || []
-        arr.push(a)
-        assignmentByCourse.set(a.course_id, arr)
-      }
-
-      const allQuizIds = (allQuizzes || []).map((q: Quiz) => q.id)
-      const allExamIds = (allExams || []).map((e: FinalExam) => e.id)
-      const allAssignmentIds = (allAssignments || []).map((a: Assignment) => a.id)
-      const materialIds = (allTasks || []).flatMap((t: { task_materials?: { id: string }[] }) => (t.task_materials || []).map((m: { id: string }) => m.id))
-
-      const [{ data: quizAttempts }, { data: examAttempts }, { data: submissions }, { data: materialProgress }, { data: allLmsTasks }, { data: lmsActivityProgress }] = await Promise.all([
-        allQuizIds.length ? supabase.from('quiz_attempts').select('*, quiz:quizzes!inner(course_id)').eq('user_id', user!.id).in('quiz_id', allQuizIds) : { data: [] },
-        allExamIds.length ? supabase.from('exam_results').select('*, exam:final_exams!inner(course_id)').eq('user_id', user!.id).in('exam_id', allExamIds) : { data: [] },
-        allAssignmentIds.length ? supabase.from('submissions').select('*, assignment:assignments!inner(course_id)').eq('user_id', user!.id).in('assignment_id', allAssignmentIds) : { data: [] },
-        materialIds.length ? supabase.from('student_material_progress').select('material_id, status').eq('user_id', user!.id).in('material_id', materialIds) : { data: [] },
-        supabase.from('course_tasks').select('id, course_id').in('course_id', courseIds).eq('status', 'published'),
-        supabase.from('student_activity_progress').select('task_id, score').eq('user_id', user!.id),
-      ])
-
-      const qAttempts = (quizAttempts || []) as (QuizAttempt & { quiz: { course_id: string } })[]
-      const eAttempts = (examAttempts || []) as (FinalExamAttempt & { exam: { course_id: string } })[]
-      const subList = (submissions || []) as (Submission & { assignment: { course_id: string } })[]
-      const materialStatus = new Set((materialProgress || []).filter((p: { status: string }) => p.status === 'completed').map((p: { material_id: string }) => p.material_id))
-      const lmsTasks = (allLmsTasks || []) as { id: string; course_id: string }[]
-      const lmsProgress = (lmsActivityProgress || []) as { task_id: string; score: number }[]
-      const lmsTaskByCourse = new Map<string, string[]>()
-      for (const t of lmsTasks) {
-        const arr = lmsTaskByCourse.get(t.course_id) || []
-        arr.push(t.id)
-        lmsTaskByCourse.set(t.course_id, arr)
+      const gradeMap = new Map<string, GradeAggregate>()
+      for (const row of (gradeRows || []) as GradeAggregate[]) {
+        gradeMap.set(row.enrollment_id, row)
       }
 
       const computed: CourseGrade[] = enrList.map(enr => {
-        const course = enr.course
-        const courseTasks = (allTasks || []).filter((t: { course_id: string }) => t.course_id === course.id) as { task_materials?: { id: string }[] }[]
-        const taskTotal = courseTasks.reduce((sum, t) => sum + (t.task_materials || []).length, 0)
-        const taskDone = courseTasks.reduce((sum, t) => sum + (t.task_materials || []).filter(m => materialStatus.has(m.id)).length, 0)
-        const legacyTaskScore = taskTotal > 0 ? (taskDone / taskTotal) * 100 : 0
-
-        const courseLmsTaskIds = lmsTaskByCourse.get(course.id) || []
-        const courseLmsProgress = lmsProgress.filter(p => courseLmsTaskIds.includes(p.task_id) && p.score > 0)
-        const lmsTaskScore = courseLmsProgress.length > 0
-          ? courseLmsProgress.reduce((sum, p) => sum + p.score, 0) / courseLmsProgress.length
-          : 0
-
-        const taskScore = taskTotal > 0 || courseLmsTaskIds.length > 0
-          ? ((legacyTaskScore * taskTotal) + (lmsTaskScore * courseLmsTaskIds.length)) / (taskTotal + courseLmsTaskIds.length || 1)
-          : 100
-
-        const courseAssignmentIds = (assignmentByCourse.get(course.id) || []).map(a => a.id)
-        const courseSubs = subList.filter(s => courseAssignmentIds.includes(s.assignment_id) && s.grade != null)
-        const projectScore = courseSubs.length > 0
-          ? courseSubs.reduce((sum, s) => sum + (s.grade ?? 0), 0) / courseSubs.length
-          : 0
-
-        const courseQuizIds = (quizByCourse.get(course.id) || []).map(q => q.id)
-        const courseQAttempts = qAttempts.filter(qa => courseQuizIds.includes(qa.quiz_id) && qa.score != null)
-        const quizAvg = courseQAttempts.length > 0
-          ? courseQAttempts.reduce((sum, qa) => sum + (qa.score ?? 0), 0) / courseQAttempts.length
-          : 0
-
-        const courseExamIds = (examByCourse.get(course.id) || []).map(e => e.id)
-        const courseEAttempts = eAttempts.filter(ea => courseExamIds.includes(ea.exam_id) && ea.score != null)
-        const examScore = courseEAttempts.length > 0
-          ? courseEAttempts.reduce((sum, ea) => sum + (ea.score ?? 0), 0) / courseEAttempts.length
-          : 0
-
-        const overall = (taskScore * W_TASK) + (projectScore * W_PROJECT) + (quizAvg * W_QUIZ) + (examScore * W_EXAM)
-
+        const g = gradeMap.get(enr.id) ?? null
         return {
-          course,
+          course: enr.course,
           enrollment: enr,
-          taskScore: Math.round(taskScore),
-          projectScore: Math.round(projectScore),
-          quizAvg: Math.round(quizAvg),
-          examScore: Math.round(examScore),
-          overall: Math.round(overall),
+          grade: g,
+          attendanceScore: Math.round(g?.attendance_score ?? 0),
+          projectScore: Math.round(g?.assignment_average ?? 0),
+          quizAvg: Math.round(g?.quiz_average ?? 0),
+          examScore: Math.round(g?.final_exam_score ?? 0),
+          overall: Math.round(g?.weighted_total ?? 0),
           expanded: false,
         }
       })
@@ -398,10 +314,10 @@ export default function StudentNilaiPage() {
                             <div className="border-t border-border mx-4 sm:mx-5" />
                             <div className="p-4 sm:p-5 space-y-3">
                               {[
-                                { label: t('student1.nilai.tasks'), weight: '50%', value: g.taskScore, icon: ListChecks },
+                                { label: t('student1.nilai.attendance'), weight: '30%', value: g.attendanceScore, icon: Activity },
                                 { label: t('student1.nilai.project'), weight: '20%', value: g.projectScore, icon: Target },
-                                { label: t('student1.nilai.quizzes'), weight: '5%', value: g.quizAvg, icon: Activity },
-                                { label: t('student1.nilai.finalExam'), weight: '25%', value: g.examScore, icon: Award },
+                                { label: t('student1.nilai.quizzes'), weight: '10%', value: g.quizAvg, icon: Activity },
+                                { label: t('student1.nilai.finalExam'), weight: '40%', value: g.examScore, icon: Award },
                               ].map(row => (
                                 <div key={row.label} className="flex items-center gap-4">
                                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-container-highest">

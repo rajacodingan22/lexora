@@ -197,20 +197,20 @@ export default function StudentKalenderPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-4">
-                        {item.type === 'assignment' && (
-                          <Link href={`/student/kursus/${item.course_id}?tab=tugas`}>
-                            <Button size="sm">{t('student1.kalender.doTask')}</Button>
-                          </Link>
-                        )}
-                        {item.type === 'quiz' && (
-                          <Link href={`/student/kursus/${item.course_id}?tab=quiz`}>
-                            <Button size="sm">{t('student1.kalender.start')}</Button>
-                          </Link>
-                        )}
-                        {item.type === 'exam' && (
-                          <Link href={`/student/kursus/${item.course_id}?tab=ujian`}>
-                            <Button size="sm">{t('student1.kalender.view')}</Button>
-                          </Link>
+{item.type === 'assignment' && (
+<Link href={`/student/tugas/${item.id}`}>
+<Button size="sm">{t('student1.kalender.doTask')}</Button>
+</Link>
+)}
+{item.type === 'quiz' && (
+<Link href={`/student/kuis/${item.id}`}>
+<Button size="sm">{t('student1.kalender.start')}</Button>
+</Link>
+)}
+{item.type === 'exam' && (
+<Link href={`/student/courses/${item.course_id}/exam`}>
+<Button size="sm">{t('student1.kalender.view')}</Button>
+</Link>
                         )}
                       </div>
                     </div>

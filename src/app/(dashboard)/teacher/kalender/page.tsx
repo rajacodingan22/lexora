@@ -276,7 +276,7 @@ export default function TeacherCalendarPage() {
                             </a>
                           )}
                           {ev.type === 'tugas' && (
-                            <Link href={`/teacher/penugasan?course_id=${ev.course_id}`}>
+                            <Link href="/teacher/nilai">
                               <Button size="sm">{t('teacher1.kalender.checkAssignment')}</Button>
                             </Link>
                           )}
