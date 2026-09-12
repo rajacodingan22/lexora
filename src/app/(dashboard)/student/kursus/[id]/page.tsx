@@ -868,7 +868,6 @@ export default function CourseDetailPage() {
                 {/* Jadwal Pertemuan (7) & Project — manual admin, tampil Tanggal Bulan Tahun + Nama */}
                 <div className="grid gap-3 pt-2 border-t border-border">
                   <h4 className="font-medium text-on-surface text-sm">{t('student1.courseDetail.classDetailsTitle')}</h4>
-                  <p className="text-xs text-muted -mt-1">{t('student1.courseDetail.dateFormatHint')}</p>
                   <div className="rounded-lg border border-border bg-surface-container-low p-3">
                     <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.meetingScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{batchSessions.length || course.meeting_count || 0}</span></p>
                     {batchSessions.length > 0 ? (
@@ -878,6 +877,7 @@ export default function CourseDetailPage() {
                           const link = (s as unknown as { meeting_link?: string }).meeting_link
                           const joinable = isEnrolled && !!link && isMeetingLinkOpen(s as any)
                           const mins = !joinable && (s as any).starts_at ? minutesUntilJoinable(s as any) : 0
+                          const phase = getMeetingPhase(s as any)
                           return (
                             <div key={s.id} className="flex items-center justify-between gap-3 py-2">
                               <div className="min-w-0">
@@ -887,6 +887,10 @@ export default function CourseDetailPage() {
                               {link ? (
                                 joinable ? (
                                   <a href={link} target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:underline"><ExternalLink className="h-3 w-3" /> Zoom</a>
+                                ) : phase === 'past' ? (
+                                  <span className="shrink-0 inline-flex items-center gap-1 text-xs text-muted"><CheckCircle className="h-3 w-3" />{t('student1.courseDetail.meetingEnded')}</span>
+                                ) : phase === 'cancelled' ? (
+                                  <span className="shrink-0 inline-flex items-center gap-1 text-xs text-red-400"><X className="h-3 w-3" />{t('student1.courseDetail.meetingCancelled')}</span>
                                 ) : isEnrolled ? (
                                   <span className="shrink-0 inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="h-3 w-3" />{mins > 0 ? `${mins}m lagi` : 'Belum waktunya'}</span>
                                 ) : (
@@ -904,7 +908,7 @@ export default function CourseDetailPage() {
                     )}
                   </div>
                   <div className="rounded-lg border border-border bg-surface-container-low p-3">
-                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-amber-400" /> {t('student1.courseDetail.projectScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{assignments.length || catalogDetails.projects?.length || course.project_count || 0}</span></p>
+                    <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-amber-400" /> {t('student1.courseDetail.projectScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{assignments.length || catalogDetails.projects?.length || 0}</span></p>
                     {assignments.length > 0 ? (
                       <div className="mt-2 divide-y divide-border">
                         {assignments.slice(0, 20).map((a) => {
@@ -929,7 +933,6 @@ export default function CourseDetailPage() {
                     ) : (
                       <p className="text-sm text-muted mt-2">{t('student1.courseDetail.noProjectSchedule')}</p>
                     )}
-                    {course.project_count > 0 && <p className="text-[11px] text-muted mt-2">{t('student1.courseDetail.projectsValue', { count: String(course.project_count) })}</p>}
                   </div>
 
                 </div>
