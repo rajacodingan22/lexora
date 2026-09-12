@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase-client'
 import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n/client'
-import { cn, buildTeacherIdByCourse, filterByTeacher, isMeetingLinkOpen, minutesUntilJoinable } from '@/lib/utils'
+import { cn, buildTeacherIdByCourse, filterByTeacher, isMeetingLinkOpen, getMeetingPhase, minutesUntilJoinable } from '@/lib/utils'
 import { Flag } from '@/components/ui/flag'
 import type { Course, Enrollment, GradeAggregate, LiveSession, User, Language } from '@/types'
 import { normalizeTier, trackLabelKey } from '@/lib/course-catalog'
@@ -633,7 +633,7 @@ function StudentCoursesContent() {
                 >
                   {visibleCourses.map(({ enrollment, nextSession }, i) => {
                     const course = enrollment.course
-                    const title = course?.title?.en || course?.title?.id || 'Untitled Course'
+                    const title = course?.title?.en || course?.title?.id || t('student1.courseDetail.untitledCourse')
                     const teacherName = course?.teacher?.display_name || t('student1.kursus.teacherFallback')
                     const progress = enrollment.grade?.weighted_total || 0
                     const levelKey = normalizeTier(course?.tier || course?.level?.tier || course?.level?.code)
@@ -774,7 +774,7 @@ function StudentCoursesContent() {
                   animate="visible"
                 >
                   {filteredClasses.map((course, i) => {
-                    const title = course.title?.id || course.title?.en || 'Untitled Course'
+                    const title = course.title?.id || course.title?.en || t('student1.courseDetail.untitledCourse')
                     const desc = course.description?.id || course.description?.en || ''
                     const levelKey = normalizeTier(course.tier || course.level_code)
                     const levelLabel = levelKey ? t(`common.tier.${levelKey}`) : course.level_name || t('student1.kursus.allLevels')
@@ -922,12 +922,11 @@ function StudentCoursesContent() {
                   <Badge variant="outline" className="text-[11px]">{t(trackLabelKey(previewCourse.track_type))}</Badge>
                 </div>
                 {previewLoading ? (
-                  <div className="flex items-center gap-2 py-6 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> Loading...</div>
+                  <div className="flex items-center gap-2 py-6 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /> {t('common.loading')}</div>
                 ) : (
                   <>
                     <div className="rounded-xl border border-border bg-surface-container-low p-3">
                       <p className="text-xs font-semibold text-on-surface flex items-center gap-1.5"><Video className="h-3.5 w-3.5 text-indigo-400" /> {t('student1.courseDetail.meetingScheduleTitle')} <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-surface-container-highest text-muted">{previewSessions.length || previewCourse.meeting_count}</span></p>
-                      <p className="text-[11px] text-muted mt-0.5">{t('student1.courseDetail.dateFormatHint')}</p>
                       {previewSessions.length > 0 ? (
                         <div className="mt-2 divide-y divide-border">
                           {previewSessions.map(s => {
@@ -935,6 +934,7 @@ function StudentCoursesContent() {
                             const isPreviewEnrolled = enrolledCourseIds.has(previewCourse.id)
                             const joinable = isPreviewEnrolled && !!(s as any).starts_at && isMeetingLinkOpen({ starts_at: (s as any).starts_at, duration_minutes: 60, status: 'scheduled' } as any)
                             const mins = !joinable && (s as any).starts_at ? minutesUntilJoinable({ starts_at: (s as any).starts_at, duration_minutes: 60 } as any) : 0
+                            const sPhase = getMeetingPhase({ starts_at: (s as any).starts_at, duration_minutes: 60, status: 'scheduled' } as any)
                             return (
                               <div key={s.id} className="flex items-center justify-between gap-3 py-2">
                                 <div className="min-w-0">
@@ -943,8 +943,9 @@ function StudentCoursesContent() {
                                 </div>
                                 {s.meeting_link ? (
                                   joinable ? <a href={s.meeting_link} target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:underline"><ExternalLink className="h-3 w-3" /> Zoom</a>
-                                  : isPreviewEnrolled && mins > 0 ? <span className="shrink-0 inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="h-3 w-3" />{mins}m lagi</span>
-                                  : isPreviewEnrolled ? <span className="shrink-0 text-xs text-muted">Belum waktunya</span>
+                                  : sPhase === 'past' ? <span className="shrink-0 text-xs text-muted">{t('student1.courseDetail.meetingEnded')}</span>
+                                  : isPreviewEnrolled && mins > 0 ? <span className="shrink-0 inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="h-3 w-3" />{t('student1.courseDetail.minsLeft', { mins })}</span>
+                                  : isPreviewEnrolled ? <span className="shrink-0 text-xs text-muted">{t('student1.courseDetail.notYetTime')}</span>
                                   : <span className="shrink-0 text-xs text-muted flex items-center gap-1"><Link2 className="h-3 w-3" /> Zoom</span>
                                 ) : <span className="shrink-0 text-xs text-muted">—</span>}
                               </div>
@@ -977,7 +978,7 @@ function StudentCoursesContent() {
                 )}
                 <div className="flex gap-2 pt-2">
                   <Link href={`/student/kursus/${previewCourse.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full"><BookOpen className="mr-1.5 h-4 w-4" /> Lihat Detail Lengkap</Button>
+                    <Button variant="outline" className="w-full"><BookOpen className="mr-1.5 h-4 w-4" /> {t('student1.courseDetail.viewFullDetail')}</Button>
                   </Link>
                   {!enrolledCourseIds.has(previewCourse.id) ? (
                     <Button className="flex-1" onClick={() => handleEnroll(previewCourse.id)} disabled={enrollingId === previewCourse.id}>

@@ -881,7 +881,7 @@ export default function CourseDetailPage() {
                           return (
                             <div key={s.id} className="flex items-center justify-between gap-3 py-2">
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-on-surface truncate">{s.title || `Pertemuan`}</p>
+                                <p className="text-sm font-medium text-on-surface truncate">{s.title || t('student1.courseDetail.sessionFallbackTitle')}</p>
                                 <p className="text-xs text-muted flex items-center gap-1"><Calendar className="h-3 w-3" />{d}</p>
                               </div>
                               {link ? (
@@ -892,7 +892,7 @@ export default function CourseDetailPage() {
                                 ) : phase === 'cancelled' ? (
                                   <span className="shrink-0 inline-flex items-center gap-1 text-xs text-red-400"><X className="h-3 w-3" />{t('student1.courseDetail.meetingCancelled')}</span>
                                 ) : isEnrolled ? (
-                                  <span className="shrink-0 inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="h-3 w-3" />{mins > 0 ? `${mins}m lagi` : 'Belum waktunya'}</span>
+                                  <span className="shrink-0 inline-flex items-center gap-1 text-xs text-amber-400"><Clock className="h-3 w-3" />{mins > 0 ? t('student1.courseDetail.minsLeft', { mins }) : t('student1.courseDetail.notYetTime')}</span>
                                 ) : (
                                   <span className="shrink-0 text-xs text-muted flex items-center gap-1"><Link2 className="h-3 w-3" /> Zoom</span>
                                 )
@@ -915,7 +915,7 @@ export default function CourseDetailPage() {
                           const d = (a as unknown as { due_date?: string }).due_date ? new Date((a as unknown as { due_date: string }).due_date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }) : null
                           return (
                             <div key={a.id} className="flex items-center justify-between gap-3 py-2">
-                              <p className="text-sm font-medium text-on-surface truncate">{(a as unknown as { title?: string }).title || 'Project'}</p>
+                              <p className="text-sm font-medium text-on-surface truncate">{(a as unknown as { title?: string }).title || t('student1.courseDetail.projectFallback')}</p>
                               <span className="shrink-0 text-xs text-muted flex items-center gap-1"><Calendar className="h-3 w-3" />{d || t('student1.courseDetail.scheduleEmpty')}</span>
                             </div>
                           )
@@ -965,13 +965,13 @@ export default function CourseDetailPage() {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm">Upcoming Sessions</CardTitle>
+                    <CardTitle className="text-sm">{t('student1.courseDetail.upcomingTitle')}</CardTitle>
                     <Badge variant="outline">{upcomingSessions.length}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {upcomingSessions.length === 0 ? (
-                    <p className="text-sm text-muted text-center py-4">No upcoming sessions</p>
+                    <p className="text-sm text-muted text-center py-4">{t('student1.courseDetail.noUpcoming')}</p>
                   ) : (
                     upcomingSessions.slice(0, 5).map((s) => {
                         const sPhase = getMeetingPhase(s, now)
@@ -983,7 +983,7 @@ export default function CourseDetailPage() {
                             <Clock className="h-3 w-3" /> {formatDate(s.starts_at, dateLocale)}
                           </span>
                           <Badge variant={sPhase === 'ongoing' ? 'success' : 'default'}>
-                            {sPhase === 'ongoing' ? 'Berlangsung' : 'Scheduled'}
+                            {sPhase === 'ongoing' ? t('student1.courseDetail.ongoingBadge') : t('student1.courseDetail.scheduledBadge')}
                           </Badge>
                         </div>
                         {isEnrolled && s.meeting_link && isMeetingLinkOpen(s) && (
@@ -992,7 +992,7 @@ export default function CourseDetailPage() {
                             className="mt-2 w-full"
                             onClick={() => window.open(s.meeting_link || '#', '_blank')}
                           >
-                            <Video className="mr-1 h-3 w-3" /> Join
+                            <Video className="mr-1 h-3 w-3" /> {t('student1.courseDetail.joinBtn')}
                           </Button>
                         )}
                       </div>
@@ -1013,14 +1013,14 @@ export default function CourseDetailPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm">{t('student1.courseDetail.learningMaterials')}</CardTitle>
-                <Badge variant="outline">{materials.length} items</Badge>
+                  <Badge variant="outline">{t('student1.courseDetail.itemsCount', { count: materials.length })}</Badge>
               </div>
             </CardHeader>
             <CardContent>
               {materials.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <FileTextIcon className="h-12 w-12 text-muted mb-3" />
-                  <p className="text-sm text-on-surface-variant">No materials available yet</p>
+                  <p className="text-sm text-on-surface-variant">{t('student1.courseDetail.noMaterials')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1041,7 +1041,7 @@ export default function CourseDetailPage() {
                             <p className="text-sm font-medium text-on-surface truncate">{m.title}</p>
                             <div className="flex items-center gap-3 mt-1">
                               <span className="text-[10px] text-muted">{type}</span>
-                              {m.is_required && <Badge variant="warning" className="text-[9px] px-1.5 py-0">Required</Badge>}
+                              {m.is_required && <Badge variant="warning" className="text-[9px] px-1.5 py-0">{t('student1.courseDetail.requiredBadge')}</Badge>}
                             </div>
                           </div>
                         </div>
@@ -1049,16 +1049,16 @@ export default function CourseDetailPage() {
                           {isEnrolled ? (
                             m.external_url ? (
                               <Button variant="outline" size="sm" onClick={() => window.open(m.external_url!, '_blank')}>
-                                <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open
+                                <ExternalLink className="h-3.5 w-3.5 mr-1" /> {t('student1.courseDetail.openBtn')}
                               </Button>
                             ) : m.file_url ? (
                               <Button variant="outline" size="sm" onClick={() => setPreviewUrl(m.file_url!)}>
-                                <Download className="h-3.5 w-3.5 mr-1" /> Download
+                                <Download className="h-3.5 w-3.5 mr-1" /> {t('student1.courseDetail.downloadBtn')}
                               </Button>
                             ) : null
                           ) : (
                             <Badge variant="outline" className="text-[10px]">
-                              <Lock className="h-3 w-3 mr-1" /> Enroll to access
+                              <Lock className="h-3 w-3 mr-1" /> {t('student1.courseDetail.enrollToAccess')}
                             </Badge>
                           )}
                         </div>
@@ -1078,7 +1078,7 @@ export default function CourseDetailPage() {
                 <CardTitle className="text-sm">{t('student1.courseDetail.assignmentsTitle')}</CardTitle>
                 {assignments.filter(a => !a.submission || a.submission?.status !== 'graded').length > 0 && (
                   <Badge variant="warning">
-                    {assignments.filter(a => !a.submission || a.submission?.status !== 'graded').length} Pending
+                    {assignments.filter(a => !a.submission || a.submission?.status !== 'graded').length} {t('student1.courseDetail.pendingBadge')}
                   </Badge>
                 )}
               </div>
@@ -1087,7 +1087,7 @@ export default function CourseDetailPage() {
               {assignments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <FileTextIcon className="h-12 w-12 text-muted mb-3" />
-                  <p className="text-sm text-on-surface-variant">No assignments yet</p>
+                  <p className="text-sm text-on-surface-variant">{t('student1.courseDetail.noAssignments')}</p>
                 </div>
               ) : (
                 assignments.map((a) => {
@@ -1106,20 +1106,20 @@ export default function CourseDetailPage() {
                             )}
                             <div className="flex items-center gap-3 mt-1.5">
                               <span className="text-xs text-muted flex items-center gap-1">
-                                <Clock className="h-3 w-3" /> Due: {formatDateOnly(a.due_date, dateLocale)}
+                                <Clock className="h-3 w-3" /> {t('student1.courseDetail.dueLabel')}: {formatDateOnly(a.due_date, dateLocale)}
                               </span>
-                              <span className="text-xs text-muted">Max grade: {a.max_grade}</span>
+                              <span className="text-xs text-muted">{t('student1.courseDetail.maxGradeLabel')}: {a.max_grade}</span>
                               {isSubmitted && isGraded && (
-                                <Badge variant="success">Graded: {String(submission!.grade)}/{a.max_grade}</Badge>
+                                <Badge variant="success">{t('student1.courseDetail.gradedBadge', { grade: String(submission!.grade), max: a.max_grade })}</Badge>
                               )}
                               {isSubmitted && !isGraded && (
-                                <Badge variant="outline">Submitted</Badge>
+                                <Badge variant="outline">{t('student1.courseDetail.submittedBadge')}</Badge>
                               )}
                               {!isSubmitted && isOverdue && (
-                                <Badge variant="destructive">Overdue</Badge>
+                                <Badge variant="destructive">{t('student1.courseDetail.overdueBadge')}</Badge>
                               )}
                               {!isSubmitted && !isOverdue && (
-                                <Badge variant="outline">Pending</Badge>
+                                <Badge variant="outline">{t('student1.courseDetail.pendingBadge')}</Badge>
                               )}
                             </div>
                           </div>
@@ -1128,7 +1128,7 @@ export default function CourseDetailPage() {
                         {/* Submission feedback if graded */}
                         {isGraded && submission?.feedback && (
                           <div className="mt-3 rounded-lg bg-surface-container-high p-3 text-sm">
-                            <p className="text-xs font-medium text-on-surface mb-1">Teacher Feedback:</p>
+                            <p className="text-xs font-medium text-on-surface mb-1">{t('student1.courseDetail.teacherFeedback')}</p>
                             <p className="text-on-surface-variant">{submission.feedback}</p>
                           </div>
                         )}
@@ -1136,9 +1136,9 @@ export default function CourseDetailPage() {
                         {/* Inline submission form for unsubmitted assignments — enrolled only */}
                         {!isSubmitted && isEnrolled && (
                           <div className="mt-4 space-y-3 border-t border-border pt-4">
-                            <p className="text-sm font-medium text-on-surface">Submit Your Work</p>
+                            <p className="text-sm font-medium text-on-surface">{t('student1.courseDetail.submitWork')}</p>
                             <div>
-                              <label className="block text-xs text-muted mb-1">File Pengumpulan</label>
+                              <label className="block text-xs text-muted mb-1">{t('student1.courseDetail.fileLabel')}</label>
                               <input
                                 type="file"
                                 accept=".pdf,.docx,.doc,.png,.jpg,.jpeg"
@@ -1149,7 +1149,7 @@ export default function CourseDetailPage() {
                                 }}
                               />
                               <p className="mt-1 text-xs text-muted">
-                                PDF, DOCX, atau gambar (maks 10MB)
+                                {t('student1.courseDetail.fileHint')}
                               </p>
                               {assignmentFiles[a.id] && (
                                 <p className="mt-1.5 flex items-center gap-1.5 text-xs text-on-surface-variant">
@@ -1162,10 +1162,10 @@ export default function CourseDetailPage() {
                               )}
                             </div>
                             <div>
-                              <label className="block text-xs text-muted mb-1">Notes (optional)</label>
+                              <label className="block text-xs text-muted mb-1">{t('student1.courseDetail.notesLabel')}</label>
                               <textarea
                                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-on-surface placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
-                                placeholder="Add any notes for your teacher..."
+                                placeholder={t('student1.courseDetail.notesPlaceholder')}
                                 rows={3}
                                 value={assignmentNotes[a.id] || ''}
                                 onChange={(e) => setAssignmentNotes(prev => ({ ...prev, [a.id]: e.target.value }))}
@@ -1182,7 +1182,7 @@ export default function CourseDetailPage() {
                                 ) : (
                                   <Send className="h-3.5 w-3.5 mr-1" />
                                 )}
-                                {submittingAssignment[a.id] ? 'Uploading...' : 'Submit Assignment'}
+                                {submittingAssignment[a.id] ? t('student1.courseDetail.uploadingBtn') : t('student1.courseDetail.submitAssignmentBtn')}
                               </Button>
                             </div>
                           </div>
@@ -1192,17 +1192,17 @@ export default function CourseDetailPage() {
                         {isSubmitted && submission?.file_url && (
                           <div className="mt-3 flex items-center gap-2 text-xs">
                             <ExternalLink className="h-3 w-3 text-indigo-400" />
-                            <button
-                              onClick={() => submission.file_url && openSubmissionFile(submission.file_url)}
-                              className="text-indigo-400 hover:text-indigo-300 underline"
-                            >
-                              View submitted file
-                            </button>
+                              <button
+                                onClick={() => submission.file_url && openSubmissionFile(submission.file_url)}
+                                className="text-indigo-400 hover:text-indigo-300 underline"
+                              >
+                                {t('student1.courseDetail.viewSubmitted')}
+                              </button>
                           </div>
                         )}
                         {isSubmitted && submission?.notes && (
                           <div className="mt-2 text-xs text-on-surface-variant">
-                            <span className="font-medium">Your notes:</span> {submission.notes}
+                            <span className="font-medium">{t('student1.courseDetail.yourNotes')}</span> {submission.notes}
                           </div>
                         )}
                       </div>
@@ -1222,7 +1222,7 @@ export default function CourseDetailPage() {
               {quizzes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <FileTextIcon className="h-12 w-12 text-muted mb-3" />
-                  <p className="text-sm text-on-surface-variant">No quizzes yet</p>
+                  <p className="text-sm text-on-surface-variant">{t('student1.courseDetail.noQuizzes')}</p>
                 </div>
               ) : (
                 quizzes.map((q) => {
@@ -1234,8 +1234,8 @@ export default function CourseDetailPage() {
                       <div>
                         <p className="text-sm font-medium text-on-surface">{q.title}</p>
                         <p className="text-xs text-muted mt-1">
-                          {q.question_count} questions
-                          {q.time_limit_minutes ? ` \u2022 ${q.time_limit_minutes} min` : ''}
+                          {t('student1.courseDetail.questionsCount', { count: q.question_count })}
+                          {q.time_limit_minutes ? ` • ${t('student1.courseDetail.minutesShort', { min: q.time_limit_minutes })}` : ''}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1244,7 +1244,7 @@ export default function CourseDetailPage() {
                             {Math.round(score)}%
                           </Badge>
                         )}
-                        <a href={`/student/kuis/${q.id}`}><Button size="sm">{isCompleted ? 'View Result' : 'Start'}</Button></a>
+                        <a href={`/student/kuis/${q.id}`}><Button size="sm">{isCompleted ? t('student1.courseDetail.viewResult') : t('student1.courseDetail.startQuiz')}</Button></a>
                       </div>
                     </div>
                   )
@@ -1268,7 +1268,7 @@ export default function CourseDetailPage() {
               {discussions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <MessageCircle className="h-12 w-12 text-muted mb-3" />
-                  <p className="text-sm text-on-surface-variant">No discussion posts yet. Start a conversation!</p>
+                  <p className="text-sm text-on-surface-variant">{t('student1.courseDetail.noDiscussion')}</p>
                 </div>
               ) : (
                 discussions.map((post) => (
@@ -1285,7 +1285,7 @@ export default function CourseDetailPage() {
                             {getInitials(post.user?.display_name || '?')}
                           </div>
                         )}
-                        <span className="text-sm font-medium text-on-surface">{post.user?.display_name || 'Unknown'}</span>
+                        <span className="text-sm font-medium text-on-surface">{post.user?.display_name || t('student1.courseDetail.unknownUser')}</span>
                         <span className="text-xs text-muted">{formatDate(post.created_at, dateLocale)}</span>
                         {post.is_pinned && <Pin className="h-3 w-3 text-amber-400" />}
                       </div>
@@ -1293,7 +1293,7 @@ export default function CourseDetailPage() {
                       <div className="mt-2 flex items-center gap-3 text-xs text-muted">
                         <span className="flex items-center gap-1">
                           <MessageSquare className="h-3 w-3" />
-                          {post.reply_count || 0} replies
+                          {t('student1.courseDetail.repliesCount', { count: post.reply_count || 0 })}
                         </span>
                         <span className="flex items-center gap-1">
                           {expandedDiscussion === post.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -1307,10 +1307,10 @@ export default function CourseDetailPage() {
                           {loadingReplies[post.id] ? (
                             <div className="flex items-center gap-2 text-sm text-muted">
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              Loading replies...
+                              {t('student1.diskusi.loadingReplies')}
                             </div>
                           ) : discussionReplies[post.id]?.length === 0 ? (
-                            <p className="text-sm text-muted">No replies yet.</p>
+                            <p className="text-sm text-muted">{t('student1.courseDetail.noReplies')}</p>
                           ) : (
                             discussionReplies[post.id]?.map((reply) => (
                               <div key={reply.id} className="flex gap-3">
@@ -1326,7 +1326,7 @@ export default function CourseDetailPage() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium text-on-surface">
-                                      {reply.user?.display_name || 'Unknown'}
+                                      {reply.user?.display_name || t('student1.courseDetail.unknownUser')}
                                     </span>
                                     <span className="text-[10px] text-muted">{formatDate(reply.created_at, dateLocale)}</span>
                                   </div>
@@ -1352,7 +1352,7 @@ export default function CourseDetailPage() {
                               <div className="flex-1 space-y-2">
                                 <textarea
                                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-on-surface placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
-                                  placeholder="Write a reply..."
+                                  placeholder={t('student1.courseDetail.replyPlaceholder')}
                                   rows={2}
                                   value={replyText[post.id] || ''}
                                   onChange={(e) => setReplyText(prev => ({ ...prev, [post.id]: e.target.value }))}
@@ -1368,7 +1368,7 @@ export default function CourseDetailPage() {
                                     ) : (
                                       <Send className="h-3 w-3 mr-1" />
                                     )}
-                                    Reply
+                                    {t('student1.courseDetail.replyBtn')}
                                   </Button>
                                 </div>
                               </div>
@@ -1389,17 +1389,17 @@ export default function CourseDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-surface border border-border shadow-2xl">
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <h2 className="text-lg font-semibold text-on-surface">New Discussion Post</h2>
+              <h2 className="text-lg font-semibold text-on-surface">{t('student1.courseDetail.newPostTitle')}</h2>
               <Button variant="ghost" size="sm" onClick={() => setShowNewPost(false)}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1.5">Content</label>
+                <label className="block text-sm font-medium text-on-surface mb-1.5">{t('student1.courseDetail.contentLabel')}</label>
                 <textarea
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-on-surface placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
-                  placeholder="What's on your mind?"
+                  placeholder={t('student1.courseDetail.postPlaceholder')}
                   rows={4}
                   value={newPostContent}
                   onChange={(e) => setNewPostContent(e.target.value)}
@@ -1407,7 +1407,7 @@ export default function CourseDetailPage() {
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
-              <Button variant="ghost" onClick={() => setShowNewPost(false)}>Cancel</Button>
+              <Button variant="ghost" onClick={() => setShowNewPost(false)}>{t('student1.courseDetail.cancelBtn')}</Button>
               <Button
                 onClick={handleNewPost}
                 disabled={!newPostContent.trim() || submittingNewPost}
@@ -1417,7 +1417,7 @@ export default function CourseDetailPage() {
                 ) : (
                   <Send className="h-4 w-4 mr-1" />
                 )}
-                Post
+                {t('student1.courseDetail.postBtn')}
               </Button>
             </div>
           </div>
