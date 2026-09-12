@@ -29,7 +29,8 @@ const COLLAPSED_KEY = 'sidebar-collapsed'
 const navConfig = {
   student: [
     { key: 'sidebar.dashboard', href: '/student/dashboard', icon: LayoutDashboard },
-        { key: 'sidebar.grades', href: '/student/nilai', icon: ClipboardList },
+    { key: 'sidebar.myCourses', href: '/student/kursus', icon: BookOpen },
+    { key: 'sidebar.grades', href: '/student/nilai', icon: ClipboardList },
     { key: 'sidebar.certificates', href: '/student/sertifikat', icon: Award },
     { key: 'sidebar.payment', href: '/student/pembayaran', icon: FileText },
     { key: 'sidebar.placementTest', href: '/student/placement-test', icon: FileText },
@@ -43,6 +44,7 @@ const navConfig = {
     { key: 'sidebar.meetings', href: '/teacher/pertemuan', icon: CalendarDays },
     { key: 'sidebar.materials', href: '/teacher/materi', icon: GraduationCap },
     { key: 'sidebar.quiz', href: '/teacher/quiz', icon: FileText },
+    { key: 'sidebar.assignments', href: '/teacher/penugasan', icon: ClipboardList },
     { key: 'sidebar.grades', href: '/teacher/nilai', icon: BarChart3 },
     { key: 'sidebar.certificates', href: '/teacher/sertifikat', icon: Award },
     { key: 'sidebar.calendar', href: '/teacher/kalender', icon: Calendar },

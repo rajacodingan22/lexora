@@ -201,6 +201,8 @@ export interface Assignment {
   status: string
   created_at: string
   updated_at: string
+  submission_kind: 'file' | 'video' | 'text_inline'
+  allowed_file_types: string[]
 }
 
 export interface Submission {
@@ -215,6 +217,14 @@ export interface Submission {
   feedback: string | null
   graded_by: string | null
   graded_at: string | null
+  answer_text: string | null
+  drive_file_id: string | null
+  drive_link: string | null
+  file_name: string | null
+  storage_kind: 'drive' | 'temp'
+  expires_at: string | null
+  purged_at: string | null
+  reminded_at: string | null
 }
 
 export interface AssignmentGrade {
@@ -502,5 +512,17 @@ export interface BatchmateProfile {
   course_id: string
   batch_id: string
   batch_name: string | null
+}
+
+export interface BatchmateCertificate {
+  id: string
+  user_id: string
+  course_id: string
+  certificate_code: string
+  issue_date: string
+  pdf_url: string | null
+  language_code: string
+  status: string
+  course_title: { id: string; en: string } | null
 }
 

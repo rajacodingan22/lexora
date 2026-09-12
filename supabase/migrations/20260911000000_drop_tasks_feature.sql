@@ -6,14 +6,16 @@ select cron.unschedule('overdue-tasks-check') where exists (select 1 from cron.j
 select cron.unschedule('project-2weeks') where exists (select 1 from cron.job where jobname = 'project-2weeks');
 
 -- 1. Drop fungsi yang hanya hidup untuk tasks
-drop function if exists public.notify_overdue_tasks();
-drop function if exists public.notify_project_two_weeks();
-drop function if exists public.calculate_grade_for_task(uuid);
-drop function if exists public.recalc_grade_on_student_task();
-drop function if exists public.recalc_grade_on_task_progress();
-drop function if exists public.update_speaking_review_updated_at();
-drop function if exists public.set_dialog_updated_at();
-drop function if exists public.set_dialog_sessions_updated_at();
+-- (CASCADE: trigger di tabel tasks bergantung pada fungsi-fungsi ini,
+--  tabelnya sendiri di-drop pada langkah 2)
+drop function if exists public.notify_overdue_tasks() cascade;
+drop function if exists public.notify_project_two_weeks() cascade;
+drop function if exists public.calculate_grade_for_task(uuid) cascade;
+drop function if exists public.recalc_grade_on_student_task() cascade;
+drop function if exists public.recalc_grade_on_task_progress() cascade;
+drop function if exists public.update_speaking_review_updated_at() cascade;
+drop function if exists public.set_dialog_updated_at() cascade;
+drop function if exists public.set_dialog_sessions_updated_at() cascade;
 
 -- 2. Drop tabel tasks (CASCADE membersihkan policy + trigger yang menempel)
 drop table if exists public.dialog_script_submissions cascade;

@@ -18,6 +18,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useI18n } from '@/lib/i18n/client'
 import { cn, timeAgo, buildTeacherIdByCourse, filterByTeacher, getMeetingPhase, isMeetingLinkOpen, minutesUntilJoinable } from '@/lib/utils'
 import { renderNotification } from '@/lib/notif-text'
+import { DriveConnectCard } from '@/components/student/drive-connect-card'
 import { motion } from 'framer-motion'
 import { Flag } from '@/components/ui/flag'
 import { normalizeTier } from '@/lib/course-catalog'
@@ -63,6 +64,22 @@ export default function StudentDashboard() {
   const [placementResult, setPlacementResult] = useState<{ level: string; language_code: string } | null>(null)
   const [placementLanguage, setPlacementLanguage] = useState<{ flag_emoji: string; name: string } | null>(null)
   const [placementLoading, setPlacementLoading] = useState(true)
+  const [showDriveBanner, setShowDriveBanner] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('drive-banner-dismissed') === '1') return
+    } catch { return }
+    fetch('/api/drive/status')
+      .then(r => r.json())
+      .then(st => { if (!st?.connected) setShowDriveBanner(true) })
+      .catch(() => {})
+  }, [])
+
+  function dismissDriveBanner() {
+    try { localStorage.setItem('drive-banner-dismissed', '1') } catch {}
+    setShowDriveBanner(false)
+  }
   const [trialState, setTrialState] = useState<'none' | 'active' | 'waiting' | 'checking'>('checking')
   const [claiming, setClaiming] = useState(false)
 
@@ -205,6 +222,16 @@ export default function StudentDashboard() {
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+      {showDriveBanner && (
+        <motion.div variants={itemVariants}>
+          <DriveConnectCard />
+          <div className="mt-2 text-right">
+            <button onClick={dismissDriveBanner} className="text-xs text-muted hover:text-indigo-400 underline underline-offset-2">
+              {t('student1.dashboard.driveLater')}
+            </button>
+          </div>
+        </motion.div>
+      )}
       {/* Hero Section */}
       <motion.div variants={itemVariants}>
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900/60 via-purple-900/40 to-slate-900/80 border border-indigo-500/20 p-6 sm:p-8">
@@ -673,7 +700,7 @@ export default function StudentDashboard() {
                     <button key={n.id} onClick={async () => {
                       try { if (!n.is_read) await fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) }) } catch {}
                       if (n.link) {
-                        const dead = n.link.startsWith('/student/kursus') || n.link.startsWith('/student/progress') || n.link.startsWith('/admin/learning') || n.link.startsWith('/admin/tasks')
+                        const dead = n.link.startsWith('/student/progress') || n.link.startsWith('/admin/learning') || n.link.startsWith('/admin/tasks')
                         window.location.href = dead ? '/student/dashboard' : n.link
                       }
                     }} className="flex w-full items-start gap-3 group cursor-pointer hover:bg-surface-container-low rounded-lg p-2 -mx-2 transition-colors text-left">
