@@ -141,7 +141,10 @@ export interface BatchRange {
 /**
  * Batch-specific session filter: jumlah link Zoom ngikutin jumlah pertemuan di batch.
  * Urutan: 1) batch_id eksplisit (robust, anti-overlap), 2) range start_date..end_date
- * (legacy rows yang batch_id-nya null), 3) semua sesi (preview / fallback).
+ * Urutan: 1) batch_id eksplisit + sesi tanpa batch (tanpa batch = untuk semua batch,
+ * agar jadwal admin yang belum/lupa diisi batch tetap terlihat, bukan hilang diam-diam),
+ * 2) range start_date..end_date (legacy: semua rows batch_id-nya null),
+ * 3) semua sesi (preview / fallback).
  */
 export function filterSessionsByBatch<T extends MeetingTimeWindow & { batch_id?: string | null }>(
   sessions: T[],
@@ -150,7 +153,8 @@ export function filterSessionsByBatch<T extends MeetingTimeWindow & { batch_id?:
 ): T[] {
   if (!isEnrolled || !batch?.id) return sessions
   const byBatch = sessions.filter(s => s.batch_id === batch.id)
-  if (byBatch.length > 0) return byBatch
+  const unassigned = sessions.filter(s => s.batch_id == null)
+  if (byBatch.length > 0) return [...byBatch, ...unassigned]
   if (!batch?.start_date) return sessions
   const start = new Date(batch.start_date).getTime()
   const end = batch.end_date ? new Date(batch.end_date).getTime() : null

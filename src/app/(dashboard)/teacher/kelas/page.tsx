@@ -108,6 +108,13 @@ export default function TeacherKelasPage() {
 
       const myCourseIds = new Set((myCTs || []).map(ct => ct.course_id))
 
+      // Batch yang diajar guru ini (via junction batch_teachers)
+      const { data: teamRows } = await supabaseLocal
+        .from('batch_teachers')
+        .select('batch_id')
+        .eq('teacher_id', teacherId)
+      const myBatchIds = ((teamRows || []) as { batch_id: string }[]).map(r => r.batch_id)
+
       const { data: allCourses } = await supabaseLocal
         .from('courses')
         .select('*, level:language_levels(name, code, tier), program:programs(tier, track_type, details)')
@@ -122,7 +129,9 @@ export default function TeacherKelasPage() {
       const [enrollmentsData, batchesData, myBatchesData, sessionsData] = await Promise.all([
         supabaseLocal.from('enrollments').select('course_id').in('course_id', allCourseIds).eq('status', 'active'),
         supabaseLocal.from('batches').select('course_id, status, capacity, current_students, start_date').in('course_id', allCourseIds),
-        supabaseLocal.from('batches').select('id, course_id, name, status, capacity, current_students, start_date, end_date, meetings_per_week').eq('teacher_id', teacherId).order('start_date', { ascending: true }).order('created_at', { ascending: true }),
+        myBatchIds.length > 0
+          ? supabaseLocal.from('batches').select('id, course_id, name, status, capacity, current_students, start_date, end_date, meetings_per_week').in('id', myBatchIds).order('start_date', { ascending: true }).order('created_at', { ascending: true })
+          : Promise.resolve({ data: [] }),
         supabaseLocal.from('live_sessions').select('course_id').in('course_id', myCourseIdArr).in('status', ['scheduled','ongoing','completed']),
       ])
 

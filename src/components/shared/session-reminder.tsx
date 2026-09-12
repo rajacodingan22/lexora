@@ -95,6 +95,46 @@ export function SessionReminder({ role }: Props) {
   const [showWelcome, setShowWelcome] = useState(false)
   const [coursesMap, setCoursesMap] = useState<Record<string, { title: string; flag?: string }>>({})
 
+  function dismissStoredUntil(id: string): number {
+    try {
+      return Number(localStorage.getItem(`lexora-dismissed-session-${id}`) || 0)
+    } catch { return 0 }
+  }
+
+  function sessionEndMs(s: LiveSession): number {
+    const start = s.starts_at ? new Date(s.starts_at).getTime() : Date.now()
+    if (Number.isNaN(start)) return Date.now()
+    const dur = (s.duration_minutes && s.duration_minutes > 0 ? s.duration_minutes : 60) * 60000
+    return start + dur
+  }
+
+  // Tutup popup: tidak muncul lagi untuk sesi ini (persisten sampai sesi berakhir),
+  // gantinya satu notifikasi bel (dedup agar tidak spam).
+  const dismissSession = useCallback(async (s: LiveSession) => {
+    setDismissed(prev => new Set(prev).add(s.id))
+    try { localStorage.setItem(`lexora-dismissed-session-${s.id}`, String(sessionEndMs(s))) } catch {}
+    if (!user) return
+    try {
+      const notifKey = `lexora-notified-session-${s.id}`
+      if (localStorage.getItem(notifKey)) return
+      localStorage.setItem(notifKey, '1')
+      const link = role === 'teacher'
+        ? `/teacher/kelas/${s.course_id}`
+        : role === 'admin'
+          ? '/admin/jadwal'
+          : `/student/kursus/${s.course_id}`
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        type: 'info',
+        title: 'Sesi Kelas',
+        body: `${s.title || 'Sesi Kelas'} — catat pengingat ini di notifikasi.`,
+        link,
+        template_key: 'sessionUpcoming',
+        params: { sessionId: s.id, courseId: s.course_id },
+      })
+    } catch {}
+  }, [user, role, supabase])
+
   const checkSessions = useCallback(async () => {
     if (!user) return
     try {
@@ -152,6 +192,7 @@ export function SessionReminder({ role }: Props) {
       const nowDate = new Date()
       for (const s of (sessions || []) as LiveSession[]) {
         if (dismissed.has(s.id)) continue
+        if (dismissStoredUntil(s.id) > nowDate.getTime()) continue
         const phase = getMeetingPhase(s, nowDate)
         if (phase === 'upcoming' || phase === 'ongoing') {
           setActiveSession(s)
@@ -247,7 +288,7 @@ export function SessionReminder({ role }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={() => setDismissed(prev => new Set(prev).add(activeSession.id))}
+            onClick={() => { if (activeSession) dismissSession(activeSession) }}
           >
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -299,13 +340,19 @@ export function SessionReminder({ role }: Props) {
                     </>
                   )}
                 </div>
-                <button onClick={() => setDismissed(prev => new Set(prev).add(activeSession.id))} className="text-muted hover:text-on-surface shrink-0">
+                <button onClick={() => { if (activeSession) dismissSession(activeSession) }} className="text-muted hover:text-on-surface shrink-0">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="mt-3 flex gap-2">
                 {isJoinable && activeSession.meeting_link ? (
-                  <a href={activeSession.meeting_link} target="_blank" rel="noopener noreferrer" className="flex-1">
+                  <a
+                    href={activeSession.meeting_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1"
+                    onClick={() => dismissSession(activeSession)}
+                  >
                     <Button size="sm" className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600">
                       <Video className="mr-1.5 h-3.5 w-3.5" /> Join Sekarang 🔥
                     </Button>
@@ -315,7 +362,7 @@ export function SessionReminder({ role }: Props) {
                     <Clock className="mr-1.5 h-3.5 w-3.5" /> {countdown > 0 ? `Tunggu ${countdown} menit` : 'Link belum tersedia'}
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => setDismissed(prev => new Set(prev).add(activeSession.id))}>
+                <Button size="sm" variant="ghost" onClick={() => { if (activeSession) dismissSession(activeSession) }}>
                   Nanti aja
                 </Button>
               </div>

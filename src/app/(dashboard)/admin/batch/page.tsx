@@ -31,7 +31,6 @@ interface Batch {
   start_date: string
   end_date: string
   status: string
-  teacher_id: string | null
   zoom_link: string | null
 }
 
@@ -69,6 +68,7 @@ export default function AdminBatchPage() {
   const [deleteError, setDeleteError] = useState('')
   const [teachers, setTeachers] = useState<TeacherOption[]>([])
   const [assigning, setAssigning] = useState<Record<string, string>>({})
+  const [batchTeams, setBatchTeams] = useState<Record<string, string[]>>({})
 
   useEffect(() => { fetchData() }, [])
 
@@ -119,6 +119,22 @@ export default function AdminBatchPage() {
           map[c.id] = courseBatches
         }
         setBatchesMap(map)
+
+        // Batch-fetch tim guru per batch (junction batch_teachers)
+        if (batchIds.length > 0) {
+          const { data: teamRows } = await supabase
+            .from('batch_teachers')
+            .select('batch_id, teacher_id')
+            .in('batch_id', batchIds)
+          const teams: Record<string, string[]> = {}
+          for (const r of ((teamRows || []) as { batch_id: string; teacher_id: string }[])) {
+            if (!teams[r.batch_id]) teams[r.batch_id] = []
+            if (!teams[r.batch_id].includes(r.teacher_id)) teams[r.batch_id].push(r.teacher_id)
+          }
+          setBatchTeams(teams)
+        } else {
+          setBatchTeams({})
+        }
       }
 
       const { data: teacherUsers } = await supabase
@@ -249,11 +265,13 @@ export default function AdminBatchPage() {
     fetchData()
   }
 
-  async function handleAssignTeacher(batch: Batch, teacherId: string) {
+  async function handleAddTeacher(batch: Batch, teacherId: string) {
     if (!teacherId || !teachers.length) return
     setAssigning(prev => ({ ...prev, [batch.id]: teacherId }))
     setDeleteError('')
-    const { error } = await supabase.from('batches').update({ teacher_id: teacherId }).eq('id', batch.id)
+    const { error } = await supabase
+      .from('batch_teachers')
+      .insert({ batch_id: batch.id, teacher_id: teacherId })
     if (error) {
       setDeleteError(error.message)
       setAssigning(prev => { const next = { ...prev }; delete next[batch.id]; return next })
@@ -278,6 +296,21 @@ export default function AdminBatchPage() {
       }
     }
     setAssigning(prev => { const next = { ...prev }; delete next[batch.id]; return next })
+    fetchData()
+  }
+
+  async function handleRemoveTeacher(batch: Batch, teacherId: string) {
+    setDeleteError('')
+    const { error } = await supabase
+      .from('batch_teachers')
+      .delete()
+      .eq('batch_id', batch.id)
+      .eq('teacher_id', teacherId)
+    if (error) {
+      setDeleteError(error.message)
+      return
+    }
+    writeAudit(supabase, 'batch.unassign_teacher', { batch_id: batch.id, course_id: batch.course_id, teacher_id: teacherId })
     fetchData()
   }
 
@@ -390,11 +423,16 @@ export default function AdminBatchPage() {
                               </div>
                             </div>
                             {(() => {
-                              const teacher = teachers.find(t => t.id === batch.teacher_id)
+                              const teamIds = batchTeams[batch.id] || []
+                              const team = teamIds
+                                .map(id => teachers.find(t => t.id === id))
+                                .filter((x): x is TeacherOption => !!x)
+                              const available = teachers.filter(t => !teamIds.includes(t.id))
                               const pickValue = assigning[batch.id] ?? ''
-                              if (!teacher) {
-                                return (
-                                  <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+                              const hasTeam = team.length > 0
+                              return (
+                                <div className={`mb-3 rounded-lg border p-3 space-y-2 ${hasTeam ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-amber-500/40 bg-amber-500/10'}`}>
+                                  {!hasTeam && (
                                     <div className="flex items-start gap-2">
                                       <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
                                       <div>
@@ -404,39 +442,38 @@ export default function AdminBatchPage() {
                                         </p>
                                       </div>
                                     </div>
-                                    <Select
-                                      value={pickValue}
-                                      onChange={e => handleAssignTeacher(batch, e.target.value)}
-                                      className="w-full text-sm"
-                                    >
-                                      <option value="">{t('admin1.batch.selectTeacherPlaceholder')}</option>
-                                      {teachers.map(t => (
-                                        <option key={t.id} value={t.id}>{t.display_name}</option>
+                                  )}
+                                  {hasTeam && (
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <GraduationCap className="h-3.5 w-3.5 text-emerald-300" />
+                                      <span className="text-xs text-emerald-300 mr-1">{t('admin1.batch.teacherLabel')}:</span>
+                                      {team.map(m => (
+                                        <span key={m.id} className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-200">
+                                          {m.display_name}
+                                          <button
+                                            onClick={() => handleRemoveTeacher(batch, m.id)}
+                                            className="hover:text-red-300"
+                                            title={t('admin1.batch.unassignTeacher')}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        </span>
                                       ))}
-                                    </Select>
-                                  </div>
-                                )
-                              }
-                              if (teacher) {
-                                return (
-                                  <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
-                                    <span className="flex items-center gap-1.5 text-xs text-emerald-300">
-                                      <GraduationCap className="h-3.5 w-3.5" />
-                                      {t('admin1.batch.teacherLabel')}: {teacher.display_name}
-                                    </span>
-                                    <Select
-                                      value={pickValue || batch.teacher_id || ''}
-                                      onChange={e => handleAssignTeacher(batch, e.target.value)}
-                                      className="w-44 text-xs"
-                                    >
-                                      {teachers.map(t => (
-                                        <option key={t.id} value={t.id}>{t.display_name}</option>
-                                      ))}
-                                    </Select>
-                                  </div>
-                                )
-                              }
-                              return null
+                                    </div>
+                                  )}
+                                  <Select
+                                    value={pickValue}
+                                    onChange={e => handleAddTeacher(batch, e.target.value)}
+                                    className="w-full text-sm"
+                                    disabled={available.length === 0}
+                                  >
+                                    <option value="">{t('admin1.batch.selectTeacherPlaceholder')}</option>
+                                    {available.map(t => (
+                                      <option key={t.id} value={t.id}>{t.display_name}</option>
+                                    ))}
+                                  </Select>
+                                </div>
+                              )
                             })()}
                             <div className="flex items-center gap-3">
                               <div className="flex-1">

@@ -56,9 +56,9 @@ describe('filterSessionsByBatch (link count follows batch pertemuan)', () => {
     { id: 's4', starts_at: '2026-09-24T10:00:00Z', duration_minutes: 60, batch_id: null },
   ] as any[]
 
-  it('prefers explicit batch_id (anti-overlap)', () => {
+  it('prefers explicit batch_id (anti-overlap) + keeps unassigned visible', () => {
     const out = filterSessionsByBatch(sessions, { id: 'b1', start_date: '2026-09-01', end_date: '2026-09-30' }, true)
-    expect(out.map(s => s.id)).toEqual(['s1', 's2'])
+    expect(out.map(s => s.id)).toEqual(['s1', 's2', 's4'])
   })
   it('falls back to date range for legacy rows', () => {
     const legacy = sessions.map(s => ({ ...s, batch_id: null }))
