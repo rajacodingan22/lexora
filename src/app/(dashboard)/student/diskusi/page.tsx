@@ -14,7 +14,7 @@ import { formatDate } from '@/lib/utils'
 import {
   MessageCircle, Plus, Clock, MessageSquare, Filter, X,
   ChevronDown, ChevronUp, ImageIcon, Send, Pin, Lock,
-  AtSign, Loader2, UserCircle, Paperclip
+  AtSign, Loader2, UserCircle, Paperclip, Trash2
 } from 'lucide-react'
 import type { User } from '@/types'
 
@@ -66,6 +66,7 @@ export default function StudentDiskusiPage() {
   const [submitting, setSubmitting] = useState(false)
 
   const isTeacher = authUser?.role === 'teacher'
+  const isStaff = isTeacher || authUser?.role === 'admin'
 
   const fetchDiscussions = useCallback(async () => {
     if (!authUser) return
@@ -340,6 +341,17 @@ export default function StudentDiskusiPage() {
     ))
   }
 
+  async function softDelete(discussion: DiscussionWithMeta) {
+    if (!window.confirm(t('student1.diskusi.deleteConfirm'))) return
+    const { error } = await supabase
+      .from('discussion_posts')
+      .update({ is_deleted: true })
+      .eq('id', discussion.id)
+    if (!error) {
+      setDiscussions(prev => prev.filter(d => d.id !== discussion.id))
+    }
+  }
+
   function getInitials(name: string) {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
   }
@@ -489,7 +501,7 @@ export default function StudentDiskusiPage() {
 
               {expandedId === post.id && (
                 <div className="border-t border-border bg-surface-container-lowest">
-                  {isTeacher && (
+                  {isStaff && (
                     <div className="flex items-center gap-2 px-5 pt-3">
                       <Button
                         size="sm"
@@ -506,6 +518,14 @@ export default function StudentDiskusiPage() {
                       >
                         <Lock className="h-3 w-3 mr-1" />
                         {post.is_locked ? 'Open' : 'Close'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => softDelete(post)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1 text-red-400" />
+                        {t('student1.diskusi.delete')}
                       </Button>
                     </div>
                   )}

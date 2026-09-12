@@ -51,6 +51,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Content is required and must be under 10000 characters' }, { status: 400 })
     }
 
+    if (parent_id) {
+      if (typeof parent_id !== 'string') {
+        return NextResponse.json({ error: 'parent_id must be a string' }, { status: 400 })
+      }
+      const { data: parent } = await supabase
+        .from('discussion_posts')
+        .select('id, course_id, is_locked, is_deleted')
+        .eq('id', parent_id)
+        .maybeSingle()
+      if (!parent || parent.course_id !== course_id) {
+        return NextResponse.json({ error: 'Parent post not found in this course' }, { status: 403 })
+      }
+      if (parent.is_locked || parent.is_deleted) {
+        return NextResponse.json({ error: 'Thread is closed' }, { status: 403 })
+      }
+    }
+
     const { data, error } = await supabase
       .from('discussion_posts')
       .insert({
